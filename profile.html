@@ -24,7 +24,7 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
   <div class="sp-bar"><span></span></div>
 </div>
 <noscript><style>#splash{display:none}</style></noscript>
-<header class="nav"><div class="wrap"><a class="logo" href="index.html"><span class="lm"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><ellipse cx="6.5" cy="9.5" rx="2" ry="2.7"/><ellipse cx="11" cy="5.8" rx="2" ry="2.7"/><ellipse cx="16.5" cy="6.2" rx="2" ry="2.7"/><ellipse cx="20" cy="11" rx="1.8" ry="2.4"/><path d="M12.3 11.2c-3 0-6 3.6-6 6.3 0 1.9 1.5 2.9 3.2 2.9 1.2 0 1.8-.5 2.8-.5s1.6.5 2.8.5c1.7 0 3.2-1 3.2-2.9 0-2.7-3-6.3-6-6.3z"/></svg></span><span>DogFlow Auto Gen</span></a><div class="grow"></div><a class="btn ghost sm" href="index.html">← กลับหน้าร้าน</a><button class="btn ghost sm" id="out">🚪 ออกจากระบบ</button></div></header>
+<header class="nav"><div class="wrap"><a class="logo" href="index.html"><span class="lm"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><ellipse cx="6.5" cy="9.5" rx="2" ry="2.7"/><ellipse cx="11" cy="5.8" rx="2" ry="2.7"/><ellipse cx="16.5" cy="6.2" rx="2" ry="2.7"/><ellipse cx="20" cy="11" rx="1.8" ry="2.4"/><path d="M12.3 11.2c-3 0-6 3.6-6 6.3 0 1.9 1.5 2.9 3.2 2.9 1.2 0 1.8-.5 2.8-.5s1.6.5 2.8.5c1.7 0 3.2-1 3.2-2.9 0-2.7-3-6.3-6-6.3z"/></svg></span><span>DogFlow Auto Gen</span></a><div class="grow"></div><a class="btn ghost sm" href="#aff">🪪 ตัวแทนขาย</a><a class="btn ghost sm" href="index.html">← กลับหน้าร้าน</a><button class="btn ghost sm" id="out">🚪 ออกจากระบบ</button></div></header>
 
 <div class="wrap" id="guest" hidden><div class="box" style="margin-top:30px;text-align:center"><h3>🔐 กรุณาเข้าสู่ระบบ</h3><p style="color:var(--mut)">เข้าสู่ระบบจากหน้าร้านก่อน แล้วกลับมาที่หน้านี้</p><a class="btn" href="index.html">ไปหน้าร้าน</a></div></div>
 
@@ -40,6 +40,11 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
     <div class="box" id="notices"><h3>🔔 การแจ้งเตือน <span class="tag err" id="unr" hidden></span></h3><div id="nlist"></div><button class="btn ghost sm" id="readAll" style="margin-top:8px">ทำเครื่องหมายว่าอ่านทั้งหมด</button></div>
     <div class="box"><h3>🔑 License key ของฉัน</h3><p style="color:var(--mut);font-size:14px;margin-top:0">คีย์จะปรากฏที่นี่อัตโนมัติเมื่อแอดมินยืนยันการชำระเงินแล้ว — นำไปใส่ในโปรแกรมเพื่อเปิดใช้งาน</p><div id="keys"></div></div>
     <div class="box" id="downloads"><h3>💿 ดาวน์โหลดโปรแกรม</h3><div id="dlist"></div><div id="dlguide"></div></div>
+    <div class="box" id="aff" hidden>
+      <div class="aff-hd"><h3>🪪 ตัวแทนขายโปรแกรม</h3><span class="aff-pill" id="affPill" hidden></span></div>
+      <p style="color:var(--mut);font-size:14px;margin:0 0 10px">สมาชิกทุกคนแชร์ลิงก์แนะนำได้ทันที รับค่าคอมแบบคงที่ตามแพ็กเกจที่ลูกค้าซื้อ</p>
+      <div id="affBody"></div>
+    </div>
     <div class="box"><h3>📦 ประวัติการสั่งซื้อ</h3><div id="orders"></div></div>
   </main>
 </div>
@@ -77,6 +82,7 @@ function render() {
       <button class="btn ${i === 0 ? 'gold' : 'ghost'} sm" data-dl="${E(r.id)}">⬇ ดาวน์โหลด</button></div>`).join('')
     : keys.length ? '<p style="color:var(--mut)">ยังไม่มีไฟล์ให้ดาวน์โหลดในตอนนี้ (หรือสิทธิ์/อายุคีย์หมดแล้ว) — หากมีปัญหาติดต่อแอดมิน</p>' : '<p style="color:var(--mut)">ดาวน์โหลดได้เมื่อมี License ที่ใช้งานได้ — <a href="index.html#shop" style="color:var(--cyan)">เลือกซื้อแพ็กเกจ</a></p>';
   const guide = DB.settings().installGuide; $('#dlguide').innerHTML = can && guide ? `<details open style="margin-top:10px"><summary>📖 วิธีติดตั้งและเริ่มใช้งาน</summary><div style="white-space:pre-line;color:var(--mut);font-size:14px;margin-top:6px">${E(guide)}</div></details>` : '';
+  paintAff();
   $('#orders').innerHTML = orders.map((o) => `<div style="border:1px solid var(--line);border-radius:12px;padding:12px;margin:10px 0">
     <div class="row"><b>${E(o.id)}</b><span class="tag ${ST[o.status][1]}">${ST[o.status][0]}</span></div>
     <div style="font-size:13px;color:var(--mut)">${new Date(o.createdAt).toLocaleString('th-TH')} · ${o.items.map((i) => E(i.name) + '×' + i.qty).join(', ')}</div>
@@ -86,6 +92,57 @@ function render() {
     ${o.status === 'rejected' && o.payment ? `<div class="errs" style="display:block">${E(o.payment.reviewNote)}</div>` : ''}
     ${o.status === 'paid' && o.keyStatus === 'pending' ? '<div class="errs" style="display:block">ชำระแล้ว กำลังออกคีย์ — หากไม่ขึ้นภายใน 5 นาทีทักไลน์</div>' : ''}</div>`).join('') || '<p style="color:var(--mut)">ยังไม่มีออเดอร์ · <a href="index.html#shop" style="color:var(--cyan)">เลือกซื้อสินค้า</a></p>';
 }
+/* ===== 🪪 ตัวแทนขายโปรแกรม — ตัวเลขทุกตัวมาจากฐานข้อมูล (aff_overview) ไม่คำนวณเองในเบราว์เซอร์ ===== */
+const D8 = (t) => (t ? new Date(t).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' }) : '—');
+const AST = { pending: ['รอพักตามกำหนด', 'pending'], available: ['ถอนได้', 'okk'], requested: ['ขอถอนแล้ว', 'paid'], paid: ['จ่ายแล้ว', 'done'], void: ['ยกเลิก', 'cancelled'] };
+const PST = { requested: ['รอแอดมินโอน', 'paid'], paid: ['โอนแล้ว', 'done'], rejected: ['ไม่ผ่าน', 'cancelled'] };
+const affLink = (code) => new URL('./?ref=' + encodeURIComponent(code), location.href).href;
+let affSig = '';
+function paintAff() {
+  const box = $('#aff'), a = DB.aff && DB.aff();
+  if (DB.mode !== 'supabase' || !a) { box.hidden = true; return; } box.hidden = false;
+  const ae = document.activeElement; if (ae && box.contains(ae) && /^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName) && ae.id !== 'affUrl') return;  // กำลังพิมพ์อยู่ ไม่วาดทับ
+  const sig = JSON.stringify(a); if (sig === affSig) return; affSig = sig;
+  const st = a.stats, rates = a.rates || [], pi = a.payoutInfo || {}, open = (a.payouts || []).find((x) => x.status === 'requested');
+  const lo = rates.length ? Math.min(...rates.map((r) => r.commission)) : 0, hi = rates.length ? Math.max(...rates.map((r) => r.commission)) : 0;
+  $('#affPill').hidden = !rates.length; $('#affPill').textContent = 'ระบบแนะนำสมาชิก · รับ ' + (lo === hi ? B(lo) : B(lo) + ' – ' + B(hi)) + ' ตามแพ็กเกจ';
+  const boughtN = (a.referrals || []).filter((r) => r.bought).length, can = a.enabled && !a.blocked, short = Math.max(0, a.minPayout - st.available);
+  $('#affBody').innerHTML =
+    (a.blocked ? '<div class="aff-note">⛔ สิทธิ์ตัวแทนขายของคุณถูกระงับ' + (a.blockReason ? ' — ' + E(a.blockReason) : '') + ' · ติดต่อแอดมินหากต้องการสอบถาม</div>' : '')
+    + (!a.enabled ? '<div class="aff-note">⏸ ระบบตัวแทนขายปิดให้บริการชั่วคราว — ค่าคอมที่สะสมไว้ยังอยู่ครบ</div>' : '')
+    + '<h4 style="margin:14px 0 6px">🔗 ลิงก์แนะนำของคุณ</h4><div class="aff-link"><input id="affUrl" readonly value="' + E(affLink(a.code)) + '" aria-label="ลิงก์แนะนำ"><button class="btn sm" data-affcopy>📋 คัดลอกลิงก์</button>' + (navigator.share ? '<button class="btn ghost sm" data-affshare>📤 แชร์</button>' : '') + '</div>'
+    + '<small style="color:var(--mut)">รหัสของคุณ <b style="font-family:var(--mono)">' + E(a.code) + '</b> · ผู้ที่ <b>สมัครสมาชิกใหม่</b> ผ่านลิงก์นี้จะผูกกับคุณถาวร เมื่อเขาซื้อโปรแกรมสำเร็จ คุณได้ค่าคอมตามแพ็กเกจที่เขาซื้อทุกครั้ง</small>'
+    + '<div class="aff-kpi"><div><b>' + B(st.pending) + '</b><span>ค่าคอมที่รอพัก (' + a.holdDays + ' วัน)</span></div><div class="ok"><b>' + B(st.available) + '</b><span>ถอนได้ตอนนี้</span></div><div><b>' + B(st.paid) + '</b><span>จ่ายแล้ว</span></div><div><b>' + st.signups + '</b><span>สมัครผ่านลิงก์ · ซื้อแล้ว ' + boughtN + ' คน</span></div></div>'
+    + '<div style="border-top:1px solid var(--line);padding-top:12px"><h4 style="margin:0 0 6px">💸 ถอนค่าคอม</h4>'
+    + (open ? '<div class="aff-note" style="background:var(--accent-soft);color:var(--accent)">⏳ คำขอถอน ' + B(open.amount) + ' ส่งเมื่อ ' + D8(open.requestedAt) + ' — รอแอดมินโอนเข้าบัญชีที่แจ้งไว้</div>'
+      : '<p style="margin:0 0 8px;color:var(--mut);font-size:14px">ถอนได้ ' + B(st.available) + ' · ขั้นต่ำ ' + B(a.minPayout) + (short > 0 && st.available > 0 ? ' (อีก ' + B(short) + ' ถึงขั้นต่ำ)' : '') + '</p><button class="btn gold sm" data-affwd ' + (can && st.available >= a.minPayout && pi.account ? '' : 'disabled') + '>💸 ขอถอน ' + B(st.available) + '</button>' + (!pi.account ? ' <small style="color:var(--mut)">กรอกข้อมูลรับเงินด้านล่างก่อน</small>' : ''))
+    + '<form id="fAffPay" class="aff-pay" novalidate style="margin-top:12px"><div class="f"><label>วิธีรับเงิน</label><select name="method" style="width:100%"><option value="promptpay"' + (pi.method !== 'bank' ? ' selected' : '') + '>พร้อมเพย์</option><option value="bank"' + (pi.method === 'bank' ? ' selected' : '') + '>โอนเข้าบัญชีธนาคาร</option></select></div>'
+    + '<div class="f" id="affBankRow"' + (pi.method === 'bank' ? '' : ' hidden') + '><label>ชื่อธนาคาร</label><input name="bank" value="' + E(pi.method === 'bank' ? pi.bank : '') + '" placeholder="เช่น กสิกรไทย"></div>'
+    + '<div class="f"><label id="affAccLbl">' + (pi.method === 'bank' ? 'เลขบัญชี' : 'เบอร์พร้อมเพย์ / เลขบัตรประชาชน') + '</label><input name="account" inputmode="numeric" value="' + E(pi.account || '') + '" autocomplete="off"></div>'
+    + '<div class="f"><label>ชื่อบัญชี / ชื่อผู้รับเงิน</label><input name="name" value="' + E(pi.name || '') + '" autocomplete="off"></div><div class="errs full" id="eAffPay"></div><div class="full"><button class="btn ghost sm">💾 บันทึกข้อมูลรับเงิน</button></div></form></div>'
+    + '<div style="border-top:1px solid var(--line);margin-top:14px;padding-top:12px"><h4 style="margin:0 0 4px">📊 อัตราค่าคอม ระบบแนะนำสมาชิก</h4><small style="color:var(--mut)">เรตคงที่ต่อการซื้อ 1 ชิ้น ไม่ขึ้นกับราคาโปรโมชัน · ต่อให้ลูกค้าซื้อหลายครั้งก็ได้ทุกครั้ง</small><div class="aff-rates" style="margin-top:6px">'
+    + (rates.map((r) => '<div><span>' + E(r.name) + '</span><b>' + B(r.commission) + ' ต่อการซื้อ</b></div>').join('') || '<p style="color:var(--mut)">ยังไม่มีแพ็กเกจที่เปิดค่าคอม</p>') + '</div>'
+    + (a.terms ? '<details style="margin-top:8px"><summary>📜 เงื่อนไขตัวแทนขาย</summary><div style="white-space:pre-line;color:var(--mut);font-size:14px;margin-top:6px">' + E(a.terms) + '</div></details>' : '') + '</div>'
+    + '<div style="border-top:1px solid var(--line);margin-top:14px;padding-top:12px"><h4 style="margin:0 0 4px">👥 คนที่สมัครผ่านลิงก์ของคุณ</h4><small style="color:var(--mut)">สมัครผ่านลิงก์ทั้งหมด <b>' + st.signups + '</b> คน · ซื้อโปรแกรมแล้ว <b class="ok">' + boughtN + '</b> คน · ปิดบังชื่อและอีเมลเพื่อความเป็นส่วนตัว</small><div class="aff-rows" style="margin-top:6px">'
+    + ((a.referrals || []).map((r) => '<div><span><b>' + E(r.name) + '</b> <small style="color:var(--mut)">' + E(r.email) + ' · สมัคร ' + D8(r.joinedAt) + '</small></span><span class="tag ' + (r.bought ? 'okk' : 'pending') + '">' + (r.bought ? 'ซื้อแล้ว' : 'ยังไม่ซื้อ') + '</span></div>').join('') || '<div class="aff-empty">ยังไม่มีใครสมัครผ่านลิงก์ — แชร์ลิงก์ด้านบนให้เพื่อนได้เลย</div>') + '</div></div>'
+    + '<div style="border-top:1px solid var(--line);margin-top:14px;padding-top:12px"><h4 style="margin:0 0 6px">📜 ประวัติค่าคอม</h4>'
+    + ((a.commissions || []).length ? '<div class="aff-rows">' + a.commissions.map((c) => { const t = AST[c.state] || [c.state, 'pending'];
+      return '<div><span><b>' + E(c.product) + (c.qty > 1 ? ' ×' + c.qty : '') + '</b> <small style="color:var(--mut)">' + (c.manual ? 'ปรับโดยแอดมิน' : 'ออเดอร์ ' + E(c.orderId)) + ' · ' + D8(c.createdAt) + (c.state === 'pending' ? ' · ถอนได้ ' + D8(c.availableAt) : '') + (c.note ? ' · ' + E(c.note) : '') + '</small></span><span style="white-space:nowrap"><b>' + B(c.amount) + '</b> <span class="tag ' + t[1] + '">' + t[0] + '</span></span></div>'; }).join('') + '</div>'
+      : '<div class="aff-empty"><div style="font-size:34px">📭</div><b>ยังไม่มีค่าคอม</b>เริ่มแชร์ลิงก์ให้เพื่อนได้เลย — เมื่อเพื่อนสมัครผ่านลิงก์แล้วซื้อโปรแกรม ค่าคอมจะมาโชว์ที่นี่</div>')
+    + ((a.payouts || []).length ? '<h4 style="margin:14px 0 6px">🧾 ประวัติการถอน</h4><div class="aff-rows">' + a.payouts.map((p) => { const t = PST[p.status] || [p.status, 'pending'];
+      return '<div><span><b>' + B(p.amount) + '</b> <small style="color:var(--mut)">ขอเมื่อ ' + D8(p.requestedAt) + (p.processedAt ? ' · ดำเนินการ ' + D8(p.processedAt) : '') + (p.transferRef ? ' · อ้างอิง ' + E(p.transferRef) : '') + (p.adminNote ? ' · ' + E(p.adminNote) : '') + '</small></span><span class="tag ' + t[1] + '">' + t[0] + '</span></div>'; }).join('') + '</div>' : '') + '</div>';
+}
+$('#aff').addEventListener('click', async (e) => {
+  const a = DB.aff(); if (!a) return;
+  if (e.target.closest('[data-affcopy]')) { try { await navigator.clipboard.writeText(affLink(a.code)); toast('คัดลอกลิงก์แนะนำแล้ว'); } catch (x) { $('#affUrl').select(); toast('กด Ctrl+C เพื่อคัดลอก'); } }
+  if (e.target.closest('[data-affshare]')) navigator.share({ title: 'DogFlow Auto Gen', text: 'โปรแกรมสร้างคลิปขายของด้วย AI', url: affLink(a.code) }).catch(() => {});
+  const w = e.target.closest('[data-affwd]');
+  if (w && !w.disabled) { if (!confirm('ยืนยันขอถอนค่าคอม ' + B(a.stats.available) + '\nโอนเข้า: ' + ((a.payoutInfo.bank || '') + ' ' + (a.payoutInfo.account || '') + ' (' + (a.payoutInfo.name || '') + ')') + '\n\nตรวจสอบข้อมูลรับเงินให้ถูกต้องก่อนยืนยัน')) return;
+    w.disabled = true; const r = await DB.affRequestPayout(); r.ok ? toast('ส่งคำขอถอน ' + B(r.amount) + ' แล้ว ✔') : (alert(r.errors.join('\n')), (w.disabled = false)); }
+});
+$('#aff').addEventListener('change', (e) => { if (e.target.name === 'method') { const bank = e.target.value === 'bank'; $('#affBankRow').hidden = !bank; $('#affAccLbl').textContent = bank ? 'เลขบัญชี' : 'เบอร์พร้อมเพย์ / เลขบัตรประชาชน'; } });
+$('#aff').addEventListener('submit', async (e) => { if (e.target.id !== 'fAffPay') return; e.preventDefault(); const f = e.target;
+  const r = await DB.affSavePayout({ method: f.method.value, bank: f.bank.value, account: f.account.value, name: f.name.value }); if (r.ok) { affSig = ''; showErr($('#eAffPay'), []); toast('บันทึกข้อมูลรับเงินแล้ว ✔'); } else showErr($('#eAffPay'), r.errors); });
 $('#readAll').onclick = () => DB.markNoticesRead();
 $('#emUpd').onchange = async (e) => { const r = await DB.setEmailUpdates(e.target.checked); r.ok ? toast(e.target.checked ? 'เปิดรับอีเมลแจ้งอัปเดต' : 'ปิดรับอีเมลแจ้งอัปเดตแล้ว (ยังเห็นในโปรไฟล์)') : (alert(r.errors.join('\n')), (e.target.checked = !e.target.checked)); };
 document.addEventListener('click', async (e) => { const d = e.target.closest('[data-dl]'); if (d) { d.disabled = true; const r = await DB.downloadUrl(d.dataset.dl); d.disabled = false; if (!r.ok) return alert(r.errors.join('\n')); const a = document.createElement('a'); a.href = r.url; a.rel = 'noopener'; if (r.fileName) a.download = r.fileName; document.body.appendChild(a); a.click(); a.remove(); toast('เริ่มดาวน์โหลด...'); return; }
@@ -95,7 +152,7 @@ $('#fPw').onsubmit = async (e) => { e.preventDefault(); const f = e.target, r = 
 $('#out').onclick = async () => { await DB.logout(); location.href = 'index.html'; };
 $('#del').onclick = async () => { if (!confirm('ลบบัญชีถาวร?')) return; const r = await DB.deleteMyAccount(); r.ok ? (location.href = 'index.html') : alert(r.errors.join('\n')); };
 window.addEventListener('db:change', render); // แอดมินอนุมัติ → (Supabase Realtime / localStorage event) → คีย์เด้งเข้าอัตโนมัติ
-DB.init().then(render).then(DFCommon.hideSplash).catch((e) => { DFCommon.hideSplash(); document.body.insertAdjacentHTML('afterbegin', '<div style="background:#7f1d1d;color:#fff;padding:14px;text-align:center">เชื่อมต่อฐานข้อมูลไม่สำเร็จ — กรุณารีเฟรช</div>'); console.error(e); });
+DB.init().then(render).then(() => { if (location.hash === '#aff') setTimeout(() => $('#aff').scrollIntoView({ behavior: 'smooth' }), 150); }).then(DFCommon.hideSplash).catch((e) => { DFCommon.hideSplash(); document.body.insertAdjacentHTML('afterbegin', '<div style="background:#7f1d1d;color:#fff;padding:14px;text-align:center">เชื่อมต่อฐานข้อมูลไม่สำเร็จ — กรุณารีเฟรช</div>'); console.error(e); });
 </script>
 </body>
 </html>

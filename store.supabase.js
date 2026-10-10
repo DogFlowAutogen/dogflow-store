@@ -10,30 +10,35 @@
   const C = w.DFCommon, { esc, baht, uid, embed } = C;
   const sb = w.supabase.createClient(CFG.supabaseUrl, CFG.supabaseAnonKey, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } });
 
-  const DEFAULTS = { brand: 'DogFlow Auto Gen', version: 'v1.0', tagline: '', heroTitle: '', heroSub: '', heroCta: 'เลือกแพ็กเกจเลย', promoText: '', installGuide: '', promoEndsAt: '', lineId: '', contactEmail: '', paymentInfo: '', paymentQr: '', heroImage: '', rules: '' };
-  const S = { user: null, me: null, isAdmin: false, settings: Object.assign({}, DEFAULTS), categories: [], brands: [], products: [], releases: [], latest: [], promos: [], banners: [], showcase: [], tutorials: [], reviews: [], faqs: [], coupons: [], members: [], orders: [], notices: [], audit: [] };
+  const DEFAULTS = { brand: 'DogFlow Auto Gen', version: 'v1.0', tagline: '', heroTitle: '', heroSub: '', heroCta: 'เลือกแพ็กเกจเลย', promoText: '', installGuide: '', promoEndsAt: '', lineId: '', contactEmail: '', paymentInfo: '', paymentQr: '', heroImage: '', rules: '', affEnabled: true, affHoldDays: 7, affMin: 300, affTerms: '' };
+  const S = { user: null, me: null, isAdmin: false, settings: Object.assign({}, DEFAULTS), categories: [], brands: [], products: [], releases: [], latest: [], promos: [], banners: [], blocks: [], commissions: [], payouts: [], aff: null, showcase: [], tutorials: [], reviews: [], faqs: [], coupons: [], members: [], orders: [], notices: [], audit: [] };
 
   /* ---------- แปลงแถวฐานข้อมูล ↔ วัตถุในแอป ---------- */
   const IN = {
     categories: (r) => ({ id: r.id, name: r.name, icon: r.icon, sort: r.sort }),
     brands: (r) => ({ id: r.id, name: r.name, logo: r.logo }),
-    products: (r) => ({ id: r.id, sku: r.sku, name: r.name, categoryId: r.category_id, brandId: r.brand_id || '', price: r.price, salePrice: r.sale_price, stock: r.stock, badge: r.badge, image: r.image, icon: r.icon, licenseDevices: r.license_devices, licenseDays: r.license_days, active: r.active, desc: r.description, features: r.features || [] }),
+    products: (r) => ({ id: r.id, sku: r.sku, name: r.name, categoryId: r.category_id, brandId: r.brand_id || '', price: r.price, salePrice: r.sale_price, stock: r.stock, badge: r.badge, image: r.image, icon: r.icon, licenseDevices: r.license_devices, licenseDays: r.license_days, commission: r.commission || 0, active: r.active, desc: r.description, features: r.features || [] }),
     promos: (r) => ({ id: r.id, name: r.name, percent: r.percent, scope: r.scope, startsAt: r.starts_at, endsAt: r.ends_at, active: r.active }),
     banners: (r) => ({ id: r.id, title: r.title, image: r.image, link: r.link, sort: r.sort, startsAt: r.starts_at || '', endsAt: r.ends_at || '', active: r.active }),
+    blocks: (r) => Object.assign({}, r.data || {}, { id: r.id, kind: r.kind, title: r.title, image: r.image || '', sort: r.sort, startsAt: r.starts_at || '', endsAt: r.ends_at || '', active: r.active }),
     showcase: (r) => ({ id: r.id, title: r.title, caption: r.caption, image: r.image, sort: r.sort, active: r.active }),
     tutorials: (r) => ({ id: r.id, title: r.title, desc: r.description, kind: r.kind, url: r.url, mediaId: '', sort: r.sort, active: r.active }),
     reviews: (r) => ({ id: r.id, name: r.name, text: r.text, rating: r.rating, active: r.active }),
     faqs: (r) => ({ id: r.id, q: r.q, a: r.a, sort: r.sort }),
     coupons: (r) => ({ code: r.code, type: r.type, value: r.value, minTotal: r.min_total, active: r.active }),
     releases: (r) => ({ id: r.id, version: r.version, platform: r.platform, title: r.title, notes: r.notes, filePath: r.file_path || '', externalUrl: r.external_url || '', fileName: r.file_name, sizeBytes: Number(r.size_bytes) || 0, sha256: r.sha256 || '', mandatory: !!r.mandatory, announcedAt: r.announced_at || '', active: r.active, createdAt: r.created_at }),
-    members: (r) => ({ id: r.id, name: r.name, email: r.email, phone: r.phone, banned: r.banned, emailUpdates: r.email_updates, banReason: r.ban_reason, strikes: r.strikes, createdAt: r.created_at })
+    commissions: (r) => ({ id: r.id, orderId: r.order_id || '', referrerId: r.referrer_id, buyerId: r.buyer_id || '', productId: r.product_id || '', product: r.product_name, qty: r.qty, unit: r.unit_amount, amount: r.amount, status: r.status, availableAt: r.available_at, payoutId: r.payout_id || '', manual: !!r.manual, note: r.note || '', createdAt: r.created_at, paidAt: r.paid_at || '' }),
+    payouts: (r) => ({ id: r.id, memberId: r.member_id, amount: r.amount, status: r.status, info: r.info || {}, requestedAt: r.requested_at, processedAt: r.processed_at || '', transferRef: r.transfer_ref || '', adminNote: r.admin_note || '' }),
+    members: (r) => ({ id: r.id, name: r.name, email: r.email, phone: r.phone, banned: r.banned, emailUpdates: r.email_updates, banReason: r.ban_reason, strikes: r.strikes, createdAt: r.created_at, refCode: r.ref_code || '', referredBy: r.referred_by || '', referredAt: r.referred_at || '', affBlocked: !!r.aff_blocked, affReason: r.aff_block_reason || '' })
   };
   const OUT = {
     categories: (o) => ({ id: o.id, name: o.name.trim(), icon: o.icon || '📁', sort: Number(o.sort) || 0 }),
     brands: (o) => ({ id: o.id, name: o.name.trim(), logo: o.logo }),
-    products: (o) => ({ id: o.id, sku: o.sku.trim(), name: o.name.trim(), category_id: o.categoryId, brand_id: o.brandId || null, price: Number(o.price), sale_price: Number(o.salePrice) || 0, stock: Number(o.stock), badge: o.badge || '', image: o.image || '', icon: o.icon || '📦', license_devices: Number(o.licenseDevices) || 0, license_days: Number(o.licenseDays) || 0, active: !!o.active, description: o.desc || '', features: o.features || [] }),
+    products: (o) => ({ id: o.id, sku: o.sku.trim(), name: o.name.trim(), category_id: o.categoryId, brand_id: o.brandId || null, price: Number(o.price), sale_price: Number(o.salePrice) || 0, stock: Number(o.stock), badge: o.badge || '', image: o.image || '', icon: o.icon || '📦', license_devices: Number(o.licenseDevices) || 0, license_days: Number(o.licenseDays) || 0, commission: Number(o.commission) || 0, active: !!o.active, description: o.desc || '', features: o.features || [] }),
     promos: (o) => ({ id: o.id, name: o.name.trim(), percent: Number(o.percent), scope: o.scope, starts_at: o.startsAt, ends_at: o.endsAt, active: !!o.active }),
     banners: (o) => ({ id: o.id, title: o.title.trim(), image: o.image, link: o.link || '#shop', sort: Number(o.sort) || 0, starts_at: o.startsAt || null, ends_at: o.endsAt || null, active: !!o.active }),
+    blocks: (o) => { const data = {}; ((C.BLOCKS[o.kind] || { fields: [] }).fields).forEach((f) => { if (f.k !== 'image') data[f.k] = o[f.k] === undefined ? (f.list ? [] : f.type === 'check' ? false : '') : o[f.k]; }); return { id: o.id, kind: o.kind, title: o.title.trim(), image: o.image || '', data, sort: Number(o.sort) || 0, starts_at: o.startsAt || null, ends_at: o.endsAt || null, active: !!o.active }; },
+    commissions: (o) => { const q = Math.max(1, Number(o.qty) || 1), amt = Number(o.amount) || 0; return { id: o.id, order_id: o.orderId || null, referrer_id: o.referrerId, buyer_id: o.buyerId || null, product_id: o.productId || null, product_name: (o.product || '').trim(), qty: q, unit_amount: Math.round(amt / q), amount: amt, status: o.status, available_at: o.availableAt || new Date().toISOString(), manual: o.manual !== false && !o.orderId, note: (o.note || '').trim().slice(0, 300) }; },
     showcase: (o) => ({ id: o.id, title: o.title.trim(), caption: o.caption || '', image: o.image, sort: Number(o.sort) || 0, active: !!o.active }),
     tutorials: (o) => ({ id: o.id, title: o.title.trim(), description: o.desc || '', kind: o.kind === 'file' ? 'file' : 'link', url: (o.url || '').trim(), sort: Number(o.sort) || 0, active: !!o.active }),
     reviews: (o) => ({ id: o.id, name: o.name.trim(), text: o.text.trim(), rating: Number(o.rating), active: o.active !== false }),
@@ -41,8 +46,8 @@
     releases: (o) => ({ id: o.id, version: o.version.trim(), platform: o.platform, title: o.title || '', notes: o.notes || '', file_path: o.filePath || null, external_url: o.externalUrl || null, file_name: o.fileName || '', size_bytes: Number(o.sizeBytes) || 0, sha256: o.sha256 || null, mandatory: !!o.mandatory, active: !!o.active }),
     coupons: (o) => ({ code: o.code, type: o.type, value: Number(o.value), min_total: Number(o.minTotal) || 0, active: !!o.active })
   };
-  const TABLE = { members: 'profiles' }, KEY = { coupons: 'code' }, IMG = { products: ['image'], banners: ['image'], showcase: ['image'], brands: ['logo'] };
-  const ORDER = { categories: 'sort', faqs: 'sort', banners: 'sort', showcase: 'sort', tutorials: 'sort' };
+  const TABLE = { members: 'profiles', blocks: 'home_blocks' }, KEY = { coupons: 'code' }, IMG = { products: ['image'], banners: ['image'], blocks: ['image'], showcase: ['image'], brands: ['logo'] };
+  const ORDER = { categories: 'sort', faqs: 'sort', banners: 'sort', blocks: 'sort', showcase: 'sort', tutorials: 'sort' };
   const tbl = (e) => TABLE[e] || e, key = (e) => KEY[e] || 'id';
 
   const mapPay = (p) => p && ({ id: p.id, ref: p.ref, amount: Number(p.amount), paidAt: p.paid_at, slipPath: p.slip_path, flags: p.flags || [], reviewNote: p.review_note, submittedAt: p.submitted_at, verifiedAt: p.verified_at });
@@ -73,8 +78,8 @@
 
   /* ---------- โหลดข้อมูล ---------- */
   async function loadPublic() {
-    const rd = (t) => { let q = sb.from(t).select('*'); if (ORDER[t]) q = q.order(ORDER[t]); return q; };
-    const names = ['categories', 'brands', 'products', 'promos', 'banners', 'showcase', 'tutorials', 'reviews', 'faqs'];
+    const rd = (t) => { let q = sb.from(TABLE[t] || t).select('*'); if (ORDER[t]) q = q.order(ORDER[t]); return q; };
+    const names = ['categories', 'brands', 'products', 'promos', 'banners', 'blocks', 'showcase', 'tutorials', 'reviews', 'faqs'];
     const [st, ...rs] = await Promise.all([sb.from('app_settings').select('data').eq('id', 1).maybeSingle(), ...names.map(rd)]);
     if (st.error) throw st.error;
     S.settings = Object.assign({}, DEFAULTS, (st.data && st.data.data) || {});
@@ -86,34 +91,36 @@
     const lim = S.isAdmin ? 500 : 100;
     const jobs = [sb.from('orders').select('*').order('created_at', { ascending: false }).limit(lim), sb.from('payments').select('*').order('submitted_at', { ascending: false }).limit(lim * 3),
       sb.from('license_keys').select('*').order('issued_at').limit(lim * 5), sb.from('notices').select('*').eq('member_id', S.user.id).order('created_at', { ascending: false }).limit(100)];
-    if (S.isAdmin) jobs.push(sb.from('profiles').select('*').order('created_at', { ascending: false }).limit(1000), sb.from('coupons').select('*'), sb.from('audit').select('*').order('ts', { ascending: false }).limit(300));
-    const [o, p, k, n, m, cp, au] = await Promise.all(jobs);
-    for (const r of [o, p, k, n, m, cp, au]) if (r && r.error) throw r.error;
+    if (S.isAdmin) jobs.push(sb.from('profiles').select('*').order('created_at', { ascending: false }).limit(1000), sb.from('coupons').select('*'), sb.from('audit').select('*').order('ts', { ascending: false }).limit(300), sb.from('commissions').select('*').order('created_at', { ascending: false }).limit(2000), sb.from('payouts').select('*').order('requested_at', { ascending: false }).limit(500));
+    const [o, p, k, n, m, cp, au, cm, po] = await Promise.all(jobs);
+    for (const r of [o, p, k, n, m, cp, au, cm, po]) if (r && r.error) throw r.error;
     const pays = groupBy(p.data, 'order_id'), keys = groupBy(k.data, 'order_id');
     S.orders = o.data.map((r) => mapOrder(r, pays, keys));
     S.notices = n.data.map((r) => ({ id: r.id, memberId: r.member_id, type: r.type, title: r.title, body: r.body, read: r.read, createdAt: r.created_at }));
-    if (S.isAdmin) { S.members = m.data.map(IN.members); S.coupons = cp.data.map(IN.coupons); S.audit = au.data.map((r) => ({ ts: r.ts, action: r.action, entity: r.entity, detail: (r.detail && (r.detail.name || r.detail.id)) || '' })); }
+    if (S.isAdmin) { S.commissions = cm.data.map(IN.commissions); S.payouts = po.data.map(IN.payouts); S.members = m.data.map(IN.members); S.coupons = cp.data.map(IN.coupons); S.audit = au.data.map((r) => ({ ts: r.ts, action: r.action, entity: r.entity, detail: (r.detail && (r.detail.name || r.detail.id)) || '' })); }
   }
+  // ตัวแทนขาย: สรุปทั้งหมดของสมาชิกคนนี้มาจาก RPC เดียว (ปิดบังข้อมูลผู้สมัคร คำนวณยอดที่ฐานข้อมูล) — ล้มเหลวไม่กระทบส่วนอื่น
+  async function loadAff() { if (!S.user) { S.aff = null; return; } const r = await sb.rpc('aff_overview'); S.aff = r.error ? null : r.data; }
   let live = null, timer = null;
   function subscribe() {
     if (live || !S.user) return;
-    const refresh = () => { clearTimeout(timer); timer = setTimeout(() => loadDynamic().then(emit).catch(() => {}), 400); };
+    const refresh = () => { clearTimeout(timer); timer = setTimeout(() => Promise.all([loadDynamic(), loadAff()]).then(emit).catch(() => {}), 400); };
     live = sb.channel('df-live');
-    ['orders', 'payments', 'license_keys', 'notices'].forEach((t) => live.on('postgres_changes', { event: '*', schema: 'public', table: t }, refresh));
+    ['orders', 'payments', 'license_keys', 'notices', 'commissions', 'payouts'].forEach((t) => live.on('postgres_changes', { event: '*', schema: 'public', table: t }, refresh));
     live.subscribe();
   }
   function unsubscribe() { if (live) { sb.removeChannel(live); live = null; } }
   async function loadReleases() { const r = await sb.from('releases').select('*').order('created_at', { ascending: false }); if (r.error) throw r.error; S.releases = r.data.map(IN.releases); }   // RLS: คืนเฉพาะผู้มีคีย์ที่ใช้งานได้ / แอดมิน
   async function loadMine() {
     const { data: s } = await sb.auth.getSession(); S.user = (s.session && s.session.user) || null;
-    S.me = null; S.isAdmin = false; S.orders = []; S.notices = []; S.members = []; S.coupons = []; S.audit = [];
+    S.me = null; S.isAdmin = false; S.orders = []; S.notices = []; S.members = []; S.coupons = []; S.audit = []; S.commissions = []; S.payouts = []; S.aff = null;
     S.releases = [];
     if (!S.user) { unsubscribe(); return; }
     const { data: p } = await sb.from('profiles').select('*').eq('id', S.user.id).maybeSingle();
     if (!p || p.banned) { await sb.auth.signOut(); S.user = null; unsubscribe(); return; }
     S.me = IN.members(p);
     const { data: a } = await sb.rpc('is_admin'); S.isAdmin = a === true;
-    await loadDynamic(); await loadReleases(); subscribe();
+    await loadDynamic(); await loadReleases(); await loadAff(); subscribe();
   }
   let initP = null;
   sb.auth.onAuthStateChange((ev) => { if (ev === 'SIGNED_OUT' && S.user) loadMine().then(emit); });
@@ -134,7 +141,7 @@
     // ----- อ่าน (sync จากแคช) -----
     get: () => S, settings: () => S.settings, list: (e) => S[e] || [], find: (e, id) => (S[e] || []).find((x) => x[key(e)] === id),
     validate: (e, o) => C.validate(e, o, S),
-    price: (p) => C.price(p, S.promos), activePromos: () => C.activePromos(S.promos), activeBanners: () => C.activeBanners(S.banners), couponCalc: C.couponCalc,
+    price: (p) => C.price(p, S.promos), activePromos: () => C.activePromos(S.promos), activeBanners: () => C.activeBanners(S.banners), activeBlocks: () => C.activeBlocks(S.blocks), couponCalc: C.couponCalc,
     me: () => S.me, isAdmin: () => S.isAdmin, myNotices: () => S.notices, unreadCount: () => S.notices.filter((n) => !n.read).length,
     embed,
     // ----- เขียนแคตตาล็อก (แอดมิน) -----
@@ -146,6 +153,7 @@
         if (entity === 'products' && cur && cur.stock === row.stock) delete row.stock;      // ไม่เขียนสต็อกทับถ้าแอดมินไม่ได้แก้ (กันทับยอดที่ลูกค้าเพิ่งซื้อ)
         if (entity === 'members') { const { error } = await sb.rpc('admin_update_member', { p_member: o.id, p_name: o.name, p_phone: o.phone }); if (error) return fail(error); }
         else { const { error } = await sb.from(tbl(entity)).upsert(row, { onConflict: key(entity) }); if (error) return fail(error); }
+        if (entity === 'commissions' || (entity === 'products' && S.user)) loadAff().catch(() => {});
         await Promise.all([entity === 'members' ? loadDynamic() : loadPublic(), S.isAdmin ? loadDynamic() : null, entity === 'releases' ? loadReleases() : null]); emit(); return { ok: true };
       } catch (e) { return fail(e); }
     },
@@ -210,7 +218,7 @@
       if (f.password !== f.password2) er.push('ยืนยันรหัสผ่านไม่ตรงกัน');
       if (!f.agree) er.push('ต้องยอมรับเงื่อนไขการใช้งาน');
       if (er.length) return { ok: false, errors: er };
-      const { data, error } = await sb.auth.signUp({ email: f.email.trim().toLowerCase(), password: f.password, options: { data: { name: f.name.trim(), phone: f.phone.replace(/[-\s]/g, '') } } });
+      const { data, error } = await sb.auth.signUp({ email: f.email.trim().toLowerCase(), password: f.password, options: { data: Object.assign({ name: f.name.trim(), phone: f.phone.replace(/[-\s]/g, '') }, /^[A-Za-z0-9]{6,12}$/.test(f.ref || '') ? { ref: f.ref.toUpperCase() } : {}) } });
       if (error) return fail(error);
       if (!data.session) return { ok: true, needsConfirm: true };            // เปิด "Confirm email" ไว้ → ต้องกดลิงก์ในอีเมลก่อน
       await loadMine(); emit(); return { ok: true, member: S.me };
@@ -290,6 +298,15 @@
     async setOrderStatus(id, status) { const { error } = await sb.rpc('set_order_status', { p_order: id, p_status: status }); if (error) return fail(error); await Promise.all([loadPublic(), loadDynamic()]); emit(); return { ok: true }; },
     notify(event, orderId) { sb.functions.invoke('notify-line', { body: { event, orderId } }).catch(() => {}); },       // ยิงแล้วลืม: ล้มเหลวไม่กระทบการสั่งซื้อ
     async testLine() { const { data, error } = await sb.functions.invoke('notify-line', { body: { test: true } }); if (error) return { ok: false, errors: [await fnErr(error)] }; return data.ok ? { ok: true } : { ok: false, errors: [data.error] }; },
+    // ----- ตัวแทนขายโปรแกรม (Affiliate) -----
+    aff: () => S.aff, async affRefresh() { await loadAff(); emit(); return S.aff; },
+    async affSavePayout(f) { const { error } = await sb.rpc('aff_save_payout_info', { p_method: f.method, p_bank: f.bank || '', p_account: f.account || '', p_name: f.name || '' }); if (error) return fail(error); await loadMine(); emit(); return { ok: true }; },
+    async affRequestPayout() { const { data, error } = await sb.rpc('aff_request_payout'); if (error) return fail(error); await Promise.all([loadAff(), loadDynamic()]); emit(); return { ok: true, amount: data.amount }; },
+    async processPayout(id, action, ref, note) { const { error } = await sb.rpc('admin_process_payout', { p_payout: id, p_action: action, p_ref: ref || '', p_note: note || '' }); if (error) return fail(error); await loadDynamic(); emit(); return { ok: true }; },
+    async deletePayout(id) { const { error } = await sb.rpc('admin_delete_payout', { p_payout: id }); if (error) return fail(error); await loadDynamic(); emit(); return { ok: true }; },
+    async setAffBlock(id, blocked, reason) { const { error } = await sb.rpc('admin_set_aff_block', { p_member: id, p_blocked: !!blocked, p_reason: reason || '' }); if (error) return fail(error); await loadDynamic(); emit(); return { ok: true }; },
+    async regenRef(id) { const { data, error } = await sb.rpc('admin_regen_ref', { p_member: id }); if (error) return fail(error); await loadDynamic(); emit(); return { ok: true, code: data }; },
+    async setReferrer(id, ref) { const { error } = await sb.rpc('admin_set_referrer', { p_member: id, p_referrer: ref || null }); if (error) return fail(error); await loadDynamic(); emit(); return { ok: true }; },
     // ----- ตรวจสุขภาพข้อมูล / สำรอง -----
     health() {
       const r = [], add = (lv, msg) => r.push({ lv, msg });
@@ -303,9 +320,15 @@
       S.orders.filter((o) => o.status === 'paid' && o.keyStatus === 'pending').forEach((o) => add('err', 'ออเดอร์ ' + o.id + ' ชำระแล้วแต่ยังออกคีย์ไม่ครบ — กด "ออกคีย์ใหม่"'));
       if (!S.settings.lineId) add('warn', 'ยังไม่ได้ตั้ง LINE ID สำหรับให้ลูกค้าติดต่อ (ตั้งค่าหน้าแรก)'); if (!S.settings.paymentQr) add('err', 'ยังไม่ได้อัปโหลด QR รับเงิน (ตั้งค่าหน้าแรก)');
       if (S.settings.promoEndsAt && S.settings.promoText && new Date(S.settings.promoEndsAt) < new Date()) add('warn', 'เวลาโปรโมชันหมดแล้ว — ตั้งวันใหม่ในแท็บตั้งค่า');
+      C.blockHealth(S).forEach((x) => add(x.lv, x.msg));
+      if (S.settings.affEnabled !== false) {
+        const wp = S.payouts.filter((x) => x.status === 'requested'); if (wp.length) add('warn', 'มีคำขอถอนค่าคอมรอโอน ' + wp.length + ' รายการ รวม ฿' + wp.reduce((a, x) => a + x.amount, 0).toLocaleString('th-TH'));
+        if (S.products.some((p) => p.active) && !S.products.some((p) => p.active && p.commission > 0)) add('warn', 'เปิดระบบตัวแทนขายแล้ว แต่ยังไม่ได้ตั้งค่าคอมให้แพ็กเกจใด (แท็บ ตัวแทนขาย → อัตราค่าคอม)');
+        S.commissions.filter((c) => /ถูกยกเลิกหลัง/.test(c.note)).forEach((c) => add('err', 'ค่าคอมออเดอร์ ' + c.orderId + ' ถูกเข้าคำขอถอน/จ่ายแล้ว แต่ออเดอร์ถูกยกเลิก — ตรวจสอบ/เรียกคืน'));
+      }
       if (!r.length) add('ok', 'ข้อมูลทุกส่วนผ่านการตรวจสอบ ✔'); return r;
     },
-    exportJSON() { const o = { exportedAt: new Date().toISOString() }; ['settings'].forEach((k) => (o[k] = S[k])); ['categories', 'brands', 'products', 'promos', 'banners', 'showcase', 'tutorials', 'reviews', 'faqs', 'coupons', 'members', 'orders'].forEach((k) => (o[k] = S[k])); return JSON.stringify(o, null, 2); },
+    exportJSON() { const o = { exportedAt: new Date().toISOString() }; ['settings'].forEach((k) => (o[k] = S[k])); ['categories', 'brands', 'products', 'promos', 'banners', 'blocks', 'showcase', 'tutorials', 'reviews', 'faqs', 'coupons', 'members', 'orders', 'commissions', 'payouts'].forEach((k) => (o[k] = S[k])); return JSON.stringify(o, null, 2); },
     importJSON() { return { ok: false, errors: ['โหมด Supabase ไม่รองรับนำเข้าไฟล์ — ใช้ Supabase Dashboard (SQL/Table editor) เพื่อกู้ข้อมูล'] }; },
     reset() { return { ok: false, errors: ['โหมด Supabase ไม่รองรับรีเซ็ตจากหน้าเว็บ'] }; }
   };

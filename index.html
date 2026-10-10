@@ -46,6 +46,8 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
   <div class="heroimg"><img id="hImg" alt="โปรแกรม Auto Gen"></div>
 </div></section>
 
+<section class="wrap" id="blocks" hidden></section>
+
 <section class="wrap" id="adsec" hidden><div class="carousel" id="ads"></div></section>
 <section class="wrap" id="brsec" hidden><div class="brands" id="brands"></div></section>
 
@@ -104,6 +106,7 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
   <h3 id="authT">สมาชิก</h3><p style="color:var(--mut);margin:0">ต้องเป็นสมาชิกก่อนสั่งซื้อโปรแกรม</p>
   <div class="tabs2"><button id="tReg" class="on">สมัครสมาชิก</button><button id="tLog">เข้าสู่ระบบ</button></div>
   <form id="fReg" novalidate>
+    <div class="refbadge" id="refBadge" hidden><span>🤝 สมัครผ่านลิงก์แนะนำ · รหัส <b id="refCode"></b></span><button type="button" id="refClear" aria-label="ไม่ใช้รหัสนี้">✕</button></div>
     <div class="f"><label>ชื่อ-นามสกุล</label><input name="name" autocomplete="name"></div>
     <div class="f"><label>อีเมล (ใช้รับ License key)</label><input name="email" type="email" autocomplete="email"></div>
     <div class="f"><label>เบอร์โทร</label><input name="phone" inputmode="tel" autocomplete="tel"></div>
@@ -151,6 +154,12 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
 <script src="store.supabase.js"></script>
 <script>
 const $ = (s) => document.querySelector(s), E = DB.esc, B = DB.baht;
+/* ===== รหัสแนะนำจากตัวแทนขาย: ?ref=CODE → เก็บ 30 วัน → แนบตอนสมัครสมาชิก (ผูกถาวรครั้งแรกที่สมัครเท่านั้น) ===== */
+const REFKEY = 'df_ref';
+const getRef = () => { try { const o = JSON.parse(localStorage.getItem(REFKEY) || 'null'); return o && /^[A-Z0-9]{6,12}$/.test(o.c) && Date.now() - o.t < 30 * 864e5 ? o.c : ''; } catch (e) { return ''; } };
+(() => { try { const m = /[?&]ref=([A-Za-z0-9]{6,12})(&|$)/.exec(location.search); if (m) localStorage.setItem(REFKEY, JSON.stringify({ c: m[1].toUpperCase(), t: Date.now() })); } catch (e) { /* ปิดที่เก็บข้อมูลไว้ก็สมัครได้ตามปกติ */ } })();
+const paintRef = () => { const c = getRef(), has = !!c && !DB.me(); $('#refBadge').hidden = !has; $('#refCode').textContent = c; };
+$('#refClear').onclick = () => { try { localStorage.removeItem(REFKEY); } catch (e) {} paintRef(); };
 let cart = JSON.parse(localStorage.getItem('df_cart') || '[]'), cat = 'all', cp = null, payOrder = null;
 const saveCart = () => localStorage.setItem('df_cart', JSON.stringify(cart));
 const toast = (m) => { const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(t._); t._ = setTimeout(() => t.classList.remove('on'), 2400); };
@@ -178,6 +187,48 @@ function tick() { // นับถอยหลังโปรโมชัน
   if (ms <= 0 || !s.promoText) { el.hidden = true; return; } el.hidden = false;
   const p = (n) => String(n).padStart(2, '0'), d = Math.floor(ms / 864e5), h = Math.floor(ms / 36e5) % 24, mi = Math.floor(ms / 6e4) % 60, se = Math.floor(ms / 1e3) % 60;
   el.innerHTML = E(s.promoText) + ' <b>' + (d ? d + ' วัน ' : '') + p(h) + ':' + p(mi) + ':' + p(se) + '</b>';
+}
+/* ===== บล็อกหน้าแรก (แอดมินจัดการได้ที่แท็บ 🧱 บล็อกหน้าแรก) — ทุกข้อความผ่าน E() · ลิงก์ผ่านตัวตรวจ safeLink ===== */
+const safeLink = (u) => (/^(https?:\/\/|#|\/)/.test(u || '') ? u : '#shop');
+const ln = (a) => (Array.isArray(a) ? a : []).map((x) => String(x).split('|').map((y) => y.trim())).filter((p) => p[0]);
+const lnk = (t, u) => { const id = DFCommon.cartId(u); return '<a class="btn ' + t.cls + '" href="' + (id ? '#shop' : E(safeLink(u))) + '"' + (id ? ' data-cart="' + E(id) + '"' : /^https?:/.test(u || '') ? ' target="_blank" rel="noopener"' : '') + '>' + (id ? '🛒 ' : '') + E(t.text) + t.arrow + '</a>'; };
+document.addEventListener('click', (e) => { const a = e.target.closest('[data-cart]'); if (!a) return; const p = DB.find('products', a.dataset.cart); if (p && p.active) { e.preventDefault(); addCart(p.id); $('#cartBtn').click(); } else toast('สินค้านี้ยังไม่เปิดขาย'); });
+// ค่าจริงของบล็อก: ราคา/สต็อกจากสินค้าที่ผูก (รวมโปรโมชันที่กำลังใช้) · เวลาโปรจากแคมเปญจริง — ถ้าอ้างอิงขาด จะไม่แสดงตัวเลขค้าง
+const realVer = () => { const r = DB.latestRelease && DB.latestRelease('windows'); return r ? (/^\d/.test(r.version) ? 'v' + r.version : r.version) : '—'; };
+const realProd = (id) => { const p = id && DB.find('products', id); return p && p.active ? p : null; };
+const realPromoEnd = (b) => { if (b.promoId) { const m = DB.find('promos', b.promoId); return m && DB.activePromos().some((x) => x.id === m.id) ? m.endsAt : ''; } return b.endsAt || ''; };
+const planOf = (l) => { const t = String(l).trim(), hot = t.startsWith('*'), c = t.replace(/^\*/, '').trim();
+  if (c.startsWith('@')) { const p = realProd(c.slice(1).trim()); if (!p) return null; const fin = DB.price(p);
+    return { hot, name: p.name.replace(/^DogFlow Auto Gen\s*/, '') || p.name, price: fin, old: fin < p.price ? p.price : 0, unit: p.licenseDays > 0 ? p.licenseDays + ' วัน' : p.licenseDevices > 0 ? 'ตลอดชีพ' : '', note: (p.licenseDevices > 0 ? p.licenseDevices + ' เครื่อง · ' : '') + (p.stock <= 0 ? 'สินค้าหมด' : p.stock <= 20 ? 'เหลือ ' + p.stock : 'พร้อมส่ง'), id: p.id, out: p.stock <= 0 }; }
+  const q = c.split('|').map((y) => y.trim()); return { hot, name: q[0], price: Number(q[1]) || 0, old: 0, unit: q[2] || '', note: q[3] || '' }; };
+const ctaHtml = (b) => (b.cta1Text ? lnk({ cls: 'gold', text: b.cta1Text, arrow: ' →' }, b.cta1Link) : '') + (b.cta2Text ? lnk({ cls: 'ghost', text: b.cta2Text, arrow: '' }, b.cta2Link) : '');
+const headHtml = (b) => E(b.head) + (b.accent ? ' <em>' + E(b.accent) + '</em>' : '');
+const pair = (p) => (p[1] ? E(p[0]) + ' ' + E(p[1]) : E(p[0]));
+const BLK = {
+  promo: (b) => '<article class="blk bk-promo' + (b.image ? '' : ' noimg') + '">' + (b.image ? '<div class="bk-img"><img src="' + E(b.image) + '" alt="' + E(b.head) + '" loading="lazy"></div>' : '') + '<div class="bk-body">' + (b.badge ? '<span class="bk-pill">' + E(b.badge) + '</span>' : '') + '<h2>' + headHtml(b) + '</h2>' + (b.sub ? '<p class="bk-sub">' + E(b.sub) + '</p>' : '')
+    + '<div class="bk-chips">' + ln(b.chips).map((p) => '<span>' + pair(p) + '</span>').join('') + '</div>'
+    + (() => { const p = realProd(b.productId), end = b.countdown ? realPromoEnd(b) : '', fin = p ? DB.price(p) : 0; if (!p && !end) return ''; return '<div class="bk-row">' + (p ? '<div class="bk-price"><small>' + E(b.priceLabel || '') + '</small><div><b>' + B(fin) + '</b><span>' + (fin < p.price ? 'ปกติ <s>' + B(p.price) + '</s> ' : '') + E(b.priceNote || '') + '</span></div><small class="bk-stock ' + (p.stock <= 5 ? 'low' : '') + '">' + (p.stock <= 0 ? 'สินค้าหมด' : p.stock <= 20 ? 'เหลือ ' + p.stock + ' ชิ้น' : 'พร้อมส่ง') + '</small></div>' : '')
+      + (end ? '<div class="bk-cd" data-cd="' + E(end) + '"><small>⏰ เหลือเวลาอีก</small><div><span><b data-u="d">0</b>วัน</span><span><b data-u="h">00</b>ชม.</span><span><b data-u="m">00</b>นาที</span><span><b data-u="s">00</b>วิ</span></div></div>' : '') + '</div>'; })()
+    + (b.note ? '<p class="bk-note">' + E(b.note) + '</p>' : '') + '<div class="bk-cta">' + ctaHtml(b) + '</div></div></article>',
+  hero: (b) => '<article class="blk bk-hero">' + Array.from(b.deco || '').filter((c) => c.trim()).slice(0, 6).map((c, i) => '<i class="d' + i + '" aria-hidden="true">' + E(c) + '</i>').join('') + '<h2>' + E(b.head) + (b.accent ? '<strong>' + E(b.accent) + '</strong>' : '') + '</h2>'
+    + '<div class="bk-chips c">' + ln(b.chips).map((p, i) => '<span class="t' + (i % 3) + '">' + pair(p) + '</span>').join('') + '</div>' + (b.sub ? '<p class="bk-sub">' + E(b.sub) + '</p>' : '') + '<div class="bk-cta c">' + ctaHtml(b) + '</div></article>',
+  steps: (b) => '<article class="blk bk-steps"><div class="bs-top"><span class="bs-ic">' + E(b.icon || '🤖') + '</span><div>' + (b.tag ? '<span class="bk-pill">' + E(b.tag) + '</span>' : '') + '<h2>' + headHtml(b) + '</h2></div>' + (b.sub ? '<p class="bs-sub">' + E(b.sub) + '</p>' : '') + '</div>'
+    + '<div class="bs-steps">' + ln(b.steps).map((p, i) => '<div><i>' + (i + 1) + '</i><span>' + (p.length > 1 ? E(p[0]) : '') + '</span><b>' + E(p.length > 1 ? p[1] : p[0]) + '</b></div>').join('') + '</div>'
+    + (b.chips && b.chips.length ? '<div class="bs-ai"><small>' + E(b.chipsLabel || '') + '</small>' + ln(b.chips).map((p) => '<span>' + E(p[0]) + '</span>').join('') + '</div>' : '')
+    + '<div class="bs-foot"><div class="bs-meta">' + ln(b.meta).map((p) => '<span>' + pair(p.map((x) => x.replace(/\{version\}/g, realVer()))) + '</span>').join('') + '</div><div class="bk-cta">' + ctaHtml(b) + '</div></div></article>',
+  buy: (b) => '<article class="blk bk-buy' + (b.image ? '' : ' noimg') + '">' + (b.image ? '<div class="bk-img"><img src="' + E(b.image) + '" alt="' + E(b.head) + '" loading="lazy"></div>' : '') + '<div class="bk-body"><h2>' + E(b.head) + '</h2>' + (b.sub ? '<p class="bk-sub">' + E(b.sub) + '</p>' : '')
+    + '<div class="bb-plans">' + (b.plans || []).map(planOf).filter(Boolean).map((p) => '<div class="' + (p.hot ? 'hot' : '') + '"><small>' + E(p.name) + '</small><b>' + B(p.price) + (p.unit ? '<em>/' + E(p.unit) + '</em>' : '') + '</b>' + (p.old ? '<span>ปกติ <s>' + B(p.old) + '</s></span>' : '') + (p.note ? '<span>' + E(p.note) + '</span>' : '') + (p.id ? '<button class="btn sm ' + (p.hot ? 'gold' : 'ghost') + '" data-cart="' + E(p.id) + '"' + (p.out ? ' disabled' : '') + '>🛒 สั่งซื้อ</button>' : '') + '</div>').join('') + '</div>'
+    + (b.features && b.features.length ? '<ul class="bb-list">' + b.features.map((x) => '<li>' + E(x) + '</li>').join('') + '</ul>' : '')
+    + (b.reqs && b.reqs.length ? '<ul class="bb-req">' + b.reqs.map((x) => { const m = /^([+-])\s*(.*)$/.exec(x); return '<li class="' + (m ? (m[1] === '+' ? 'y' : 'n') : '') + '">' + E(m ? m[2] : x) + '</li>'; }).join('') + '</ul>' : '')
+    + '<div class="bk-cta">' + ctaHtml(b) + '</div>' + (b.foot ? '<p class="bk-note">' + E(b.foot) + '</p>' : '') + '</div></article>'
+};
+function renderBlocks() {
+  const L = DB.activeBlocks().filter((b) => BLK[b.kind]), sec = $('#blocks'); sec.hidden = !L.length;
+  const html = L.map((b) => BLK[b.kind](b)).join(''); if (sec._h !== html) { sec.innerHTML = html; sec._h = html; } tickBlocks();
+}
+function tickBlocks() { // นับถอยหลังในบล็อกโปรโมชัน (อัปเดตเฉพาะตัวเลข ไม่วาดใหม่)
+  document.querySelectorAll('[data-cd]').forEach((el) => { const ms = Math.max(0, new Date(el.dataset.cd) - Date.now()), p = (n) => String(n).padStart(2, '0'), v = { d: Math.floor(ms / 864e5), h: p(Math.floor(ms / 36e5) % 24), m: p(Math.floor(ms / 6e4) % 60), s: p(Math.floor(ms / 1e3) % 60) };
+    el.querySelectorAll('[data-u]').forEach((n) => { n.textContent = v[n.dataset.u]; }); });
 }
 let adIdx = 0;
 function renderAds() {
@@ -266,12 +317,12 @@ $('#cartBtn').onclick = () => { $('#ov').classList.add('on'); $('#drawer').class
 const authTab = (reg) => { $('#fReg').hidden = !reg; $('#fLog').hidden = reg; $('#tReg').classList.toggle('on', reg); $('#tLog').classList.toggle('on', !reg); };
 $('#tReg').onclick = () => authTab(true); $('#tLog').onclick = () => authTab(false);
 let afterAuth = null;
-function needLogin(then, reg = true) { closeAll(); authTab(reg); afterAuth = then; openM('#mAuth'); }
+function needLogin(then, reg = true) { closeAll(); authTab(reg); paintRef(); afterAuth = then; openM('#mAuth'); }
 $('#memBtn').onclick = () => {
   if (!DB.me()) return needLogin(null, true);
   location.href = 'profile.html';
 };
-$('#fReg').onsubmit = async (e) => { e.preventDefault(); const f = Object.fromEntries(new FormData(e.target)); f.agree = e.target.agree.checked;
+$('#fReg').onsubmit = async (e) => { e.preventDefault(); const f = Object.fromEntries(new FormData(e.target)); f.agree = e.target.agree.checked; f.ref = getRef();
   const r = await DB.register(f); if (!r.ok) return showErr($('#eReg'), r.errors);
   if (r.needsConfirm) { e.target.reset(); showErr($('#eReg'), []); authTab(false); showErr($('#eLog'), ['ส่งอีเมลยืนยันแล้ว — กดลิงก์ในอีเมล แล้วเข้าสู่ระบบที่นี่']); return; }
   e.target.reset(); showErr($('#eReg'), []); closeAll(); toast('สมัครสมาชิกสำเร็จ 🎉'); renderStatic(); if (afterAuth) afterAuth(); };
@@ -327,10 +378,10 @@ $('#myOrders').onclick = (e) => { const b = e.target.closest('[data-pay]'); if (
 /* ===== เริ่มต้น ===== */
 const fatal = (e) => { document.body.insertAdjacentHTML('afterbegin', '<div style="background:#7f1d1d;color:#fff;padding:14px;text-align:center;font-weight:600">เชื่อมต่อฐานข้อมูลไม่สำเร็จ — ' + String((e && e.message) || e).replace(/[<>&]/g, '') + ' · กรุณารีเฟรชหรือลองใหม่ภายหลัง</div>'); console.error(e); };
 function boot() {
-renderStatic(); renderAds(); renderBrands(); renderShots(); renderTuts(); renderShop(); renderCart(); tick();
+renderStatic(); renderBlocks(); renderAds(); renderBrands(); renderShots(); renderTuts(); renderShop(); renderCart(); tick();
 if (/^#pay=DF\d+$/.test(location.hash) && DB.me()) { const o = DB.find('orders', location.hash.slice(5)); if (o && o.memberId === DB.me().id && ['pending', 'rejected'].includes(o.status)) openPay(o.id); } // มาจากหน้าโปรไฟล์
-setInterval(tick, 1000);
-window.addEventListener('db:change', () => { renderStatic(); renderAds(); renderBrands(); renderShots(); renderTuts(); renderShop(); renderCart(); });
+setInterval(() => { tick(); tickBlocks(); }, 1000);
+window.addEventListener('db:change', () => { renderStatic(); renderBlocks(); renderAds(); renderBrands(); renderShots(); renderTuts(); renderShop(); renderCart(); });
 }
 DB.init().then(boot).then(DFCommon.hideSplash, (e) => { DFCommon.hideSplash(); fatal(e); });
 </script>

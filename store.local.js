@@ -67,7 +67,7 @@
     if (cache) return cache;
     try { cache = JSON.parse(localStorage.getItem(KEY)); } catch (e) { cache = null; }
     if (!cache || !cache.products) { cache = seed(); save(); }
-    ['members', 'notices', 'showcase', 'releases', 'tutorials', 'banners', 'brands', 'promos', 'reviews', 'faqs', 'audit'].forEach((k) => { if (!cache[k]) cache[k] = []; }); // ข้อมูลเก่าที่ยังไม่มีส่วนใหม่
+    ['members', 'notices', 'showcase', 'releases', 'tutorials', 'banners', 'blocks', 'brands', 'promos', 'reviews', 'faqs', 'audit'].forEach((k) => { if (!cache[k]) cache[k] = []; }); // ข้อมูลเก่าที่ยังไม่มีส่วนใหม่
     return cache;
   }
   function save() {
@@ -84,6 +84,7 @@
   // กฎตรวจสอบข้อมูล — คืน array ข้อความผิดพลาด (ว่าง = ผ่าน)
   function validate(entity, o) {
     const d = load(), er = [];
+    if (entity === 'blocks') return DFCommon.validate(entity, o, d);
     const dupe = (list, key, val) => list.some((x) => x[key] === val && x.id !== o.id);
     if (entity === 'products') {
       if (!o.name || o.name.trim().length < 2) er.push('ชื่อสินค้าสั้นเกินไป');
@@ -169,6 +170,7 @@
     get: () => load(),
     settings: () => load().settings,
     list: (e) => load()[e],
+    activeBlocks() { return DFCommon.activeBlocks(load().blocks); },
     find: (e, id) => load()[e].find((x) => x[idKey[e] || 'id'] === id),
     // เพิ่ม/แก้ไข: คืน {ok, errors}
     upsert(entity, obj) {
