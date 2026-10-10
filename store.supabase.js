@@ -1,0 +1,313 @@
+/* store.supabase.js — ชั้นข้อมูลจริง (Supabase) API เดียวกับ store.local.js
+   • อ่านจากแคชในหน้า (sync) เหมือนเดิม: list/find/settings/price/me/myNotices ...
+   • เขียน/เรียกเซิร์ฟเวอร์เป็น async: upsert/remove/placeOrder/submitSlip/reviewPayment/login ...
+   • ราคา สต็อก คูปอง การตรวจสลิป การระงับบัญชี คำนวณที่ฐานข้อมูล (RPC) — ค่าจากเบราว์เซอร์ไม่ถูกเชื่อถือ
+   ใช้งานเมื่อ config.js ตั้ง supabaseUrl + supabaseAnonKey (anon key เปิดเผยได้ ความปลอดภัยอยู่ที่ RLS) */
+(function (w) {
+  const CFG = w.DOGFLOW_CONFIG || {};
+  if (!CFG.supabaseUrl || !CFG.supabaseAnonKey) return;                 // ไม่ได้ตั้งค่า → ให้ store.local.js ทำงาน
+  if (!w.supabase || !w.supabase.createClient) { console.error('ไม่พบ vendor/supabase.js'); return; }
+  const C = w.DFCommon, { esc, baht, uid, embed } = C;
+  const sb = w.supabase.createClient(CFG.supabaseUrl, CFG.supabaseAnonKey, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } });
+
+  const DEFAULTS = { brand: 'DogFlow Auto Gen', version: 'v1.0', tagline: '', heroTitle: '', heroSub: '', heroCta: 'เลือกแพ็กเกจเลย', promoText: '', installGuide: '', promoEndsAt: '', lineId: '', contactEmail: '', paymentInfo: '', paymentQr: '', heroImage: '', rules: '' };
+  const S = { user: null, me: null, isAdmin: false, settings: Object.assign({}, DEFAULTS), categories: [], brands: [], products: [], releases: [], latest: [], promos: [], banners: [], showcase: [], tutorials: [], reviews: [], faqs: [], coupons: [], members: [], orders: [], notices: [], audit: [] };
+
+  /* ---------- แปลงแถวฐานข้อมูล ↔ วัตถุในแอป ---------- */
+  const IN = {
+    categories: (r) => ({ id: r.id, name: r.name, icon: r.icon, sort: r.sort }),
+    brands: (r) => ({ id: r.id, name: r.name, logo: r.logo }),
+    products: (r) => ({ id: r.id, sku: r.sku, name: r.name, categoryId: r.category_id, brandId: r.brand_id || '', price: r.price, salePrice: r.sale_price, stock: r.stock, badge: r.badge, image: r.image, icon: r.icon, licenseDevices: r.license_devices, licenseDays: r.license_days, active: r.active, desc: r.description, features: r.features || [] }),
+    promos: (r) => ({ id: r.id, name: r.name, percent: r.percent, scope: r.scope, startsAt: r.starts_at, endsAt: r.ends_at, active: r.active }),
+    banners: (r) => ({ id: r.id, title: r.title, image: r.image, link: r.link, sort: r.sort, startsAt: r.starts_at || '', endsAt: r.ends_at || '', active: r.active }),
+    showcase: (r) => ({ id: r.id, title: r.title, caption: r.caption, image: r.image, sort: r.sort, active: r.active }),
+    tutorials: (r) => ({ id: r.id, title: r.title, desc: r.description, kind: r.kind, url: r.url, mediaId: '', sort: r.sort, active: r.active }),
+    reviews: (r) => ({ id: r.id, name: r.name, text: r.text, rating: r.rating, active: r.active }),
+    faqs: (r) => ({ id: r.id, q: r.q, a: r.a, sort: r.sort }),
+    coupons: (r) => ({ code: r.code, type: r.type, value: r.value, minTotal: r.min_total, active: r.active }),
+    releases: (r) => ({ id: r.id, version: r.version, platform: r.platform, title: r.title, notes: r.notes, filePath: r.file_path || '', externalUrl: r.external_url || '', fileName: r.file_name, sizeBytes: Number(r.size_bytes) || 0, sha256: r.sha256 || '', mandatory: !!r.mandatory, announcedAt: r.announced_at || '', active: r.active, createdAt: r.created_at }),
+    members: (r) => ({ id: r.id, name: r.name, email: r.email, phone: r.phone, banned: r.banned, emailUpdates: r.email_updates, banReason: r.ban_reason, strikes: r.strikes, createdAt: r.created_at })
+  };
+  const OUT = {
+    categories: (o) => ({ id: o.id, name: o.name.trim(), icon: o.icon || '📁', sort: Number(o.sort) || 0 }),
+    brands: (o) => ({ id: o.id, name: o.name.trim(), logo: o.logo }),
+    products: (o) => ({ id: o.id, sku: o.sku.trim(), name: o.name.trim(), category_id: o.categoryId, brand_id: o.brandId || null, price: Number(o.price), sale_price: Number(o.salePrice) || 0, stock: Number(o.stock), badge: o.badge || '', image: o.image || '', icon: o.icon || '📦', license_devices: Number(o.licenseDevices) || 0, license_days: Number(o.licenseDays) || 0, active: !!o.active, description: o.desc || '', features: o.features || [] }),
+    promos: (o) => ({ id: o.id, name: o.name.trim(), percent: Number(o.percent), scope: o.scope, starts_at: o.startsAt, ends_at: o.endsAt, active: !!o.active }),
+    banners: (o) => ({ id: o.id, title: o.title.trim(), image: o.image, link: o.link || '#shop', sort: Number(o.sort) || 0, starts_at: o.startsAt || null, ends_at: o.endsAt || null, active: !!o.active }),
+    showcase: (o) => ({ id: o.id, title: o.title.trim(), caption: o.caption || '', image: o.image, sort: Number(o.sort) || 0, active: !!o.active }),
+    tutorials: (o) => ({ id: o.id, title: o.title.trim(), description: o.desc || '', kind: o.kind === 'file' ? 'file' : 'link', url: (o.url || '').trim(), sort: Number(o.sort) || 0, active: !!o.active }),
+    reviews: (o) => ({ id: o.id, name: o.name.trim(), text: o.text.trim(), rating: Number(o.rating), active: o.active !== false }),
+    faqs: (o) => ({ id: o.id, q: o.q.trim(), a: o.a.trim(), sort: Number(o.sort) || 0 }),
+    releases: (o) => ({ id: o.id, version: o.version.trim(), platform: o.platform, title: o.title || '', notes: o.notes || '', file_path: o.filePath || null, external_url: o.externalUrl || null, file_name: o.fileName || '', size_bytes: Number(o.sizeBytes) || 0, sha256: o.sha256 || null, mandatory: !!o.mandatory, active: !!o.active }),
+    coupons: (o) => ({ code: o.code, type: o.type, value: Number(o.value), min_total: Number(o.minTotal) || 0, active: !!o.active })
+  };
+  const TABLE = { members: 'profiles' }, KEY = { coupons: 'code' }, IMG = { products: ['image'], banners: ['image'], showcase: ['image'], brands: ['logo'] };
+  const ORDER = { categories: 'sort', faqs: 'sort', banners: 'sort', showcase: 'sort', tutorials: 'sort' };
+  const tbl = (e) => TABLE[e] || e, key = (e) => KEY[e] || 'id';
+
+  const mapPay = (p) => p && ({ id: p.id, ref: p.ref, amount: Number(p.amount), paidAt: p.paid_at, slipPath: p.slip_path, flags: p.flags || [], reviewNote: p.review_note, submittedAt: p.submitted_at, verifiedAt: p.verified_at });
+  const mapOrder = (r, pays, keys) => ({ id: r.id, memberId: r.member_id, items: r.items, subtotal: r.subtotal, discount: r.discount, coupon: r.coupon, total: r.total, status: r.status, keyStatus: r.key_status, customer: r.customer, note: r.note, createdAt: r.created_at,
+    payment: mapPay((pays[r.id] || [])[0]), licenseKeys: (keys[r.id] || []).map((k) => ({ slot: k.slot, product: k.product_name, key: k.key, issuedAt: k.issued_at, revoked: !!k.revoked_at, revokeReason: k.revoke_reason || '' })) });
+  const groupBy = (rows, f) => rows.reduce((m, r) => ((m[r[f]] = m[r[f]] || []).push(r), m), {});
+
+  /* ---------- แปลข้อความผิดพลาด ---------- */
+  function tr(e) {
+    if (!e) return 'เกิดข้อผิดพลาด';
+    const m = String(e.message || e), c = e.code;
+    if (c === '23505') return 'ข้อมูลซ้ำ (เช่น SKU / ชื่อ / โค้ดซ้ำกับรายการที่มีอยู่)';
+    if (c === '23503') return 'มีข้อมูลอื่นอ้างอิงอยู่ — ย้าย/ลบรายการที่เกี่ยวข้องก่อน';
+    if (c === '23514') return 'ข้อมูลไม่ผ่านเงื่อนไขของระบบ (ตรวจราคา/จำนวน/วันที่)';
+    if (c === '42501' || /row-level security|permission denied/i.test(m)) return 'ไม่มีสิทธิ์ทำรายการนี้';
+    if (/Failed to fetch|NetworkError|Load failed/i.test(m)) return 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ — ตรวจอินเทอร์เน็ตแล้วลองใหม่';
+    if (/Invalid login credentials/i.test(m)) return 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';
+    if (/User already registered|already been registered/i.test(m)) return 'อีเมลนี้สมัครแล้ว — เข้าสู่ระบบแทน';
+    if (/Email not confirmed/i.test(m)) return 'ยังไม่ได้ยืนยันอีเมล — ตรวจกล่องจดหมายแล้วกดลิงก์ยืนยัน';
+    if (/banned|User is banned/i.test(m)) return 'บัญชีนี้ถูกระงับ — ติดต่อแอดมิน';
+    if (/rate limit|too many/i.test(m)) return 'ทำรายการถี่เกินไป กรุณารอสักครู่';
+    return m;
+  }
+  const fail = (e) => ({ ok: false, errors: [tr(e)] });
+  async function fnErr(error) { try { const j = await error.context.json(); return j.error || error.message; } catch (x) { return error.message; } }
+  const emit = () => w.dispatchEvent(new CustomEvent('db:change'));
+  const dataUrlToBlob = (u) => { const [h, b] = u.split(','), mime = (h.match(/:(.*?);/) || [])[1] || 'image/jpeg', bin = atob(b), a = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return new Blob([a], { type: mime }); };
+
+  /* ---------- โหลดข้อมูล ---------- */
+  async function loadPublic() {
+    const rd = (t) => { let q = sb.from(t).select('*'); if (ORDER[t]) q = q.order(ORDER[t]); return q; };
+    const names = ['categories', 'brands', 'products', 'promos', 'banners', 'showcase', 'tutorials', 'reviews', 'faqs'];
+    const [st, ...rs] = await Promise.all([sb.from('app_settings').select('data').eq('id', 1).maybeSingle(), ...names.map(rd)]);
+    if (st.error) throw st.error;
+    S.settings = Object.assign({}, DEFAULTS, (st.data && st.data.data) || {});
+    names.forEach((n, i) => { if (rs[i].error) throw rs[i].error; S[n] = rs[i].data.map(IN[n]); });
+    const lr = await sb.rpc('public_latest_release'); S.latest = (lr && Array.isArray(lr.data)) ? lr.data : [];   // เวอร์ชันล่าสุดแบบสาธารณะ (ไม่มีลิงก์ไฟล์)
+  }
+  async function loadDynamic() {
+    if (!S.user) return;
+    const lim = S.isAdmin ? 500 : 100;
+    const jobs = [sb.from('orders').select('*').order('created_at', { ascending: false }).limit(lim), sb.from('payments').select('*').order('submitted_at', { ascending: false }).limit(lim * 3),
+      sb.from('license_keys').select('*').order('issued_at').limit(lim * 5), sb.from('notices').select('*').eq('member_id', S.user.id).order('created_at', { ascending: false }).limit(100)];
+    if (S.isAdmin) jobs.push(sb.from('profiles').select('*').order('created_at', { ascending: false }).limit(1000), sb.from('coupons').select('*'), sb.from('audit').select('*').order('ts', { ascending: false }).limit(300));
+    const [o, p, k, n, m, cp, au] = await Promise.all(jobs);
+    for (const r of [o, p, k, n, m, cp, au]) if (r && r.error) throw r.error;
+    const pays = groupBy(p.data, 'order_id'), keys = groupBy(k.data, 'order_id');
+    S.orders = o.data.map((r) => mapOrder(r, pays, keys));
+    S.notices = n.data.map((r) => ({ id: r.id, memberId: r.member_id, type: r.type, title: r.title, body: r.body, read: r.read, createdAt: r.created_at }));
+    if (S.isAdmin) { S.members = m.data.map(IN.members); S.coupons = cp.data.map(IN.coupons); S.audit = au.data.map((r) => ({ ts: r.ts, action: r.action, entity: r.entity, detail: (r.detail && (r.detail.name || r.detail.id)) || '' })); }
+  }
+  let live = null, timer = null;
+  function subscribe() {
+    if (live || !S.user) return;
+    const refresh = () => { clearTimeout(timer); timer = setTimeout(() => loadDynamic().then(emit).catch(() => {}), 400); };
+    live = sb.channel('df-live');
+    ['orders', 'payments', 'license_keys', 'notices'].forEach((t) => live.on('postgres_changes', { event: '*', schema: 'public', table: t }, refresh));
+    live.subscribe();
+  }
+  function unsubscribe() { if (live) { sb.removeChannel(live); live = null; } }
+  async function loadReleases() { const r = await sb.from('releases').select('*').order('created_at', { ascending: false }); if (r.error) throw r.error; S.releases = r.data.map(IN.releases); }   // RLS: คืนเฉพาะผู้มีคีย์ที่ใช้งานได้ / แอดมิน
+  async function loadMine() {
+    const { data: s } = await sb.auth.getSession(); S.user = (s.session && s.session.user) || null;
+    S.me = null; S.isAdmin = false; S.orders = []; S.notices = []; S.members = []; S.coupons = []; S.audit = [];
+    S.releases = [];
+    if (!S.user) { unsubscribe(); return; }
+    const { data: p } = await sb.from('profiles').select('*').eq('id', S.user.id).maybeSingle();
+    if (!p || p.banned) { await sb.auth.signOut(); S.user = null; unsubscribe(); return; }
+    S.me = IN.members(p);
+    const { data: a } = await sb.rpc('is_admin'); S.isAdmin = a === true;
+    await loadDynamic(); await loadReleases(); subscribe();
+  }
+  let initP = null;
+  sb.auth.onAuthStateChange((ev) => { if (ev === 'SIGNED_OUT' && S.user) loadMine().then(emit); });
+
+  const upload = async (bucket, path, blob, opts) => { const { error } = await sb.storage.from(bucket).upload(path, blob, Object.assign({ upsert: false, cacheControl: '31536000' }, opts)); if (error) throw error; return path; };
+  async function uploadImage(dataUrl, folder) {      // dataURL → ไฟล์ใน bucket media → URL สาธารณะ
+    if (!/^data:image\/(png|jpeg|webp);base64,/.test(dataUrl)) return dataUrl;
+    const blob = dataUrlToBlob(dataUrl), ext = blob.type === 'image/png' ? 'png' : blob.type === 'image/webp' ? 'webp' : 'jpg', path = `${folder}/${uid('')}.${ext}`;
+    await upload('media', path, blob, { contentType: blob.type });
+    return sb.storage.from('media').getPublicUrl(path).data.publicUrl;
+  }
+
+  /* ---------- API ---------- */
+  const DB = {
+    mode: 'supabase', uid, baht, esc, embed,
+    init() { return initP || (initP = (async () => { await loadPublic(); await loadMine(); })()); },
+    async refresh() { await loadPublic(); await loadMine(); emit(); },   // รีเฟรชข้อมูลทั้งหมดจากเซิร์ฟเวอร์
+    // ----- อ่าน (sync จากแคช) -----
+    get: () => S, settings: () => S.settings, list: (e) => S[e] || [], find: (e, id) => (S[e] || []).find((x) => x[key(e)] === id),
+    validate: (e, o) => C.validate(e, o, S),
+    price: (p) => C.price(p, S.promos), activePromos: () => C.activePromos(S.promos), activeBanners: () => C.activeBanners(S.banners), couponCalc: C.couponCalc,
+    me: () => S.me, isAdmin: () => S.isAdmin, myNotices: () => S.notices, unreadCount: () => S.notices.filter((n) => !n.read).length,
+    embed,
+    // ----- เขียนแคตตาล็อก (แอดมิน) -----
+    async upsert(entity, obj) {
+      const errors = DB.validate(entity, obj); if (errors.length) return { ok: false, errors };
+      try {
+        const o = Object.assign({}, obj); for (const f of IMG[entity] || []) if (o[f]) o[f] = await uploadImage(o[f], entity);
+        const row = OUT[entity](o), cur = DB.find(entity, o[key(entity)]);
+        if (entity === 'products' && cur && cur.stock === row.stock) delete row.stock;      // ไม่เขียนสต็อกทับถ้าแอดมินไม่ได้แก้ (กันทับยอดที่ลูกค้าเพิ่งซื้อ)
+        if (entity === 'members') { const { error } = await sb.rpc('admin_update_member', { p_member: o.id, p_name: o.name, p_phone: o.phone }); if (error) return fail(error); }
+        else { const { error } = await sb.from(tbl(entity)).upsert(row, { onConflict: key(entity) }); if (error) return fail(error); }
+        await Promise.all([entity === 'members' ? loadDynamic() : loadPublic(), S.isAdmin ? loadDynamic() : null, entity === 'releases' ? loadReleases() : null]); emit(); return { ok: true };
+      } catch (e) { return fail(e); }
+    },
+    async remove(entity, k) {
+      try {
+        if (entity === 'releases') { const cur = DB.find('releases', k); if (cur && cur.filePath && !S.releases.some((x) => x.id !== k && x.filePath === cur.filePath)) { try { await sb.storage.from('releases').remove([cur.filePath]); } catch (e) { /* ลบไฟล์ไม่ได้ก็ลบรายการต่อ */ } } }
+        const { error } = entity === 'members' ? await sb.rpc('admin_delete_member', { p_member: k }) : await sb.from(tbl(entity)).delete().eq(key(entity), k);
+        if (error) return fail(error);
+        await Promise.all([loadPublic(), loadDynamic(), loadReleases()]); emit(); return { ok: true };
+      } catch (e) { return fail(e); }
+    },
+    async saveSettings(patch) {
+      try {
+        const data = Object.assign({}, S.settings, patch);
+        for (const f of ['paymentQr', 'heroImage']) if (data[f]) data[f] = await uploadImage(data[f], 'site');
+        const { error } = await sb.from('app_settings').upsert({ id: 1, data }); if (error) return fail(error);
+        S.settings = Object.assign({}, DEFAULTS, data); emit(); return { ok: true };
+      } catch (e) { return fail(e); }
+    },
+    uploadImage,
+    // วิดีโอคู่มือ: อัปโหลดเข้า bucket media แล้วเก็บเป็นลิงก์ https
+    async attachVideo(o, file) {
+      if (!/^video\/(mp4|webm)$/.test(file.type)) return { ok: false, errors: ['รองรับเฉพาะ .mp4 / .webm'] };
+      if (file.size > 50 * 1048576) return { ok: false, errors: ['ไฟล์ใหญ่เกิน 50MB (ข้อจำกัดของ Storage) — ใช้ลิงก์ YouTube/Vimeo แทน'] };
+      try { const path = `videos/${uid('')}.${file.type === 'video/webm' ? 'webm' : 'mp4'}`; await upload('media', path, file, { contentType: file.type }); o.url = sb.storage.from('media').getPublicUrl(path).data.publicUrl; o.mediaId = ''; return { ok: true }; } catch (e) { return fail(e); }
+    },
+    async playUrl(t) { return t.url; },
+    // ----- ดาวน์โหลดโปรแกรม -----
+    canDownload: () => S.releases.some((r) => r.active),
+    latestRelease: (platform) => S.latest.find((x) => x.platform === (platform || 'windows')) || null,
+    // แอดมิน: ประกาศเวอร์ชันใหม่ให้ลูกค้าที่มีสิทธิ์ (แจ้งในโปรไฟล์ + เข้าคิวอีเมล) → คืนจำนวนผู้รับ
+    async announceRelease(id) { const { data, error } = await sb.rpc('announce_release', { p_release: id }); if (error) return fail(error); await Promise.all([loadReleases(), loadDynamic()]); emit(); return { ok: true, count: data }; },
+    async setEmailUpdates(on) { const { error } = await sb.rpc('set_email_updates', { p_on: !!on }); if (error) return fail(error); if (S.me) S.me.emailUpdates = !!on; emit(); return { ok: true }; },
+    // แอดมิน: ระงับ/คืนสิทธิ์คีย์ของสมาชิกที่ License Server (Edge Function revoke-keys)
+    async revokeKeys(memberId, reason) { const { data, error } = await sb.functions.invoke('revoke-keys', { body: { memberId, reason } }); if (error) return { ok: false, errors: [await fnErr(error)] }; await loadDynamic(); emit(); return data.ok ? { ok: true, changed: data.changed } : { ok: false, errors: data.errors || [data.error] }; },
+    async restoreKeys(memberId) { const { data, error } = await sb.functions.invoke('revoke-keys', { body: { memberId, restore: true } }); if (error) return { ok: false, errors: [await fnErr(error)] }; await loadDynamic(); emit(); return data.ok ? { ok: true, changed: data.changed } : { ok: false, errors: data.errors || [data.error] }; },
+    async dispatchNotices() { const { data, error } = await sb.functions.invoke('dispatch-notices', { body: {} }); if (error) return { ok: false, errors: [await fnErr(error)] }; return data.ok ? { ok: true, sent: data.sent, skipped: data.skipped } : { ok: false, errors: [data.error || 'ส่งอีเมลบางรายการไม่สำเร็จ'], sent: data.sent, failed: data.failed }; },
+    // ขอสิทธิ์ที่เซิร์ฟเวอร์ (ตรวจคีย์/โควตา/บันทึกประวัติ) แล้วออก signed URL อายุ 2 นาที
+    async downloadUrl(id) {
+      const { data, error } = await sb.rpc('request_download', { p_release: id }); if (error) return fail(error);
+      if (data.url) return { ok: true, url: data.url, fileName: data.fileName, sha256: data.sha256 };
+      const s = await sb.storage.from('releases').createSignedUrl(data.path, 120, { download: data.fileName || true }); if (s.error) return fail(s.error);
+      return { ok: true, url: s.data.signedUrl, fileName: data.fileName, sha256: data.sha256 };
+    },
+    // แอดมิน: อัปโหลดไฟล์ติดตั้งเข้า bucket releases + คำนวณ SHA-256 (ไฟล์ใหญ่เกิน 300MB ให้ใส่ SHA-256 เอง / อัปโหลดผ่าน Dashboard)
+    async attachRelease(o, file) {
+      if (file.size > 1073741824) return { ok: false, errors: ['ไฟล์ใหญ่เกิน 1GB'] };
+      try {
+        const safe = (s) => s.replace(/[^A-Za-z0-9._-]/g, '_').slice(0, 100), path = safe(o.version) + '/' + safe(file.name);
+        if (file.size <= 300 * 1048576) { const buf = await file.arrayBuffer(); o.sha256 = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', buf)), (x) => x.toString(16).padStart(2, '0')).join(''); }
+        await upload('releases', path, file, { contentType: file.type || 'application/octet-stream', cacheControl: '3600' });
+        o.filePath = path; o.fileName = file.name; o.sizeBytes = file.size; return { ok: true };
+      } catch (e) { return fail(e); }
+    },
+    // ----- สมาชิก -----
+    async register(f) {
+      const er = [];
+      if (!f.name || f.name.trim().length < 2) er.push('กรอกชื่อ');
+      if (!/^\S+@\S+\.\S+$/.test(f.email || '')) er.push('อีเมลไม่ถูกต้อง');
+      if (!/^0\d{8,9}$/.test((f.phone || '').replace(/[-\s]/g, ''))) er.push('เบอร์โทรไม่ถูกต้อง');
+      if (!f.password || f.password.length < 8) er.push('รหัสผ่านอย่างน้อย 8 ตัว');
+      if (f.password !== f.password2) er.push('ยืนยันรหัสผ่านไม่ตรงกัน');
+      if (!f.agree) er.push('ต้องยอมรับเงื่อนไขการใช้งาน');
+      if (er.length) return { ok: false, errors: er };
+      const { data, error } = await sb.auth.signUp({ email: f.email.trim().toLowerCase(), password: f.password, options: { data: { name: f.name.trim(), phone: f.phone.replace(/[-\s]/g, '') } } });
+      if (error) return fail(error);
+      if (!data.session) return { ok: true, needsConfirm: true };            // เปิด "Confirm email" ไว้ → ต้องกดลิงก์ในอีเมลก่อน
+      await loadMine(); emit(); return { ok: true, member: S.me };
+    },
+    async login(email, pw) {
+      const { error } = await sb.auth.signInWithPassword({ email: String(email || '').trim().toLowerCase(), password: pw || '' });
+      if (error) return fail(error);
+      await loadMine(); if (!S.me) return { ok: false, errors: ['บัญชีนี้ถูกระงับ — ติดต่อแอดมินทาง LINE'] };
+      emit(); return { ok: true, member: S.me };
+    },
+    async logout() { await sb.auth.signOut(); unsubscribe(); await loadMine(); emit(); },
+    async updateProfile(f) {
+      const er = DB.validate('members', { name: f.name, phone: f.phone }); if (er.length) return { ok: false, errors: er };
+      const { error } = await sb.rpc('update_profile', { p_name: f.name, p_phone: f.phone }); if (error) return fail(error);
+      await loadMine(); emit(); return { ok: true };
+    },
+    async changeMyPassword(oldPw, nw, nw2) {
+      if (!S.me) return { ok: false, errors: ['ยังไม่ได้เข้าสู่ระบบ'] };
+      if (!nw || nw.length < 8) return { ok: false, errors: ['รหัสผ่านใหม่อย่างน้อย 8 ตัว'] }; if (nw !== nw2) return { ok: false, errors: ['ยืนยันรหัสผ่านใหม่ไม่ตรงกัน'] }; if (nw === oldPw) return { ok: false, errors: ['รหัสผ่านใหม่ต้องต่างจากเดิม'] };
+      const chk = await sb.auth.signInWithPassword({ email: S.me.email, password: oldPw || '' }); if (chk.error) return { ok: false, errors: ['รหัสผ่านเดิมไม่ถูกต้อง'] };
+      const { error } = await sb.auth.updateUser({ password: nw }); return error ? fail(error) : { ok: true };
+    },
+    async deleteMyAccount() { const { error } = await sb.rpc('delete_my_account'); if (error) return fail(error); await sb.auth.signOut(); await loadMine(); emit(); return { ok: true }; },
+    async markNoticesRead(id) { await sb.rpc('mark_notices_read', { p_id: id || null }); S.notices.forEach((n) => { if (!id || n.id === id) n.read = true; }); emit(); },
+    // ----- แอดมิน: สมาชิก -----
+    async adminLogin(email, pw) {
+      const r = await DB.login(email, pw); if (!r.ok) return r;
+      if (!S.isAdmin) { await DB.logout(); return { ok: false, errors: ['บัญชีนี้ไม่มีสิทธิ์แอดมิน'] }; }
+      return { ok: true, isDefault: false };
+    },
+    async setAdminPassword(pw) { if (!pw || pw.length < 8 || !/[A-Za-z]/.test(pw) || !/\d/.test(pw)) return { ok: false, errors: ['รหัสอย่างน้อย 8 ตัว มีทั้งตัวอักษรและตัวเลข'] }; const { error } = await sb.auth.updateUser({ password: pw }); return error ? fail(error) : { ok: true }; },
+    async adminAddMember(f) {
+      const { data, error } = await sb.functions.invoke('admin-users', { body: { action: 'create', name: f.name, email: f.email, phone: f.phone, password: f.password } });
+      if (error) return { ok: false, errors: [await fnErr(error)] }; if (!data.ok) return { ok: false, errors: [data.error] };
+      await loadDynamic(); emit(); return { ok: true };
+    },
+    async resetPassword(id, pw) { const { data, error } = await sb.functions.invoke('admin-users', { body: { action: 'reset_password', userId: id, password: pw } }); if (error) return { ok: false, errors: [await fnErr(error)] }; return data.ok ? { ok: true } : { ok: false, errors: [data.error] }; },
+    async warnMember(id, title, body, opts) { opts = opts || {}; const { data, error } = await sb.rpc('admin_warn', { p_member: id, p_title: title, p_body: body, p_type: opts.type || 'warning', p_strike: !!opts.strike }); if (error) return fail(error); await loadDynamic(); emit(); return { ok: true, strikes: data.strikes, banned: data.banned }; },
+    async setBan(id, banned, reason) { const { error } = await sb.rpc('admin_set_ban', { p_member: id, p_banned: banned, p_reason: reason || '' }); if (error) return fail(error); await loadDynamic(); emit(); return { ok: true }; },
+    async removeMember(id) { return DB.remove('members', id); },
+    // ----- ออเดอร์ / ชำระเงิน -----
+    async coupon(code, subtotal) {
+      const { data, error } = await sb.rpc('check_coupon', { p_code: code, p_subtotal: subtotal }); if (error) return { ok: false, msg: tr(error) };
+      if (!data.ok) return { ok: false, msg: data.msg };
+      return { ok: true, code: data.code, type: data.type, value: data.value, minTotal: data.minTotal, discount: C.couponCalc(data, subtotal) };
+    },
+    async placeOrder(cart, customer, couponCode) {
+      const { data, error } = await sb.rpc('place_order', { p_items: cart.map((l) => ({ id: l.id, qty: l.qty })), p_coupon: couponCode || '' });
+      if (error) return fail(error);
+      await Promise.all([loadPublic(), loadDynamic()]); emit(); DB.notify('order', data.id);
+      return { ok: true, order: DB.find('orders', data.id) };
+    },
+    async submitSlip(orderId, slip) {
+      if (!slip.image) return { ok: false, errors: ['แนบรูปสลิป'] };
+      if (!/^[A-Za-z0-9]{8,30}$/.test(slip.ref || '')) return { ok: false, errors: ['เลขอ้างอิงสลิป 8-30 ตัวอักษร/ตัวเลข'] };
+      if (!(Number(slip.amount) > 0)) return { ok: false, errors: ['กรอกยอดที่โอน'] }; if (!slip.paidAt) return { ok: false, errors: ['ระบุวันเวลาที่โอน'] };
+      try {
+        const blob = dataUrlToBlob(slip.image), path = `${S.user.id}/${orderId}-${Date.now()}.jpg`;
+        await upload('slips', path, blob, { contentType: 'image/jpeg', cacheControl: '3600' });
+        const { data, error } = await sb.rpc('submit_slip', { p_order: orderId, p_ref: slip.ref, p_amount: Number(slip.amount), p_paid_at: new Date(slip.paidAt).toISOString(), p_path: path });
+        if (error) return fail(error);
+        await loadDynamic(); emit(); DB.notify('slip', orderId); return { ok: true, flags: data.flags };
+      } catch (e) { return fail(e); }
+    },
+    async slipUrl(p) { if (!p || !p.slipPath) return ''; const { data } = await sb.storage.from('slips').createSignedUrl(p.slipPath, 300); return (data && data.signedUrl) || ''; },
+    async reviewPayment(orderId, approve, note) {
+      const { error } = await sb.rpc('review_payment', { p_order: orderId, p_approve: approve, p_note: note || '' }); if (error) return fail(error);
+      await loadDynamic(); emit(); if (!approve) return { ok: true };
+      return { ok: true, keys: await DB.issueKeys(orderId) };      // อนุมัติแล้วออกคีย์ต่อทันที (พลาดก็ไม่ย้อนสถานะ ใช้ "ออกคีย์ใหม่" ได้)
+    },
+    async issueKeys(orderId) {
+      const { data, error } = await sb.functions.invoke('issue-keys', { body: { orderId } });
+      await loadDynamic(); emit();
+      if (error) return { ok: false, errors: [await fnErr(error)], total: 0, issued: 0 };
+      return { ok: data.ok, errors: data.errors || (data.error ? [data.error] : []), total: data.total, issued: data.issued };
+    },
+    async setOrderStatus(id, status) { const { error } = await sb.rpc('set_order_status', { p_order: id, p_status: status }); if (error) return fail(error); await Promise.all([loadPublic(), loadDynamic()]); emit(); return { ok: true }; },
+    notify(event, orderId) { sb.functions.invoke('notify-line', { body: { event, orderId } }).catch(() => {}); },       // ยิงแล้วลืม: ล้มเหลวไม่กระทบการสั่งซื้อ
+    async testLine() { const { data, error } = await sb.functions.invoke('notify-line', { body: { test: true } }); if (error) return { ok: false, errors: [await fnErr(error)] }; return data.ok ? { ok: true } : { ok: false, errors: [data.error] }; },
+    // ----- ตรวจสุขภาพข้อมูล / สำรอง -----
+    health() {
+      const r = [], add = (lv, msg) => r.push({ lv, msg });
+      S.products.forEach((p) => {
+        DB.validate('products', p).forEach((m) => add('err', p.name + ': ' + m));
+        if (p.active && p.stock === 0) add('warn', p.name + ' สต็อกหมดแต่ยังเปิดขาย'); else if (p.active && p.stock <= 5) add('warn', p.name + ' สต็อกใกล้หมด (' + p.stock + ')');
+        if (!p.image && !p.icon) add('warn', p.name + ' ไม่มีรูป/ไอคอน'); if (!p.desc || p.desc.length < 10) add('warn', p.name + ' คำอธิบายสั้นเกินไป');
+      });
+      S.categories.forEach((c) => { if (!S.products.some((p) => p.categoryId === c.id)) add('warn', 'หมวด "' + c.name + '" ไม่มีสินค้า'); });
+      const pend = S.orders.filter((o) => o.status === 'review').length; if (pend) add('warn', 'มี ' + pend + ' ออเดอร์รอตรวจสลิป');
+      S.orders.filter((o) => o.status === 'paid' && o.keyStatus === 'pending').forEach((o) => add('err', 'ออเดอร์ ' + o.id + ' ชำระแล้วแต่ยังออกคีย์ไม่ครบ — กด "ออกคีย์ใหม่"'));
+      if (!S.settings.lineId) add('warn', 'ยังไม่ได้ตั้ง LINE ID สำหรับให้ลูกค้าติดต่อ (ตั้งค่าหน้าแรก)'); if (!S.settings.paymentQr) add('err', 'ยังไม่ได้อัปโหลด QR รับเงิน (ตั้งค่าหน้าแรก)');
+      if (S.settings.promoEndsAt && S.settings.promoText && new Date(S.settings.promoEndsAt) < new Date()) add('warn', 'เวลาโปรโมชันหมดแล้ว — ตั้งวันใหม่ในแท็บตั้งค่า');
+      if (!r.length) add('ok', 'ข้อมูลทุกส่วนผ่านการตรวจสอบ ✔'); return r;
+    },
+    exportJSON() { const o = { exportedAt: new Date().toISOString() }; ['settings'].forEach((k) => (o[k] = S[k])); ['categories', 'brands', 'products', 'promos', 'banners', 'showcase', 'tutorials', 'reviews', 'faqs', 'coupons', 'members', 'orders'].forEach((k) => (o[k] = S[k])); return JSON.stringify(o, null, 2); },
+    importJSON() { return { ok: false, errors: ['โหมด Supabase ไม่รองรับนำเข้าไฟล์ — ใช้ Supabase Dashboard (SQL/Table editor) เพื่อกู้ข้อมูล'] }; },
+    reset() { return { ok: false, errors: ['โหมด Supabase ไม่รองรับรีเซ็ตจากหน้าเว็บ'] }; }
+  };
+  w.DB = DB;
+})(window);
