@@ -29,7 +29,7 @@
     releases: (r) => ({ id: r.id, version: r.version, platform: r.platform, title: r.title, notes: r.notes, filePath: r.file_path || '', externalUrl: r.external_url || '', fileName: r.file_name, sizeBytes: Number(r.size_bytes) || 0, sha256: r.sha256 || '', mandatory: !!r.mandatory, announcedAt: r.announced_at || '', active: r.active, createdAt: r.created_at }),
     commissions: (r) => ({ id: r.id, orderId: r.order_id || '', referrerId: r.referrer_id, buyerId: r.buyer_id || '', productId: r.product_id || '', product: r.product_name, qty: r.qty, unit: r.unit_amount, amount: r.amount, status: r.status, availableAt: r.available_at, payoutId: r.payout_id || '', manual: !!r.manual, note: r.note || '', createdAt: r.created_at, paidAt: r.paid_at || '' }),
     payouts: (r) => ({ id: r.id, memberId: r.member_id, amount: r.amount, status: r.status, info: r.info || {}, requestedAt: r.requested_at, processedAt: r.processed_at || '', transferRef: r.transfer_ref || '', adminNote: r.admin_note || '' }),
-    members: (r) => ({ id: r.id, name: r.name, email: r.email, phone: r.phone, banned: r.banned, emailUpdates: r.email_updates, banReason: r.ban_reason, strikes: r.strikes, createdAt: r.created_at, refCode: r.ref_code || '', referredBy: r.referred_by || '', referredAt: r.referred_at || '', affBlocked: !!r.aff_blocked, affReason: r.aff_block_reason || '' })
+    members: (r) => ({ id: r.id, name: r.name, email: r.email, phone: r.phone, banned: r.banned, emailUpdates: r.email_updates, banReason: r.ban_reason, strikes: r.strikes, createdAt: r.created_at, refCode: r.ref_code || '', referredBy: r.referred_by || '', referredAt: r.referred_at || '', affBlocked: !!r.aff_blocked, affReason: r.aff_block_reason || '', avatarPath: r.avatar_path || '' })
   };
   const OUT = {
     categories: (o) => ({ id: o.id, name: o.name.trim(), icon: o.icon || '📁', sort: Number(o.sort) || 0 }),
@@ -298,6 +298,32 @@
     async setOrderStatus(id, status) { const { error } = await sb.rpc('set_order_status', { p_order: id, p_status: status }); if (error) return fail(error); await Promise.all([loadPublic(), loadDynamic()]); emit(); return { ok: true }; },
     notify(event, orderId) { sb.functions.invoke('notify-line', { body: { event, orderId } }).catch(() => {}); },       // ยิงแล้วลืม: ล้มเหลวไม่กระทบการสั่งซื้อ
     async testLine() { const { data, error } = await sb.functions.invoke('notify-line', { body: { test: true } }); if (error) return { ok: false, errors: [await fnErr(error)] }; return data.ok ? { ok: true } : { ok: false, errors: [data.error] }; },
+    // ----- รูปโปรไฟล์ (bucket avatars สาธารณะ · ไฟล์อยู่ใต้โฟลเดอร์ <user_id>/ · ย่อเหลือ 256px ที่ฝั่งเบราว์เซอร์ก่อนอัปโหลด) -----
+    avatarUrl: (path) => (path ? sb.storage.from('avatars').getPublicUrl(path).data.publicUrl : ''),
+    async setAvatar(dataUrl) {
+      if (!S.user || !S.me) return { ok: false, errors: ['ยังไม่ได้เข้าสู่ระบบ'] };
+      if (!/^data:image\/(png|jpeg|webp);base64,/.test(dataUrl || '')) return { ok: false, errors: ['รองรับเฉพาะไฟล์ภาพ PNG / JPG / WebP'] };
+      const blob = dataUrlToBlob(dataUrl); if (blob.size > 512 * 1024) return { ok: false, errors: ['รูปใหญ่เกินไป (เกิน 512KB หลังย่อ) — เลือกรูปอื่น'] };
+      const old = S.me.avatarPath, path = S.user.id + '/' + Date.now() + '.jpg';
+      try {
+        const up = await sb.storage.from('avatars').upload(path, blob, { contentType: 'image/jpeg', cacheControl: '31536000', upsert: false }); if (up.error) return fail(up.error);
+        const { error } = await sb.rpc('set_my_avatar', { p_path: path });
+        if (error) { await sb.storage.from('avatars').remove([path]).catch(() => {}); return fail(error); }     // ตั้งไม่สำเร็จ → ลบไฟล์ที่เพิ่งอัปโหลด ไม่ให้ค้าง
+        if (old) await sb.storage.from('avatars').remove([old]).catch(() => {});                                // ลบรูปเก่า (ไม่สำเร็จก็ไม่กระทบ)
+        await loadMine(); emit(); return { ok: true };
+      } catch (e) { return fail(e); }
+    },
+    async removeAvatar() {
+      if (!S.me) return { ok: false, errors: ['ยังไม่ได้เข้าสู่ระบบ'] };
+      const old = S.me.avatarPath; if (!old) return { ok: true };
+      const { error } = await sb.rpc('set_my_avatar', { p_path: '' }); if (error) return fail(error);
+      await sb.storage.from('avatars').remove([old]).catch(() => {}); await loadMine(); emit(); return { ok: true };
+    },
+    async adminClearAvatar(id) {            // แอดมิน: ลบรูปที่ไม่เหมาะสม
+      const cur = DB.find('members', id), { error } = await sb.rpc('admin_clear_avatar', { p_member: id }); if (error) return fail(error);
+      if (cur && cur.avatarPath) await sb.storage.from('avatars').remove([cur.avatarPath]).catch(() => {});
+      await loadDynamic(); emit(); return { ok: true };
+    },
     // ----- ตัวแทนขายโปรแกรม (Affiliate) -----
     aff: () => S.aff, async affRefresh() { await loadAff(); emit(); return S.aff; },
     async affSavePayout(f) { const { error } = await sb.rpc('aff_save_payout_info', { p_method: f.method, p_bank: f.bank || '', p_account: f.account || '', p_name: f.name || '' }); if (error) return fail(error); await loadMine(); emit(); return { ok: true }; },

@@ -30,7 +30,9 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
 
 <div class="wrap pg" id="app" hidden>
   <aside>
-    <div class="box"><div class="av" id="av"></div><h3 id="nm" style="margin:0"></h3><div id="em" style="color:var(--mut);font-size:14px"></div><div id="since" style="color:var(--mut);font-size:13px"></div>
+    <div class="box"><div class="av" id="av"></div>
+      <div class="avact" id="avAct" hidden><button class="btn ghost sm" id="avPick" type="button">📷 <span id="avPickT">เพิ่มรูปโปรไฟล์</span></button><button class="btn danger sm" id="avDel" type="button" hidden>🗑 ลบรูป</button><input type="file" id="avFile" accept="image/png,image/jpeg,image/webp" hidden></div>
+      <div class="errs" id="eAv"></div><h3 id="nm" style="margin:0"></h3><div id="em" style="color:var(--mut);font-size:14px"></div><div id="since" style="color:var(--mut);font-size:13px"></div>
       <div class="kpi" style="margin:14px 0 0;grid-template-columns:1fr 1fr"><div><b id="kOrd">0</b><span>ออเดอร์</span></div><div><b id="kKey">0</b><span>License key</span></div></div></div>
     <div class="box"><h3>✏️ ข้อมูลส่วนตัว</h3><form id="fProf" novalidate><div class="f"><label>ชื่อ-นามสกุล</label><input name="name"></div><div class="f"><label>เบอร์โทร</label><input name="phone" inputmode="tel"></div><div class="f"><label>อีเมล (เปลี่ยนไม่ได้ — ผูกกับ License)</label><input id="emro" disabled></div><label style="display:flex;gap:8px;font-size:14px;margin:6px 0"><input type="checkbox" id="emUpd" style="width:auto"> รับอีเมลแจ้งเวอร์ชันใหม่ของโปรแกรม</label><div class="errs" id="eProf"></div><button class="btn" style="width:100%">บันทึก</button></form></div>
     <div class="box"><h3>🔒 เปลี่ยนรหัสผ่าน</h3><form id="fPw" novalidate><div class="f"><label>รหัสผ่านเดิม</label><input name="old" type="password" autocomplete="current-password"></div><div class="f"><label>รหัสผ่านใหม่ (≥ 8 ตัว)</label><input name="n1" type="password" autocomplete="new-password"></div><div class="f"><label>ยืนยันรหัสผ่านใหม่</label><input name="n2" type="password" autocomplete="new-password"></div><div class="errs" id="ePw"></div><button class="btn" style="width:100%">เปลี่ยนรหัสผ่าน</button></form></div>
@@ -48,6 +50,9 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
     <div class="box"><h3>📦 ประวัติการสั่งซื้อ</h3><div id="orders"></div></div>
   </main>
 </div>
+<div class="modal" id="mAv"><div class="mbox" style="width:min(380px,100%);text-align:center"><h3>🖼️ ปรับรูปโปรไฟล์</h3><p style="color:var(--mut);font-size:13px;margin:0 0 10px">ลากเพื่อเลื่อนรูป · เลื่อนแถบเพื่อซูม</p>
+  <canvas id="avCv" width="256" height="256" class="avcv"></canvas><div class="f" style="margin:10px 0 4px"><label>ซูม</label><input type="range" id="avZoom" min="1" max="3" step="0.01" value="1"></div>
+  <div class="errs" id="eAvM"></div><div style="display:flex;gap:8px;justify-content:center;margin-top:10px"><button class="btn" id="avOk" type="button">💾 บันทึกรูปนี้</button><button class="btn ghost" id="avNo" type="button">ยกเลิก</button></div></div></div>
 <div class="toast" id="toast"></div>
 <script src="config.js"></script>
 <script src="vendor/supabase.js"></script>
@@ -64,7 +69,7 @@ let lastKeys = -1;
 function render() {
   const m = DB.me(); $('#guest').hidden = !!m; $('#app').hidden = !m; $('#out').hidden = !m; if (!m) return;
   const orders = DB.list('orders').filter((o) => o.memberId === m.id), keys = orders.flatMap((o) => (o.licenseKeys || []).map((k) => Object.assign({ orderId: o.id }, k)));
-  $('#av').textContent = m.name.trim().charAt(0).toUpperCase(); $('#nm').textContent = m.name; $('#em').textContent = m.email; $('#since').textContent = 'สมาชิกตั้งแต่ ' + new Date(m.createdAt).toLocaleDateString('th-TH');
+  paintAvatar(m); $('#nm').textContent = m.name; $('#em').textContent = m.email; $('#since').textContent = 'สมาชิกตั้งแต่ ' + new Date(m.createdAt).toLocaleDateString('th-TH');
   const ns = DB.myNotices(), un = ns.filter((n) => !n.read).length, ic = { info: 'ℹ️', warning: '⚠️', violation: '⛔', ban: '🚫', update: '💿' };
   $('#unr').hidden = !un; $('#unr').textContent = un + ' ใหม่'; $('#readAll').hidden = !un;
   $('#nlist').innerHTML = ns.map((n) => `<div class="hl" style="${n.type === 'violation' || n.type === 'ban' ? 'border-color:var(--err)' : n.type === 'warning' ? 'border-color:var(--gold)' : ''};${n.read ? 'opacity:.65' : ''}"><span>${ic[n.type] || ''}</span><span style="flex:1"><b>${E(n.title)}</b>${n.read ? '' : ' <span class="tag err">ใหม่</span>'}<br><span style="color:var(--mut);font-size:14px">${E(n.body)}</span><br><small style="color:var(--mut)">${new Date(n.createdAt).toLocaleString('th-TH')}</small></span>${n.read ? '' : `<button class="btn sm ghost" data-read="${E(n.id)}">อ่านแล้ว</button>`}</div>`).join('') || '<p style="color:var(--mut)">ไม่มีการแจ้งเตือน</p>';
@@ -144,6 +149,40 @@ $('#aff').addEventListener('change', (e) => { if (e.target.name === 'method') { 
 $('#aff').addEventListener('submit', async (e) => { if (e.target.id !== 'fAffPay') return; e.preventDefault(); const f = e.target;
   const r = await DB.affSavePayout({ method: f.method.value, bank: f.bank.value, account: f.account.value, name: f.name.value }); if (r.ok) { affSig = ''; showErr($('#eAffPay'), []); toast('บันทึกข้อมูลรับเงินแล้ว ✔'); } else showErr($('#eAffPay'), r.errors); });
 $('#readAll').onclick = () => DB.markNoticesRead();
+/* ===== 🖼️ รูปโปรไฟล์: เลือกไฟล์ → ปรับตำแหน่ง/ซูมในกรอบสี่เหลี่ยม → ย่อ 256px (JPEG) → อัปโหลด · ลบ/เปลี่ยนได้ ===== */
+function paintAvatar(m) {
+  const av = $('#av'), url = DB.avatarUrl ? DB.avatarUrl(m.avatarPath) : '', can = DB.mode === 'supabase' && !!DB.setAvatar;
+  if (av._u !== url) { av._u = url; av.innerHTML = url ? '<img alt="รูปโปรไฟล์" src="' + E(url) + '">' : ''; if (!url) av.textContent = m.name.trim().charAt(0).toUpperCase(); }
+  $('#avAct').hidden = !can; $('#avDel').hidden = !m.avatarPath; $('#avPickT').textContent = m.avatarPath ? 'เปลี่ยนรูป' : 'เพิ่มรูปโปรไฟล์';
+}
+const AV = { img: null, z: 1, x: 0, y: 0, drag: null, busy: false };
+function avDraw() {
+  const cv = $('#avCv'), c = cv.getContext('2d'), im = AV.img; if (!im) return; const S = 256, base = Math.max(S / im.width, S / im.height), k = base * AV.z, w = im.width * k, h = im.height * k;
+  AV.x = Math.min(0, Math.max(S - w, AV.x)); AV.y = Math.min(0, Math.max(S - h, AV.y));          // กันรูปหลุดกรอบ
+  c.fillStyle = '#fff'; c.fillRect(0, 0, S, S); c.drawImage(im, AV.x, AV.y, w, h);
+}
+function avFit() { const im = AV.img, base = Math.max(256 / im.width, 256 / im.height); AV.x = (256 - im.width * base * AV.z) / 2; AV.y = (256 - im.height * base * AV.z) / 2; }
+$('#avPick').onclick = () => { showErr($('#eAv'), []); $('#avFile').click(); };
+$('#avFile').onchange = (e) => { const fl = e.target.files[0]; e.target.value = ''; if (!fl) return;
+  if (!/^image\/(png|jpeg|webp)$/.test(fl.type)) return showErr($('#eAv'), ['รองรับเฉพาะไฟล์ PNG / JPG / WebP']);
+  if (fl.size > 8 * 1048576) return showErr($('#eAv'), ['ไฟล์ใหญ่เกิน 8MB — เลือกรูปที่เล็กกว่านี้']);
+  const u = URL.createObjectURL(fl), im = new Image();
+  im.onerror = () => { URL.revokeObjectURL(u); showErr($('#eAv'), ['อ่านไฟล์ภาพไม่ได้ (ไฟล์เสียหรือไม่ใช่รูปภาพ)']); };
+  im.onload = () => { URL.revokeObjectURL(u); if (im.width < 64 || im.height < 64) return showErr($('#eAv'), ['รูปเล็กเกินไป (อย่างน้อย 64×64 พิกเซล)']);
+    showErr($('#eAv'), []); AV.img = im; AV.z = 1; $('#avZoom').value = 1; avFit(); avDraw(); showErr($('#eAvM'), []); $('#mAv').classList.add('on'); };
+  im.src = u; };
+$('#avZoom').oninput = (e) => { const im = AV.img, S = 256, old = AV.z, nz = +e.target.value, base = Math.max(S / im.width, S / im.height); const cx = (S / 2 - AV.x) / (base * old), cy = (S / 2 - AV.y) / (base * old);   // ซูมรอบจุดกึ่งกลางกรอบ
+  AV.z = nz; AV.x = S / 2 - cx * base * nz; AV.y = S / 2 - cy * base * nz; avDraw(); };
+(() => { const cv = $('#avCv'); cv.style.touchAction = 'none';
+  cv.onpointerdown = (e) => { AV.drag = { px: e.clientX, py: e.clientY, x: AV.x, y: AV.y }; cv.setPointerCapture(e.pointerId); };
+  cv.onpointermove = (e) => { if (!AV.drag) return; const r = cv.getBoundingClientRect(), k = 256 / r.width; AV.x = AV.drag.x + (e.clientX - AV.drag.px) * k; AV.y = AV.drag.y + (e.clientY - AV.drag.py) * k; avDraw(); };
+  cv.onpointerup = cv.onpointercancel = () => { AV.drag = null; }; })();
+$('#avNo').onclick = () => { $('#mAv').classList.remove('on'); AV.img = null; };
+$('#avOk').onclick = async () => { if (AV.busy || !AV.img) return; AV.busy = true; const b = $('#avOk'); b.disabled = true; b.textContent = 'กำลังอัปโหลด…';
+  const r = await DB.setAvatar($('#avCv').toDataURL('image/jpeg', 0.88)); AV.busy = false; b.disabled = false; b.textContent = '💾 บันทึกรูปนี้';
+  if (!r.ok) return showErr($('#eAvM'), r.errors); $('#mAv').classList.remove('on'); AV.img = null; toast('บันทึกรูปโปรไฟล์แล้ว ✔'); render(); };
+$('#avDel').onclick = async () => { if (!confirm('ลบรูปโปรไฟล์ของคุณ?\nรูปจะถูกลบออกจากระบบถาวร (ยังเพิ่มรูปใหม่ได้ภายหลัง)')) return;
+  const r = await DB.removeAvatar(); r.ok ? (toast('ลบรูปโปรไฟล์แล้ว'), render()) : showErr($('#eAv'), r.errors); };
 $('#emUpd').onchange = async (e) => { const r = await DB.setEmailUpdates(e.target.checked); r.ok ? toast(e.target.checked ? 'เปิดรับอีเมลแจ้งอัปเดต' : 'ปิดรับอีเมลแจ้งอัปเดตแล้ว (ยังเห็นในโปรไฟล์)') : (alert(r.errors.join('\n')), (e.target.checked = !e.target.checked)); };
 document.addEventListener('click', async (e) => { const d = e.target.closest('[data-dl]'); if (d) { d.disabled = true; const r = await DB.downloadUrl(d.dataset.dl); d.disabled = false; if (!r.ok) return alert(r.errors.join('\n')); const a = document.createElement('a'); a.href = r.url; a.rel = 'noopener'; if (r.fileName) a.download = r.fileName; document.body.appendChild(a); a.click(); a.remove(); toast('เริ่มดาวน์โหลด...'); return; }
   const r = e.target.closest('[data-read]'); if (r) DB.markNoticesRead(r.dataset.read); const b = e.target.closest('[data-copy]'); if (b) navigator.clipboard.writeText(b.dataset.copy).then(() => toast('คัดลอกคีย์แล้ว')); });
