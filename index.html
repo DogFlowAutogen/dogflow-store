@@ -143,7 +143,7 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
 <div class="modal" id="mOrders"><div class="mbox" style="width:min(640px,100%)">
   <h3>📦 ออเดอร์ของฉัน</h3><div id="myOrders"></div><button class="btn ghost sm" style="margin-top:12px" data-close>ปิด</button>
 </div></div>
-<div class="modal" id="mWork"><div class="mbox" style="width:min(460px,100%);text-align:center"><h3 id="wT"></h3><div id="wBox" style="margin:12px auto;display:flex;flex-direction:column;align-items:center;gap:10px"></div><p id="wC" style="color:var(--mut);margin:0 0 4px"></p><p id="wCr" style="color:var(--mut);font-size:13px;margin:0 0 12px"></p><button class="btn ghost sm" data-close>ปิด</button></div></div>
+<div class="modal" id="mWork"><div class="mbox wbox" style="width:min(460px,100%);text-align:center"><h3 id="wT"></h3><div id="wBox" style="margin:8px auto;display:flex;flex-direction:column;align-items:center;gap:10px"></div><p id="wC" style="color:var(--mut);margin:0 0 4px"></p><p id="wCr" style="color:var(--mut);font-size:13px;margin:0 0 12px"></p><button class="btn ghost sm" data-close>ปิด</button></div></div>
 <div class="modal" id="mVideo"><div class="mbox" style="width:min(860px,100%)"><h3 id="vT"></h3><div id="vBox" style="margin:12px 0"></div><p id="vD" style="color:var(--mut)"></p><button class="btn ghost sm" data-close>ปิด</button></div></div>
 <div class="modal" id="mRules"><div class="mbox"><h3>📜 เงื่อนไขและกฎการใช้งาน</h3><div id="rulesTxt" style="white-space:pre-line;color:var(--mut);font-size:14px;margin:12px 0"></div><button class="btn sm" data-close>รับทราบ</button></div></div>
 <div class="modal" id="mShot"><div class="mbox" style="width:min(1100px,100%);padding:14px"><img id="shotBig" alt="" style="width:100%;border-radius:12px"><p id="shotCap" style="color:var(--mut);margin:10px 4px"></p><button class="btn ghost sm" data-close>ปิด</button></div></div>
@@ -273,13 +273,21 @@ function renderWorks() {
 function playWork(id) {
   const w = DB.find('works', id); if (!w) return; const c = DFCommon.clip(w.url), box = $('#wBox'); if (!c) return;
   $('#wT').textContent = w.title || ''; $('#wT').hidden = !w.title; $('#wC').textContent = w.caption || ''; $('#wCr').textContent = w.creator ? (w.title ? 'เครดิต: ' : 'โดย ') + w.creator + ' · ลิขสิทธิ์เป็นของเจ้าของผลงาน' : '';   // ไม่มีชื่อคลิป = ไม่แสดงหัวข้อ เหลือเฉพาะ "โดย เครดิต" box.innerHTML = '';
-  const vert = c.ratio === '9/16', wd = vert ? 'min(100%,340px)' : '100%';
+  // ขนาดตัวเล่นผูกกับความสูงหน้าจอ (--wh ใน .wbox) → กรอบพอดีจอเสมอ ไม่มีแถบเลื่อน · แนวตั้งกำหนดจากความสูง แนวนอนกำหนดจากความกว้าง
+  const vert = c.ratio === '9/16', size = (vertical, ar) => (vertical ? 'height:var(--wh);width:auto;max-width:100%;' : 'width:min(100%,calc(var(--wh) * 16 / 9));height:auto;') + 'aspect-ratio:' + ar + ';';
   if (c.type === 'iframe') { const f = document.createElement('iframe'); f.src = c.src; f.title = w.title || w.creator || 'คลิป'; f.allow = 'autoplay; fullscreen; picture-in-picture; encrypted-media'; f.allowFullscreen = true; f.referrerPolicy = 'strict-origin-when-cross-origin'; f.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-popups allow-presentation allow-popups-to-escape-sandbox');
-    f.style.cssText = 'width:' + wd + ';aspect-ratio:' + c.ratio + ';max-height:72vh;border:0;border-radius:12px;background:#000'; box.appendChild(f); }
-  else if (c.type === 'video') { const v = document.createElement('video'); v.src = c.src; v.controls = true; v.playsInline = true; v.autoplay = true; v.style.cssText = 'width:' + wd + ';max-height:72vh;border-radius:12px;background:#000'; box.appendChild(v); }
+    f.style.cssText = size(vert, c.ratio) + 'border:0;border-radius:12px;background:#000'; box.appendChild(f); }
+  else if (c.type === 'video') { const v = document.createElement('video'); v.src = c.src; v.controls = true; v.playsInline = true; v.autoplay = true; const vs = 'border-radius:12px;background:#000;object-fit:contain'; v.style.cssText = size(true, '9/16') + vs; v.onloadedmetadata = () => { if (v.videoWidth && v.videoHeight) v.style.cssText = size(v.videoHeight >= v.videoWidth, v.videoWidth + '/' + v.videoHeight) + vs; }; box.appendChild(v); }   // ไฟล์ที่อัปโหลดไม่รู้สัดส่วนล่วงหน้า → ปรับตามขนาดจริงเมื่อโหลดข้อมูลวิดีโอ
   const o = document.createElement('a'); o.className = 'btn ' + (c.type === 'link' ? 'gold' : 'ghost sm'); o.href = c.open; o.target = '_blank'; o.rel = 'noopener noreferrer'; o.textContent = c.type === 'link' ? '▶ เปิดคลิปบน ' + c.label : '↗ เปิดบน ' + c.label + ' (ถ้าเล่นในหน้านี้ไม่ได้)'; box.appendChild(o);
-  openM('#mWork');
+  openM('#mWork'); fitWork();
 }
+// ย่อตัวเล่นลงเท่าที่จำเป็นให้เห็นครบทุกส่วน (ชื่อ/ตัวเล่น/ปุ่ม/เครดิต/ปุ่มปิด) โดยไม่ต้องเลื่อน — วัดจากความสูงจริงของกรอบหลังแสดงแล้ว
+function fitWork() {
+  const bx = document.querySelector('#mWork .wbox'); if (!bx || !$('#mWork').classList.contains('on')) return;
+  const base = Math.max(200, Math.min(640, innerHeight - 230)); bx.style.setProperty('--wh', base + 'px');
+  const over = bx.scrollHeight - bx.clientHeight; if (over > 0) bx.style.setProperty('--wh', Math.max(140, base - over - 2) + 'px');
+}
+window.addEventListener('resize', fitWork);
 $('#workTabs').onclick = (e) => { const b = e.target.closest('[data-wf]'); if (!b) return; workFilter = b.dataset.wf; renderWorks(); };
 $('#workList').onclick = (e) => { const c = e.target.closest('[data-work]'); if (c) playWork(c.dataset.work); };
 $('#workList').onkeydown = (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target.closest('[data-work]')) { e.preventDefault(); playWork(e.target.closest('[data-work]').dataset.work); } };

@@ -380,3 +380,9 @@ small{color:var(--muted);font-size:12px}
 .wkt{padding:8px 2px 0}.wkt b{display:block;font-size:14px;line-height:1.35}.wkt small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
 
 .wkt small.only{font-size:14px;font-weight:700;color:var(--fg);margin:0}
+
+/* หน้าต่างเล่นผลงานลูกค้า: ขนาดตัวเล่นพอดีความสูงจอ ไม่ให้เกิดแถบเลื่อน (ถ้าจอเตี้ยมากเลื่อนได้แต่ซ่อนแถบ) */
+.wbox{--wh:clamp(240px,calc(100vh - 250px),640px);padding:14px 18px;max-height:calc(100vh - 20px);overflow-y:auto;scrollbar-width:none}
+.wbox::-webkit-scrollbar{display:none}
+.wbox h3{margin:0 0 2px;font-size:17px}
+.wbox p{line-height:1.4}
