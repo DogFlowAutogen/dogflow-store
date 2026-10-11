@@ -57,6 +57,14 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
 <script>
 const $ = (s) => document.querySelector(s), E = DB.esc, B = DB.baht;
 const toast = (m) => { const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(t._); t._ = setTimeout(() => t.classList.remove('on'), 2400); };
+// ภาพปกจากเฟรมแรกของวิดีโอ (ย่อ ≤ 720px กว้าง) — ทำในเบราว์เซอร์ ไม่ต้องใช้เซิร์ฟเวอร์ · ไม่ได้ (เช่น codec เบราว์เซอร์ไม่รู้จัก) = ข้าม ไม่ถือเป็นข้อผิดพลาด
+const dfVideoPoster = (file) => new Promise((res) => {
+  const v = document.createElement('video'), u = URL.createObjectURL(file), done = (r) => { URL.revokeObjectURL(u); res(r); };
+  v.muted = true; v.preload = 'auto'; v.playsInline = true; v.src = u; const t = setTimeout(() => done(''), 8000);
+  v.onerror = () => { clearTimeout(t); done(''); };
+  v.onloadeddata = () => { v.currentTime = Math.min(0.6, (v.duration || 1) / 2); };
+  v.onseeked = () => { clearTimeout(t); try { const w = Math.min(720, v.videoWidth || 720), h = Math.round(w * (v.videoHeight || 1280) / (v.videoWidth || 720)), cv = document.createElement('canvas'); cv.width = w; cv.height = h; cv.getContext('2d').drawImage(v, 0, 0, w, h); done(cv.toDataURL('image/jpeg', 0.82)); } catch (e) { done(''); } };
+});
 const fmt = (t) => new Date(t).toLocaleString('th-TH');
 let tab = 'dash';
 
@@ -338,7 +346,7 @@ const V = {
   },
   tutorials() {
     return `<h1>📚 คู่มือการใช้งานโปรแกรม (วิดีโอ)</h1><p style="color:var(--mut)">แปะลิงก์ YouTube / Vimeo / Google Drive / TikTok / ไฟล์ .mp4 หรืออัปโหลดคลิป — แสดงเป็นคู่มือในหน้าแรก<br>${SB ? 'ไฟล์ที่อัปโหลดเก็บใน Supabase Storage (≤ 50MB) — ไฟล์ใหญ่แนะนำใช้ลิงก์ YouTube/Vimeo' : '⚠ โหมดทดลอง: ไฟล์เก็บในเบราว์เซอร์เครื่องนี้เท่านั้น ลูกค้าเครื่องอื่นจะไม่เห็น — ใช้ <b>ลิงก์</b>'}</p><button class="btn" id="add">＋ เพิ่มบทเรียน</button>
-    <div class="tw" style="margin-top:14px"><table><tr><th></th><th>บทเรียน</th><th>ที่มา</th><th>ลำดับ</th><th>แสดง</th><th></th></tr>${DB.list('tutorials').slice().sort((a, b) => (a.sort || 0) - (b.sort || 0)).map((t) => { const em = t.kind === 'link' ? DB.embed(t.url) : null; return `<tr><td><div class="thumb" style="width:80px">${em && em.thumb ? `<img src="${E(em.thumb)}" alt="">` : '🎬'}</div></td><td><b>${E(t.title)}</b><br><small>${E(t.desc || '')}</small></td><td>${t.kind === 'file' ? '📁 ไฟล์ในเครื่อง' : '🔗 ' + E(em ? em.type : 'ลิงก์เสีย')}</td><td>${t.sort || 0}</td><td><input type="checkbox" style="width:auto" data-tact="${t.id}" ${t.active ? 'checked' : ''}></td><td><button class="btn sm ghost" data-edit="${t.id}">แก้ไข</button> <button class="btn sm danger" data-del="${t.id}">ลบ</button></td></tr>`; }).join('') || '<tr><td colspan="6" style="color:var(--mut)">ยังไม่มีบทเรียน</td></tr>'}</table></div>`;
+    <div class="tw" style="margin-top:14px"><table><tr><th></th><th>บทเรียน</th><th>ที่มา</th><th>ลำดับ</th><th>แสดง</th><th></th></tr>${DB.list('tutorials').slice().sort((a, b) => (a.sort || 0) - (b.sort || 0)).map((t) => { const em = t.kind === 'link' ? DB.embed(t.url) : null; return `<tr><td><div class="thumb" style="width:80px">${(t.thumb || (em && em.thumb)) ? `<img src="${E(t.thumb || em.thumb)}" alt="">` : '🎬'}</div></td><td><b>${E(t.title)}</b><br><small>${E(t.desc || '')}</small></td><td>${t.kind === 'file' ? '📁 ไฟล์ในเครื่อง' : '🔗 ' + E(em ? em.type : 'ลิงก์เสีย')}</td><td>${t.sort || 0}</td><td><input type="checkbox" style="width:auto" data-tact="${t.id}" ${t.active ? 'checked' : ''}></td><td><button class="btn sm ghost" data-edit="${t.id}">แก้ไข</button> <button class="btn sm danger" data-del="${t.id}">ลบ</button></td></tr>`; }).join('') || '<tr><td colspan="6" style="color:var(--mut)">ยังไม่มีบทเรียน</td></tr>'}</table></div>`;
   },
   banners() {
     return `<h1>🖼️ แบนเนอร์โฆษณา</h1><p style="color:var(--mut)">แสดงเป็นสไลด์ใต้หัวหน้าแรก — ภาพแนะนำกว้าง 1200px (อัตราส่วน 3:1) ตั้งช่วงวันแสดงได้</p><button class="btn" id="add">＋ เพิ่มแบนเนอร์</button>
@@ -561,16 +569,9 @@ const A = {
     $('#main').onchange = async (e) => { const c = e.target.closest('[data-ract]'); if (!c) return; const r = await DB.upsert('releases', Object.assign({}, DB.find('releases', c.dataset.ract), { active: c.checked })); if (!r.ok) { alert(r.errors.join('\n')); render(); } };
   },
   works() {
-    const F = [{ k: 'url', label: 'ลิงก์คลิป — แปะลิงก์ที่กดแชร์จากแอปได้เลย (รวมลิงก์ย่อ vm.tiktok.com) · TikTok / YouTube / Instagram / Facebook หรือไฟล์ .mp4', full: true }, { k: 'file', label: SB ? 'หรืออัปโหลดไฟล์วิดีโอ (.mp4 / .webm ไม่เกิน 50MB) — ใช้แทนลิงก์ · ภาพปกสร้างจากเฟรมแรกให้อัตโนมัติถ้าไม่ได้ใส่เอง · แก้ไขโดยไม่เลือกไฟล์ = ใช้ไฟล์เดิม' : 'อัปโหลดไฟล์ไม่ได้ในโหมดทดลอง — ใช้ลิงก์', type: 'file', accept: 'video/mp4,video/webm,.mp4,.webm', full: true }, { k: 'title', label: 'ชื่อคลิป/ผลงาน (ไม่บังคับ — ลิงก์: เว้นว่าง = ดึงจากแพลตฟอร์มให้ · ไฟล์ที่อัปโหลด: เว้นว่าง = ไม่แสดงชื่อ แสดงเฉพาะ "โดย เครดิต")', full: true }, { k: 'creator', label: 'เครดิตเจ้าของ (@ชื่อบัญชี)' }, { k: 'sort', label: 'ลำดับ', type: 'number' }, { k: 'caption', label: 'คำอธิบายสั้น (ไม่บังคับ)', full: true }, { k: 'thumb', prev: 'width:90px;height:160px;object-fit:cover', label: 'ภาพปก 9:16 (ไม่บังคับ — YouTube ใช้ภาพปกอัตโนมัติ · แพลตฟอร์มอื่นถ้าไม่ใส่จะเป็นพื้นสีพร้อมไอคอน)', type: 'image', max: 720, full: true }, { k: 'consent', label: 'ยืนยันว่าได้รับอนุญาตจากเจ้าของคลิปให้นำมาแสดงบนเว็บนี้แล้ว (จำเป็นก่อนเปิดแสดง)', type: 'check', full: true }, { k: 'active', label: 'แสดงในหน้าแรก', type: 'check', full: true }];
+    const F = [{ k: 'url', label: 'ลิงก์คลิป — แปะลิงก์ที่กดแชร์จากแอปได้เลย (รวมลิงก์ย่อ vm.tiktok.com) · TikTok / YouTube / Instagram / Facebook หรือไฟล์ .mp4', full: true }, { k: 'file', label: SB ? 'หรืออัปโหลดไฟล์วิดีโอ (.mp4 / .webm / .mov ไม่เกิน 50MB) — ใช้แทนลิงก์ · ภาพปกสร้างจากเฟรมแรกให้อัตโนมัติถ้าไม่ได้ใส่เอง · แก้ไขโดยไม่เลือกไฟล์ = ใช้ไฟล์เดิม' : 'อัปโหลดไฟล์ไม่ได้ในโหมดทดลอง — ใช้ลิงก์', type: 'file', accept: 'video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov', full: true }, { k: 'title', label: 'ชื่อคลิป/ผลงาน (ไม่บังคับ — ลิงก์: เว้นว่าง = ดึงจากแพลตฟอร์มให้ · ไฟล์ที่อัปโหลด: เว้นว่าง = ไม่แสดงชื่อ แสดงเฉพาะ "โดย เครดิต")', full: true }, { k: 'creator', label: 'เครดิตเจ้าของ (@ชื่อบัญชี)' }, { k: 'sort', label: 'ลำดับ', type: 'number' }, { k: 'caption', label: 'คำอธิบายสั้น (ไม่บังคับ)', full: true }, { k: 'thumb', prev: 'width:90px;height:160px;object-fit:cover', label: 'ภาพปก 9:16 (ไม่บังคับ — YouTube ใช้ภาพปกอัตโนมัติ · แพลตฟอร์มอื่นถ้าไม่ใส่จะเป็นพื้นสีพร้อมไอคอน)', type: 'image', max: 720, full: true }, { k: 'consent', label: 'ยืนยันว่าได้รับอนุญาตจากเจ้าของคลิปให้นำมาแสดงบนเว็บนี้แล้ว (จำเป็นก่อนเปิดแสดง)', type: 'check', full: true }, { k: 'active', label: 'แสดงในหน้าแรก', type: 'check', full: true }];
     // บันทึก: ลิงก์ย่อ/ลิงก์ที่ยังไม่ครบ → ให้เซิร์ฟเวอร์ขยายเป็นลิงก์เต็ม + เติมชื่อ/เครดิต/ภาพปกที่เว้นว่างไว้ + ตรวจว่าฝังได้ · ตรวจไม่ได้แต่ลิงก์เล่นได้ปกติ = บันทึกต่อได้ (กรอกเอง)
-    // ภาพปกจากเฟรมแรกของวิดีโอ (ย่อ ≤ 720px กว้าง) — ทำในเบราว์เซอร์ ไม่ต้องใช้เซิร์ฟเวอร์ · ไม่ได้ (เช่น codec เบราว์เซอร์ไม่รู้จัก) = ข้าม ไม่ถือเป็นข้อผิดพลาด
-    const videoPoster = (file) => new Promise((res) => {
-      const v = document.createElement('video'), u = URL.createObjectURL(file), done = (r) => { URL.revokeObjectURL(u); res(r); };
-      v.muted = true; v.preload = 'auto'; v.playsInline = true; v.src = u; const t = setTimeout(() => done(''), 8000);
-      v.onerror = () => { clearTimeout(t); done(''); };
-      v.onloadeddata = () => { v.currentTime = Math.min(0.6, (v.duration || 1) / 2); };
-      v.onseeked = () => { clearTimeout(t); try { const w = Math.min(720, v.videoWidth || 720), h = Math.round(w * (v.videoHeight || 1280) / (v.videoWidth || 720)), cv = document.createElement('canvas'); cv.width = w; cv.height = h; cv.getContext('2d').drawImage(v, 0, 0, w, h); done(cv.toDataURL('image/jpeg', 0.82)); } catch (e) { done(''); } };
-    });
+    const videoPoster = dfVideoPoster;   // ภาพปกจากเฟรมแรกของวิดีโอ (ฟังก์ชันกลางด้านบนของสคริปต์)
     const save = async (o) => {
       const file = o.file; delete o.file;
       if (file) {
@@ -598,12 +599,17 @@ const A = {
     $('#main').onchange = async (e) => { const c = e.target.closest('[data-wact]'); if (!c) return; const r = await DB.upsert('works', Object.assign({}, DB.find('works', c.dataset.wact), { active: c.checked })); if (r && r.ok === false) { alert(r.errors.join('\n')); render(); } };
   },
   tutorials() {
-    const F = [{ k: 'title', label: 'ชื่อบทเรียน', full: true }, { k: 'desc', label: 'คำอธิบายสั้น', full: true }, { k: 'kind', label: 'ประเภท', type: 'select', opts: [['link', '🔗 แปะลิงก์'], ['file', '📁 อัปโหลดไฟล์ (.mp4/.webm ≤150MB)']] }, { k: 'sort', label: 'ลำดับ', type: 'number' }, { k: 'url', label: 'ลิงก์วิดีโอ (https://...)', full: true }, { k: 'file', label: 'ไฟล์วิดีโอ (ใช้เมื่อเลือกอัปโหลด; แก้ไขโดยไม่เลือกไฟล์ = ใช้ไฟล์เดิม)', type: 'file', accept: 'video/mp4,video/webm', full: true }, { k: 'active', label: 'แสดงในหน้าแรก', type: 'check', full: true }];
+    // ไม่ต้องเลือก "ประเภท" แล้ว: เลือกไฟล์ = อัปโหลดไฟล์ · ไม่เลือก = ใช้ลิงก์ (หรือไฟล์เดิมที่เคยอัปโหลด)
+    const F = [{ k: 'title', label: 'ชื่อบทเรียน', full: true }, { k: 'desc', label: 'คำอธิบายสั้น', full: true }, { k: 'url', label: 'ลิงก์วิดีโอ (YouTube / Vimeo / Google Drive / TikTok / .mp4) — เว้นว่างถ้าอัปโหลดไฟล์', full: true }, { k: 'file', label: SB ? 'หรืออัปโหลดไฟล์วิดีโอ (.mp4 / .webm / .mov ไม่เกิน 50MB) — แก้ไขโดยไม่เลือกไฟล์ = ใช้ไฟล์เดิม' : 'หรืออัปโหลดไฟล์ (.mp4 / .webm / .mov ≤150MB) — เก็บในเบราว์เซอร์นี้เท่านั้น', type: 'file', accept: 'video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov', full: true }, { k: 'thumb', prev: 'width:160px;height:90px;object-fit:cover', label: 'ภาพปก (ไม่บังคับ — เว้นว่าง = ดึงให้อัตโนมัติจากวิดีโอ/ลิงก์)', type: 'image', max: 960, full: true }, { k: 'sort', label: 'ลำดับ', type: 'number' }, { k: 'active', label: 'แสดงในหน้าแรก', type: 'check' }];
     const save = async (o) => {
       const file = o.file; delete o.file;
-      if (o.kind !== 'file') return DB.upsert('tutorials', o);
-      if (!file && !o.mediaId && !o.url) return { ok: false, errors: ['เลือกไฟล์วิดีโอ'] };
-      if (file) { const r = await DB.attachVideo(o, file); if (!r.ok) return r; }
+      if (file) { const r = await DB.attachVideo(o, file); if (!r.ok) return r; o.kind = 'file'; if (!o.thumb) o.thumb = await dfVideoPoster(file); }
+      else if (o.mediaId || /\/storage\/v1\/object\/public\/media\//.test(o.url || '')) o.kind = 'file';   // ไฟล์เดิมที่อัปโหลดไว้ (แก้ไขโดยไม่เลือกไฟล์ใหม่)
+      else {
+        o.kind = 'link';   // ลิงก์ TikTok / Instagram / Facebook ไม่มีภาพปกอัตโนมัติในหน้าเว็บ → ให้เซิร์ฟเวอร์ดึงภาพปก (YouTube ใช้ภาพปกของตัวเองอยู่แล้ว) · ดึงไม่ได้ไม่ถือเป็นข้อผิดพลาด
+        const c = DFCommon.clip(o.url);
+        if (!o.thumb && c && ['tiktok', 'instagram', 'facebook'].includes(c.platform)) { const r = await DB.resolveClip(o.url); if (r.ok) { if (!c.short || r.url) o.url = r.url || o.url; if (r.thumb) o.thumb = r.thumb; } else if (c.short) return r; }
+      }
       return DB.upsert('tutorials', o);
     };
     $('#add').onclick = () => editor('เพิ่มบทเรียน', F, { id: DB.uid('t-'), title: '', desc: '', kind: 'link', url: '', mediaId: '', sort: DB.list('tutorials').length + 1, active: true }, save);

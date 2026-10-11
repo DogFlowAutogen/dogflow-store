@@ -14,7 +14,7 @@
     if (h === 'vimeo.com' && (m = u.pathname.match(/^\/(\d+)/))) return { type: 'iframe', src: 'https://player.vimeo.com/video/' + m[1] };
     if (h === 'drive.google.com' && (m = u.pathname.match(/\/file\/d\/([\w-]+)/))) return { type: 'iframe', src: 'https://drive.google.com/file/d/' + m[1] + '/preview' };
     if (h.endsWith('tiktok.com') && (m = u.pathname.match(/\/video\/(\d+)/))) return { type: 'iframe', src: 'https://www.tiktok.com/embed/v2/' + m[1] };
-    if (/\.(mp4|webm|ogg)$/i.test(u.pathname)) return { type: 'video', src: u.href };
+    if (/\.(mp4|webm|ogg|mov|m4v)$/i.test(u.pathname)) return { type: 'video', src: u.href };
     return { type: 'link', src: u.href };
   }
 
@@ -38,7 +38,7 @@
       if (/^\/share\//.test(u.pathname) && h !== 'fb.watch') return out('facebook', 'Facebook', '👍', { short: true });   // ลิงก์แชร์ → ต้องให้เซิร์ฟเวอร์ขยายเป็นลิงก์เต็มก่อน (ฟอร์มแอดมินทำให้ตอนบันทึก)
       return out('facebook', 'Facebook', '👍', vid ? { type: 'iframe', src: 'https://www.facebook.com/plugins/video.php?href=' + encodeURIComponent(u.href) + '&show_text=false&autoplay=true&width=380' } : {});
     }
-    if (/\.(mp4|webm|ogg)$/i.test(u.pathname)) return out('file', 'ไฟล์วิดีโอ', '🎞️', { type: 'video' });
+    if (/\.(mp4|webm|ogg|mov|m4v)$/i.test(u.pathname)) return out('file', 'ไฟล์วิดีโอ', '🎞️', { type: 'video' });
     return out('other', 'ลิงก์ภายนอก', '🔗');
   }
 

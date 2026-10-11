@@ -23,7 +23,7 @@
     blocks: (r) => Object.assign({}, r.data || {}, { id: r.id, kind: r.kind, title: r.title, image: r.image || '', sort: r.sort, startsAt: r.starts_at || '', endsAt: r.ends_at || '', active: r.active }),
     showcase: (r) => ({ id: r.id, title: r.title, caption: r.caption, image: r.image, sort: r.sort, active: r.active }),
     works: (r) => ({ id: r.id, title: r.title, creator: r.creator || '', caption: r.caption || '', url: r.url, thumb: r.thumb || '', consent: !!r.consent, sort: r.sort, active: r.active, createdAt: r.created_at }),
-    tutorials: (r) => ({ id: r.id, title: r.title, desc: r.description, kind: r.kind, url: r.url, mediaId: '', sort: r.sort, active: r.active }),
+    tutorials: (r) => ({ id: r.id, title: r.title, desc: r.description, kind: r.kind, url: r.url, thumb: r.thumb || '', mediaId: '', sort: r.sort, active: r.active }),
     reviews: (r) => ({ id: r.id, name: r.name, text: r.text, rating: r.rating, active: r.active }),
     faqs: (r) => ({ id: r.id, q: r.q, a: r.a, sort: r.sort }),
     coupons: (r) => ({ code: r.code, type: r.type, value: r.value, minTotal: r.min_total, active: r.active }),
@@ -44,13 +44,13 @@
     tickets: (o) => ({ id: o.id, member_id: o.memberId || null, source: o.source || 'admin', category: o.category, severity: o.severity, priority: o.priority, module: (o.module || '').trim(), title: o.title.trim(), body: o.body.trim(), app_version: (o.appVersion || '').trim(), os: (o.os || '').trim(), status: o.status }),
     showcase: (o) => ({ id: o.id, title: o.title.trim(), caption: o.caption || '', image: o.image, sort: Number(o.sort) || 0, active: !!o.active }),
     works: (o) => ({ id: o.id, title: (o.title || '').trim(), creator: (o.creator || '').trim(), caption: (o.caption || '').trim(), url: (o.url || '').trim(), thumb: o.thumb || '', consent: !!o.consent, sort: Number(o.sort) || 0, active: !!o.active }),
-    tutorials: (o) => ({ id: o.id, title: o.title.trim(), description: o.desc || '', kind: o.kind === 'file' ? 'file' : 'link', url: (o.url || '').trim(), sort: Number(o.sort) || 0, active: !!o.active }),
+    tutorials: (o) => ({ id: o.id, title: o.title.trim(), description: o.desc || '', kind: o.kind === 'file' ? 'file' : 'link', url: (o.url || '').trim(), thumb: o.thumb || '', sort: Number(o.sort) || 0, active: !!o.active }),
     reviews: (o) => ({ id: o.id, name: o.name.trim(), text: o.text.trim(), rating: Number(o.rating), active: o.active !== false }),
     faqs: (o) => ({ id: o.id, q: o.q.trim(), a: o.a.trim(), sort: Number(o.sort) || 0 }),
     releases: (o) => ({ id: o.id, version: o.version.trim(), platform: o.platform, title: o.title || '', notes: o.notes || '', file_path: o.filePath || null, external_url: o.externalUrl || null, file_name: o.fileName || '', size_bytes: Number(o.sizeBytes) || 0, sha256: o.sha256 || null, mandatory: !!o.mandatory, active: !!o.active }),
     coupons: (o) => ({ code: o.code, type: o.type, value: Number(o.value), min_total: Number(o.minTotal) || 0, active: !!o.active })
   };
-  const TABLE = { members: 'profiles', blocks: 'home_blocks' }, KEY = { coupons: 'code' }, IMG = { products: ['image'], banners: ['image'], blocks: ['image'], showcase: ['image'], works: ['thumb'], brands: ['logo'] };
+  const TABLE = { members: 'profiles', blocks: 'home_blocks' }, KEY = { coupons: 'code' }, IMG = { products: ['image'], banners: ['image'], blocks: ['image'], showcase: ['image'], works: ['thumb'], tutorials: ['thumb'], brands: ['logo'] };
   const ORDER = { categories: 'sort', faqs: 'sort', banners: 'sort', blocks: 'sort', showcase: 'sort', works: 'sort', tutorials: 'sort' };
   const tbl = (e) => TABLE[e] || e, key = (e) => KEY[e] || 'id';
 
@@ -166,7 +166,7 @@
     },
     async remove(entity, k) {
       try {
-        if (entity === 'works') { const cur = DB.find('works', k), base = sb.storage.from('media').getPublicUrl('').data.publicUrl; if (cur && cur.url && cur.url.startsWith(base) && !S.works.some((x) => x.id !== k && x.url === cur.url)) { try { await sb.storage.from('media').remove([decodeURIComponent(cur.url.slice(base.length))]); } catch (e) { /* ลบไฟล์ไม่ได้ก็ลบรายการต่อ */ } } }
+        if (entity === 'works' || entity === 'tutorials') { const cur = DB.find(entity, k), base = sb.storage.from('media').getPublicUrl('').data.publicUrl; if (cur && cur.url && cur.url.startsWith(base) && !S[entity].some((x) => x.id !== k && x.url === cur.url)) { try { await sb.storage.from('media').remove([decodeURIComponent(cur.url.slice(base.length))]); } catch (e) { /* ลบไฟล์ไม่ได้ก็ลบรายการต่อ */ } } }
         if (entity === 'releases') { const cur = DB.find('releases', k); if (cur && cur.filePath && !S.releases.some((x) => x.id !== k && x.filePath === cur.filePath)) { try { await sb.storage.from('releases').remove([cur.filePath]); } catch (e) { /* ลบไฟล์ไม่ได้ก็ลบรายการต่อ */ } } }
         const { error } = entity === 'members' ? await sb.rpc('admin_delete_member', { p_member: k }) : await sb.from(tbl(entity)).delete().eq(key(entity), k);
         if (error) return fail(error);
@@ -184,9 +184,10 @@
     uploadImage,
     // วิดีโอคู่มือ: อัปโหลดเข้า bucket media แล้วเก็บเป็นลิงก์ https
     async attachVideo(o, file) {
-      if (!/^video\/(mp4|webm)$/.test(file.type)) return { ok: false, errors: ['รองรับเฉพาะ .mp4 / .webm'] };
+      const EXT = { 'video/mp4': 'mp4', 'video/webm': 'webm', 'video/quicktime': 'mov', 'video/x-m4v': 'm4v' };   // .mov ของ iPhone/Mac เล่นได้ใน Chrome/Safari (Firefox อาจเล่นไม่ได้)
+      if (!EXT[file.type]) return { ok: false, errors: ['รองรับเฉพาะ .mp4 / .webm / .mov'] };
       if (file.size > 50 * 1048576) return { ok: false, errors: ['ไฟล์ใหญ่เกิน 50MB (ข้อจำกัดของ Storage) — ใช้ลิงก์ YouTube/Vimeo แทน'] };
-      try { const path = `videos/${uid('')}.${file.type === 'video/webm' ? 'webm' : 'mp4'}`; await upload('media', path, file, { contentType: file.type }); o.url = sb.storage.from('media').getPublicUrl(path).data.publicUrl; o.mediaId = ''; return { ok: true }; } catch (e) { return fail(e); }
+      try { const path = `videos/${uid('')}.${EXT[file.type]}`; await upload('media', path, file, { contentType: file.type }); o.url = sb.storage.from('media').getPublicUrl(path).data.publicUrl; o.mediaId = ''; return { ok: true }; } catch (e) { return fail(e); }
     },
     async playUrl(t) { return t.url; },
     // ----- ดาวน์โหลดโปรแกรม -----

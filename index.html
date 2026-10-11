@@ -244,7 +244,7 @@ setInterval(() => { if (DB.activeBanners().length > 1) { adIdx++; renderAds(); }
 function renderTuts() {
   const L = DB.list('tutorials').filter((t) => t.active).sort((a, b) => (a.sort || 0) - (b.sort || 0)); $('#guide').hidden = !L.length;
   $('#tuts').innerHTML = L.map((t) => { const em = t.kind === 'link' ? DB.embed(t.url) : null;
-    return `<article class="pc" data-tut="${E(t.id)}" style="cursor:pointer"><div class="pic" style="font-size:54px">${em && em.thumb ? `<img src="${E(em.thumb)}" alt="" loading="lazy">` : '▶️'}</div><div class="bd"><h3>${E(t.title)}</h3><div class="d">${E(t.desc || '')}</div><span class="btn sm">▶ ดูวิดีโอ</span></div></article>`; }).join('');
+    return `<article class="pc" data-tut="${E(t.id)}" style="cursor:pointer"><div class="pic" style="font-size:54px">${(t.thumb || (em && em.thumb)) ? `<img src="${E(t.thumb || em.thumb)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : '▶️'}</div><div class="bd"><h3>${E(t.title)}</h3><div class="d">${E(t.desc || '')}</div><span class="btn sm">▶ ดูวิดีโอ</span></div></article>`; }).join('');
 }
 $('#tuts').onclick = async (e) => {
   const c = e.target.closest('[data-tut]'); if (!c) return; const t = DB.find('tutorials', c.dataset.tut), box = $('#vBox'); $('#vT').textContent = t.title; $('#vD').textContent = t.desc || ''; box.innerHTML = '';

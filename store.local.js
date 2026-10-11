@@ -151,7 +151,7 @@
     couponCalc: (c, subtotal) => (c.type === 'percent' ? Math.round(subtotal * c.value / 100) : Math.min(c.value, subtotal)),
     testLine: async () => ({ ok: false, errors: ['โหมดทดลองไม่รองรับ — ตั้งค่า Supabase เพื่อใช้แจ้งเตือน LINE'] }),
     async attachVideo(o, file) {
-      if (!/^video\/(mp4|webm)$/.test(file.type)) return { ok: false, errors: ['รองรับเฉพาะ .mp4 / .webm'] };
+      if (!/^video\/(mp4|webm|quicktime)$/.test(file.type)) return { ok: false, errors: ['รองรับเฉพาะ .mp4 / .webm / .mov'] };
       if (file.size > 150 * 1048576) return { ok: false, errors: ['ไฟล์ใหญ่เกิน 150MB'] };
       o.mediaId = o.mediaId || uid('v-'); o.url = ''; try { await DB.putMedia(o.mediaId, file); return { ok: true }; } catch (e) { return { ok: false, errors: [e.message] }; }
     },
