@@ -68,7 +68,7 @@
   function blockHealth(d) {
     const r = [], now = Date.now(), add = (lv, msg) => r.push({ lv, msg }), P = (id) => (d.products || []).find((x) => x.id === id), M = (id) => (d.promos || []).find((x) => x.id === id);
     (d.blocks || []).filter((b) => b.active).forEach((b) => {
-      const n = 'บล็อก "' + b.title + '": ';
+      const n = 'บล็อก "' + b.title + '": ', add = (lv, msg) => r.push({ lv, msg, tab: 'blocks', id: b.id });   // add ของบล็อก: แนบปลายทางให้กดไปแก้ไข
       if (b.endsAt && new Date(b.endsAt) < now) add('warn', n + 'หมดช่วงแสดงแล้ว (' + b.endsAt.slice(0, 10) + ') — ปิดหรือต่อเวลา');
       if (BLOCKS[b.kind] && BLOCKS[b.kind].fields.some((f) => f.k === 'image') && !b.image) add('warn', n + 'ยังไม่มีภาพ');
       if (b.productId) { const p = P(b.productId); if (!p) add('err', n + 'สินค้าที่ผูกไว้ถูกลบแล้ว — ราคาจึงไม่แสดง'); else if (!p.active) add('warn', n + 'สินค้า "' + p.name + '" ปิดขายอยู่ — ราคาจึงไม่แสดง'); else if (p.stock <= 0) add('warn', n + 'สินค้า "' + p.name + '" สต็อกหมด'); }

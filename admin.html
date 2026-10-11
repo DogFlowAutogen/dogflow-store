@@ -77,6 +77,7 @@ const touch = () => { lastTouch = Date.now(); if (!SB && authed()) sessionStorag
 setInterval(async () => { const was = !$('#app').hidden; if (was && !authed()) { if (SB) await DB.logout(); else sessionStorage.removeItem('df_admin'); gate(); alert('หมดเวลาการใช้งาน — กรุณาเข้าสู่ระบบใหม่'); } }, 30000);
 $('#out').onclick = async () => { if (SB) await DB.logout(); else sessionStorage.removeItem('df_admin'); gate(); };
 
+document.addEventListener('click', (e) => { const g = e.target.closest('[data-gotab]'); if (g && authed()) { tab = g.dataset.gotab; render(); } });   // ปุ่มลัดข้ามแท็บ
 /* ===== เมนู ===== */
 const TABS = [['dash', '📊 ภาพรวม'], ['me', '👤 โปรไฟล์ของฉัน'], ['orders', '🧾 ออเดอร์/ชำระเงิน'], ['products', '📦 สินค้า'], ['cats', '🗂️ หมวดหมู่'], ['members', '👥 สมาชิก'], ['affiliate', '🪪 ตัวแทนขาย'], ['showcase', '🖥️ ภาพหน้าตาโปรแกรม'], ['releases', '💿 ดาวน์โหลดโปรแกรม'], ['tutorials', '📚 คู่มือ/วิดีโอ'], ['banners', '🖼️ แบนเนอร์โฆษณา'], ['blocks', '🧱 บล็อกหน้าแรก'], ['promos', '🔥 โปรโมชัน'], ['brands', '🏷️ แบรนด์สินค้า'], ['coupons', '🎟️ คูปอง'], ['content', '📝 รีวิว/FAQ'], ['settings', '⚙️ ตั้งค่าหน้าแรก'], ['health', '🩺 ตรวจสอบระบบ'], ['data', '💾 สำรอง/ประวัติ']];
 function render() {
@@ -255,6 +256,7 @@ const V = {
   blocks() {
     const K = DFCommon.BLOCKS, live = new Set(DB.activeBlocks().map((x) => x.id));
     // ค่าจริงที่ลูกค้าเห็น: ราคาจากสินค้าที่ผูก (รวมโปรโมชันที่ใช้อยู่) · เวลาโปรจริง
+    const needImg = (b) => !b.image && ((K[b.kind] || { fields: [] }).fields || []).some((x) => x.k === 'image');
     const real = (b) => { const o = []; const p = b.productId && DB.find('products', b.productId); if (b.productId) o.push(p ? '🔗 ' + p.name + ' · ราคาจริง ' + B(DB.price(p)) + (DB.price(p) < p.price ? ' (ปกติ ' + B(p.price) + ')' : '') + ' · สต็อก ' + p.stock : '⚠ สินค้าที่ผูกหายไป');
       const m = b.promoId && DB.find('promos', b.promoId); if (b.promoId) o.push(m ? '🔥 ' + m.name + ' −' + m.percent + '% ถึง ' + fmt(m.endsAt) : '⚠ โปรโมชันที่ผูกหายไป'); return o.join('<br>'); };
     const state = (b) => live.has(b.id) ? '<span class="badge">● กำลังแสดง</span>' : '<span class="badge" style="background:#555;color:#fff">' + (b.active ? 'นอกช่วงเวลา' : 'ปิดอยู่') + '</span>';
@@ -262,11 +264,11 @@ const V = {
     <div class="toolbar" style="flex-wrap:wrap">${Object.entries(K).map(([k, v]) => `<button class="btn" data-addk="${k}" title="${E(v.hint)}">＋ ${E(v.label)}</button>`).join('')}</div>
     <div class="grid" style="margin-top:14px">${DB.list('blocks').slice().sort((a, b) => (a.sort || 0) - (b.sort || 0)).map((b) => `<div class="pc">${state(b)}${b.image ? `<div class="pic" style="aspect-ratio:16/9"><img src="${E(b.image)}" alt=""></div>` : `<div class="pic" style="aspect-ratio:16/9;font-size:42px">${E((K[b.kind] || { label: '❔' }).label.split(' ')[0])}</div>`}<div class="bd"><b>${E(b.title)}</b><small style="color:var(--mut)">${E((K[b.kind] || { label: b.kind }).label)}<br>หัวข้อ: ${E((b.head || '') + ' ' + (b.accent || ''))}<br>${real(b) ? '<span class="ok">' + real(b) + '</span><br>' : ''}${b.startsAt ? fmt(b.startsAt) : 'ทันที'} → ${b.endsAt ? fmt(b.endsAt) : 'ไม่จำกัด'} · ลำดับ ${b.sort || 0}</small>
       <label style="display:flex;gap:6px;align-items:center;font-size:13px"><input type="checkbox" style="width:auto" data-bact="${E(b.id)}" ${b.active ? 'checked' : ''}> เปิดแสดง</label>
-      <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn sm ghost" data-edit="${E(b.id)}">แก้ไข</button><button class="btn sm ghost" data-dup="${E(b.id)}">ทำสำเนา</button><button class="btn sm danger" data-del="${E(b.id)}">ลบ</button></div></div></div>`).join('') || '<p style="color:var(--mut)">ยังไม่มีบล็อก — กดปุ่ม ＋ ด้านบนเพื่อเลือกชนิดที่ต้องการ</p>'}</div>`;
+      ${needImg(b) ? '<span class="tag warn">⚠ ยังไม่มีภาพ — กด "📷 ใส่ภาพ" แล้วเลือกไฟล์ในช่องภาพ</span>' : ''}<div style="display:flex;gap:6px;flex-wrap:wrap">${needImg(b) ? `<button class="btn sm gold" data-edit="${E(b.id)}">📷 ใส่ภาพ</button>` : ''}<button class="btn sm ghost" data-edit="${E(b.id)}">แก้ไข</button><button class="btn sm ghost" data-dup="${E(b.id)}">ทำสำเนา</button><button class="btn sm danger" data-del="${E(b.id)}">ลบ</button></div></div></div>`).join('') || '<p style="color:var(--mut)">ยังไม่มีบล็อก — กดปุ่ม ＋ ด้านบนเพื่อเลือกชนิดที่ต้องการ</p>'}</div>`;
   },
   promos() {
     const live = new Set(DB.activePromos().map((x) => x.id)), sc = (s) => s === 'all' ? 'ทุกสินค้า' : (DB.find('categories', s) || { name: '⚠ ไม่มีหมวด' }).name;
-    return `<h1>🔥 โปรโมชัน (ลดราคาตามช่วงเวลา)</h1><p style="color:var(--mut)">ลดจากราคาขายปัจจุบันอัตโนมัติเฉพาะช่วงเวลาที่ตั้ง · ถ้าซ้อนกันใช้ส่วนลดมากสุดเพียงหนึ่งแคมเปญ</p><button class="btn" id="add">＋ เพิ่มโปรโมชัน</button>
+    return `<h1>🔥 โปรโมชัน (ลดราคาตามช่วงเวลา)</h1><p style="color:var(--mut)">ลดจากราคาขายปัจจุบันอัตโนมัติเฉพาะช่วงเวลาที่ตั้ง · ถ้าซ้อนกันใช้ส่วนลดมากสุดเพียงหนึ่งแคมเปญ</p><div class="hl" style="align-items:center"><span style="flex:1">💡 แท็บนี้ตั้งเฉพาะ <b>ส่วนลด%/ช่วงเวลา</b> (ไม่มีรูปภาพ) · ต้องการ <b>รูปโปสเตอร์ + นับถอยหลัง + ปุ่มสั่งซื้อ</b> ที่หน้าแรก ให้สร้างที่แท็บ 🧱 บล็อกหน้าแรก (ผูกโปรโมชันนี้ได้ และใส่รูปที่นั่น)</span><button class="btn sm" data-gotab="blocks">ไปที่ 🧱 บล็อกหน้าแรก</button></div><button class="btn" id="add">＋ เพิ่มโปรโมชัน</button>
     <div class="tw" style="margin-top:14px"><table><tr><th>ชื่อ</th><th>ลด</th><th>ขอบเขต</th><th>ช่วงเวลา</th><th>สถานะ</th><th></th></tr>${DB.list('promos').map((p) => `<tr><td><b>${E(p.name)}</b></td><td>${p.percent}%</td><td>${E(sc(p.scope))}</td><td>${fmt(p.startsAt)}<br>→ ${fmt(p.endsAt)}</td><td>${live.has(p.id) ? '<span class="tag okk">กำลังใช้</span>' : p.active ? '<span class="tag warn">นอกช่วงเวลา</span>' : '<span class="tag cancelled">ปิด</span>'}</td><td><button class="btn sm ghost" data-edit="${p.id}">แก้ไข</button> <button class="btn sm danger" data-del="${p.id}">ลบ</button></td></tr>`).join('') || '<tr><td colspan="6" style="color:var(--mut)">ยังไม่มีโปรโมชัน</td></tr>'}</table></div>`;
   },
   brands() {
@@ -292,7 +294,7 @@ const V = {
     <div class="full" style="display:flex;gap:8px"><button type="button" class="btn ghost" id="lineSave">💾 บันทึก LINE</button><button type="button" class="btn ghost" id="lineTest">📨 ส่งข้อความทดสอบ</button></div>
     <div class="f"><label>เปลี่ยนรหัสแอดมิน (≥ 8 ตัว มีตัวอักษร+ตัวเลข)</label><input name="newPin" type="password" autocomplete="new-password" placeholder="เว้นว่าง = ไม่เปลี่ยน"></div><div class="errs full" id="eSet"></div><div class="full"><button class="btn">💾 บันทึก</button></div></form>`;
   },
-  health() { return `<h1>🩺 ตรวจสอบระบบ</h1><button class="btn" id="rec">🔄 ตรวจใหม่</button><div style="margin-top:14px">${DB.health().map((h) => `<div class="hl"><span class="tag ${h.lv === 'ok' ? 'okk' : h.lv}">${h.lv === 'err' ? 'ผิดพลาด' : h.lv === 'warn' ? 'เตือน' : 'ผ่าน'}</span><span>${E(h.msg)}</span></div>`).join('')}</div>`; },
+  health() { return `<h1>🩺 ตรวจสอบระบบ</h1><button class="btn" id="rec">🔄 ตรวจใหม่</button><div style="margin-top:14px">${DB.health().map((h) => `<div class="hl"><span class="tag ${h.lv === 'ok' ? 'okk' : h.lv}">${h.lv === 'err' ? 'ผิดพลาด' : h.lv === 'warn' ? 'เตือน' : 'ผ่าน'}</span><span style="flex:1">${E(h.msg)}</span>${h.tab ? `<button class="btn sm" data-hgo="${E(h.tab)}|${E(h.id)}">✏️ ไปแก้ไข</button>` : ''}</div>`).join('')}</div>`; },
   data() {
     return `<h1>💾 สำรอง / ประวัติ</h1><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="exp">⬇️ ดาวน์โหลดสำรอง (JSON)</button><label class="btn ghost">⬆️ นำเข้า<input type="file" id="imp" accept=".json" hidden></label><button class="btn danger" id="rst">♻️ รีเซ็ตเป็นค่าเริ่มต้น</button>${SB ? '<button class="btn ghost" id="mailbtn">📧 ส่งอีเมลแจ้งเตือนที่ค้างคิวตอนนี้</button>' : ''}</div>
     <p style="color:var(--mut);font-size:13px">ข้อมูลเก็บในเบราว์เซอร์เครื่องนี้ — ดาวน์โหลดสำรองเป็นประจำ</p><h3>ประวัติการแก้ไข (ล่าสุด 300)</h3><div class="tw"><table><tr><th>เวลา</th><th>การกระทำ</th><th>ส่วน</th><th>รายละเอียด</th></tr>${DB.list('audit').map((a) => `<tr><td>${fmt(a.ts)}</td><td>${E(a.action)}</td><td>${E(a.entity)}</td><td>${E(a.detail)}</td></tr>`).join('')}</table></div>`;
@@ -570,7 +572,8 @@ const A = {
       const done = async () => { const r = await DB.saveSettings(o); if (r && r.ok === false) return ($('#eSet').innerHTML = '• ' + E(r.errors[0])); toast('บันทึกแล้ว ✔'); render(); };
       if (f.newPin.value) DB.setAdminPassword(f.newPin.value).then((r) => (r.ok ? done() : ($('#eSet').innerHTML = '• ' + E(r.errors[0])))); else done(); };
   },
-  health() { $('#rec').onclick = render; },
+  health() { $('#rec').onclick = render;
+    $('#main').onclick = (e) => { const g = e.target.closest('[data-hgo]'); if (!g) return; const [t, id] = g.dataset.hgo.split('|'); tab = t; render(); const ed = document.querySelector('[data-edit="' + id + '"]'); if (ed) ed.click(); }; },
   data() {
     if (SB) { const lab = $('#imp') && $('#imp').closest('label'); if (lab) lab.remove(); if ($('#rst')) $('#rst').remove(); }
     if ($('#mailbtn')) $('#mailbtn').onclick = async () => {

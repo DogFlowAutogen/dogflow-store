@@ -346,7 +346,7 @@
       S.orders.filter((o) => o.status === 'paid' && o.keyStatus === 'pending').forEach((o) => add('err', 'ออเดอร์ ' + o.id + ' ชำระแล้วแต่ยังออกคีย์ไม่ครบ — กด "ออกคีย์ใหม่"'));
       if (!S.settings.lineId) add('warn', 'ยังไม่ได้ตั้ง LINE ID สำหรับให้ลูกค้าติดต่อ (ตั้งค่าหน้าแรก)'); if (!S.settings.paymentQr) add('err', 'ยังไม่ได้อัปโหลด QR รับเงิน (ตั้งค่าหน้าแรก)');
       if (S.settings.promoEndsAt && S.settings.promoText && new Date(S.settings.promoEndsAt) < new Date()) add('warn', 'เวลาโปรโมชันหมดแล้ว — ตั้งวันใหม่ในแท็บตั้งค่า');
-      C.blockHealth(S).forEach((x) => add(x.lv, x.msg));
+      C.blockHealth(S).forEach((x) => r.push(x));
       if (S.settings.affEnabled !== false) {
         const wp = S.payouts.filter((x) => x.status === 'requested'); if (wp.length) add('warn', 'มีคำขอถอนค่าคอมรอโอน ' + wp.length + ' รายการ รวม ฿' + wp.reduce((a, x) => a + x.amount, 0).toLocaleString('th-TH'));
         if (S.products.some((p) => p.active) && !S.products.some((p) => p.active && p.commission > 0)) add('warn', 'เปิดระบบตัวแทนขายแล้ว แต่ยังไม่ได้ตั้งค่าคอมให้แพ็กเกจใด (แท็บ ตัวแทนขาย → อัตราค่าคอม)');
