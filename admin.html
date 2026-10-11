@@ -152,7 +152,7 @@ const memKeys = (m) => DB.list('orders').filter((o) => o.memberId === m.id).flat
 const memRows = (m) => { const os = DB.list('orders').filter((o) => o.memberId === m.id), spent = os.filter((o) => ['paid', 'done'].includes(o.status)).reduce((s, o) => s + o.total, 0);
   return [['ชื่อ', m.name], ['อีเมล', m.email], ['โทร', m.phone || '—'], ['สมัครเมื่อ', fmt(m.createdAt)], ['ออเดอร์ / ยอดซื้อ', os.length + ' · ' + B(spent)], ['License key', memKeys(m).length + ' ดอก'], ['คำเตือน', (m.strikes || 0) + '/3 ครั้ง'], ['สถานะ', m.banned ? 'ถูกระงับ' + (m.banReason ? ' — ' + m.banReason : '') : 'ปกติ']]; };
 // info (ไม่บังคับ) = ตัวเลือกของ confirmDlg → ใช้หน้าต่างยืนยันแบบเต็ม · ไม่ส่ง = กล่องยืนยันของเบราว์เซอร์แบบเดิม
-const del = async (entity, key, label, info) => { if (info ? !(await confirmDlg(Object.assign({ danger: true, okText: 'ยืนยันลบ', cancelText: 'ไม่ลบ' }, info))) : !confirm('ลบ "' + label + '" ถาวร?')) return; const r = await DB.remove(entity, key); r.ok ? (toast('ลบแล้ว'), render()) : alert(r.errors.join('\n')); };
+const del = async (entity, key, label, info) => { if (info ? !(await confirmDlg(Object.assign({ danger: true, okText: 'ยืนยันลบ', cancelText: 'ไม่ลบ' }, info))) : !confirm('ลบ "' + label + '" ถาวร?')) return; const r = await DB.remove(entity, key); if (!r.ok) return alert(r.errors.join('\n')); render(); if (info && info.done) await confirmDlg({ success: true, hideCancel: true, okText: 'ปิด', title: info.done.title, sub: info.sub || '', body: info.done.body || '', rows: info.rows || [] }); else toast('ลบแล้ว'); };
 
 /* ===== 💬 แจ้งปัญหา / เสนอแนะ: ตัวช่วย + หน้าต่างสนทนา (ข้อมูลเรียลไทม์จาก Supabase Realtime) ===== */
 const FBX = DFCommon.FB, fbUnread = () => (DB.list('tickets') || []).filter((t) => t.adminUnread).length;
@@ -505,7 +505,7 @@ const A = {
     $('#main').onclick = async (e) => { const b = e.target.closest('button'); if (!b) return;
       if (b.dataset.edit) editor('แก้ไขสมาชิก', SB ? MF.filter((x) => x.k !== 'email') : MF, DB.find('members', b.dataset.edit), (o) => { o.email = o.email.toLowerCase(); o.phone = o.phone.replace(/[-\s]/g, ''); return DB.upsert('members', o); });
       if (b.dataset.avclr) { const m = DB.find('members', b.dataset.avclr), ok = await confirmDlg({ danger: true, title: 'ลบรูปโปรไฟล์ของสมาชิกนี้?', sub: m.email, body: 'ใช้เมื่อรูปไม่เหมาะสม/ละเมิดกฎ — ไฟล์รูปจะถูกลบถาวร สมาชิกอัปโหลดรูปใหม่ได้ภายหลัง', rows: [['สมาชิก', m.name], ['อีเมล', m.email]], okText: 'ยืนยันลบรูป', cancelText: 'ไม่ลบ' });
-        if (ok) { const r = await DB.adminClearAvatar(m.id); r.ok ? (toast('ลบรูปแล้ว'), render()) : alert(r.errors.join('\n')); } return; }
+        if (ok) { const r = await DB.adminClearAvatar(m.id); if (!r.ok) alert(r.errors.join('\n')); else { render(); await confirmDlg({ success: true, hideCancel: true, okText: 'ปิด', title: 'ลบรูปโปรไฟล์เรียบร้อยแล้ว', sub: m.email, body: 'ไฟล์รูปถูกลบถาวร สมาชิกอัปโหลดรูปใหม่ได้ภายหลัง', rows: [['สมาชิก', m.name], ['อีเมล', m.email]] }); } } return; }
       if (b.dataset.pw) { const m = DB.find('members', b.dataset.pw);
         const v = await confirmDlg({ title: 'ตั้งรหัสผ่านใหม่ให้สมาชิก', sub: m.email, body: 'รหัสเดิมจะใช้ไม่ได้ทันที สมาชิกต้องใช้รหัสใหม่ตอนเข้าสู่ระบบครั้งถัดไป — แจ้งรหัสให้เจ้าตัวทางช่องทางที่ปลอดภัย (เช่น LINE ส่วนตัว) ไม่ควรโพสต์ที่สาธารณะ', rows: memRows(m),
           fields: [{ k: 'p1', label: 'รหัสผ่านใหม่', type: 'password', hint: 'อย่างน้อย 8 ตัว มีตัวอักษรและตัวเลข' }, { k: 'p2', label: 'ยืนยันรหัสผ่านใหม่', type: 'password' }],
@@ -525,7 +525,9 @@ const A = {
         render(); }
       if (b.dataset.del) { const m = DB.find('members', b.dataset.del), no = DB.list('orders').filter((o) => o.memberId === m.id).length;
         if (no) return confirmDlg({ danger: true, title: 'ลบสมาชิกนี้ไม่ได้', sub: m.email, body: 'สมาชิกนี้มีออเดอร์แล้ว ระบบไม่อนุญาตให้ลบ เพื่อรักษาประวัติการชำระเงินและคีย์ — ถ้าต้องการให้ใช้งานไม่ได้ ให้ใช้ปุ่ม "ระงับ" แทน', rows: memRows(m), okText: 'รับทราบ', cancelText: 'ปิด' });
-        del('members', m.id, m.email, { title: 'ลบสมาชิกนี้ถาวร?', sub: m.email, body: 'บัญชีและข้อมูลส่วนตัวของสมาชิกจะถูกลบทันที — ย้อนกลับไม่ได้ (ลบได้เฉพาะสมาชิกที่ยังไม่มีออเดอร์)', rows: memRows(m), check: 'ฉันตรวจสอบแล้ว ต้องการลบสมาชิก ' + m.email + ' ถาวร' }); } };
+        del('members', m.id, m.email, { title: 'ลบสมาชิกนี้ถาวร?', sub: m.email, body: 'บัญชีและข้อมูลส่วนตัวของสมาชิกจะถูกลบทันที — ย้อนกลับไม่ได้ (ลบได้เฉพาะสมาชิกที่ยังไม่มีออเดอร์)', rows: memRows(m),
+          fields: [{ k: 'em', label: 'พิมพ์อีเมลของสมาชิกเพื่อยืนยันการลบ', placeholder: m.email, hint: 'พิมพ์ให้ตรงกับ ' + m.email }], validate: (x) => (x.em.trim().toLowerCase() === String(m.email).toLowerCase() ? '' : 'อีเมลที่พิมพ์ไม่ตรงกับสมาชิกคนนี้ — ตรวจสอบอีกครั้ง'),
+          done: { title: 'ลบสมาชิกเรียบร้อยแล้ว', body: 'บัญชีและข้อมูลส่วนตัวของสมาชิกถูกลบถาวรแล้ว — ย้อนกลับไม่ได้' } }); } };
   },
   showcase() {
     const F = [{ k: 'title', label: 'หัวข้อ', full: true }, { k: 'caption', label: 'คำอธิบาย', type: 'textarea', full: true }, { k: 'image', label: 'ภาพหน้าจอ (16:9 แนะนำ)', type: 'image', max: 1600, full: true }, { k: 'sort', label: 'ลำดับ', type: 'number' }, { k: 'active', label: 'แสดงในหน้าแรก', type: 'check' }];
