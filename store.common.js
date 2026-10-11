@@ -163,7 +163,7 @@
       if (!o.name || o.name.trim().length < 2) er.push('กรอกชื่อ');
       if (!/^0\d{8,9}$/.test(String(o.phone || '').replace(/[-\s]/g, ''))) er.push('เบอร์โทรไม่ถูกต้อง');
     } else if (entity === 'releases') {
-      if (!o.version || !o.version.trim() || o.version.length > 30) er.push('ใส่เลขเวอร์ชัน (ไม่เกิน 30 ตัวอักษร)');
+      if (!o.version || !/^\d+(\.\d+){0,3}$/.test(o.version.trim())) er.push('เลขเวอร์ชันต้องเป็นตัวเลขแบบ 1.0.0 (ห้ามใส่ชื่อโปรแกรม — ชื่อเต็มใส่ในช่องชื่อเรื่อง) ไม่เช่นนั้นโปรแกรมจะตรวจอัปเดตไม่ได้');
       if (!['windows', 'mac', 'linux', 'other'].includes(o.platform)) er.push('เลือกแพลตฟอร์ม');
       if (!o.filePath && !o.externalUrl) er.push('ต้องอัปโหลดไฟล์ หรือใส่ลิงก์ดาวน์โหลด (https://) อย่างน้อยหนึ่งอย่าง');
       if (o.externalUrl && !/^https:\/\//.test(o.externalUrl)) er.push('ลิงก์ดาวน์โหลดต้องขึ้นต้น https://');

@@ -175,11 +175,15 @@ footer{border-top:1px solid var(--line);margin-top:40px;padding:28px 0;color:var
 .tag.cancelled,.tag.err{background:var(--bad-soft);color:var(--bad)}
 
 /* ===== แอดมิน ===== */
-.adm{display:grid;grid-template-columns:236px 1fr;min-height:100vh;font-size:14px}
+.adm{display:grid;grid-template-columns:268px 1fr;min-height:100vh;font-size:14px}
 .side{background:var(--surface);border-right:1px solid var(--line);padding:16px 12px;position:sticky;top:0;height:100vh;overflow:auto}
 .side h2{display:flex;align-items:center;gap:10px;font-size:16px;font-weight:700;margin:0 0 14px;padding:0 4px}
 .side h2 .lm{width:32px;height:32px;border-radius:9px}.side h2 .lm svg{width:19px;height:19px}
-.side a{display:flex;align-items:center;gap:8px;padding:8px 11px;border-radius:9px;color:var(--muted);font-weight:600;font-size:13.5px;cursor:pointer;margin-bottom:2px}
+.side a{display:flex;align-items:center;gap:8px;white-space:nowrap;padding:8px 11px;border-radius:9px;color:var(--muted);font-weight:600;font-size:13.5px;cursor:pointer;margin-bottom:2px}
+.side a .tag{margin-left:auto;flex:none}   /* ป้ายตัวเลข (เช่น 1) ชิดขวา ไม่ดันข้อความตกบรรทัด */
+/* แถบเลื่อนของเมนูข้าง: โปร่งใสจนกว่าจะเอาเมาส์ไปชี้เมนูค่อยแสดง (ไม่ดันความกว้าง) */
+.side{scrollbar-width:thin;scrollbar-color:transparent transparent}.side:hover{scrollbar-color:var(--line) transparent}
+.side::-webkit-scrollbar{width:8px}.side::-webkit-scrollbar-track{background:transparent}.side::-webkit-scrollbar-thumb{background:transparent;border-radius:8px}.side:hover::-webkit-scrollbar-thumb{background:var(--line)}.side::-webkit-scrollbar-thumb:hover{background:var(--muted)}
 .side a:hover{background:var(--surface2);color:var(--fg)}.side a.on{background:var(--accent-soft);color:var(--accent)}
 .main{padding:24px;min-width:0}.main h1{margin:0 0 16px;font-size:20px;font-weight:700}.main h3{font-size:15px;margin:20px 0 10px}
 .tw{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);-webkit-overflow-scrolling:touch}
