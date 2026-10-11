@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /admin.html
+Disallow: /profile.html
+
+Sitemap: https://dogflowautogen.github.io/dogflow-store/sitemap.xml
