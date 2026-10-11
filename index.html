@@ -11,7 +11,7 @@
 if(ok)return;window.__legacy=true;document.addEventListener('DOMContentLoaded',function(){var d=document.createElement('div');d.setAttribute('style','position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:#0b1222;color:#fff;font-family:Tahoma,sans-serif;text-align:center;padding:60px 20px');
 d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">เบราว์เซอร์นี้ไม่รองรับ</h2><p style="line-height:1.8;max-width:520px;margin:0 auto">Internet Explorer และเบราว์เซอร์รุ่นเก่าไม่รองรับระบบชำระเงินและความปลอดภัยของเว็บนี้<br>กรุณาเปิดด้วย <b>Microsoft Edge</b>, <b>Google Chrome</b>, <b>Safari</b> หรือ <b>Firefox</b> รุ่นล่าสุด<br>ใช้ได้ทั้งคอมพิวเตอร์ แท็บเล็ต และโทรศัพท์</p>';document.body.appendChild(d);});})();
 </script>
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=20261011c">
 </head>
 <body>
 <div id="splash" role="status" aria-live="polite">
@@ -308,9 +308,19 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape') $('#wBox')
 function shareBar(el, kind, id, title) {
   if (!el) return;
   const url = location.href.split('#')[0] + '#' + kind + '=' + encodeURIComponent(id), text = title + ' · DogFlow Auto Gen', u = encodeURIComponent(url), tx = encodeURIComponent(text);
-  const L = [['LINE', '#06C755', 'https://social-plugins.line.me/lineit/share?url=' + u], ['Facebook', '#1877F2', 'https://www.facebook.com/sharer/sharer.php?u=' + u], ['X', '#111', 'https://twitter.com/intent/tweet?text=' + tx + '&url=' + u],
-    ['Telegram', '#229ED9', 'https://t.me/share/url?url=' + u + '&text=' + tx], ['WhatsApp', '#25D366', 'https://wa.me/?text=' + encodeURIComponent(text + ' ' + url)], ['อีเมล', '#8a7d6b', 'mailto:?subject=' + tx + '&body=' + encodeURIComponent(text + '\n' + url)]];
-  el.innerHTML = (navigator.share ? '<button type="button" data-native class="main">📤 แชร์…</button>' : '') + L.map(([n, c, h]) => '<a href="' + E(h) + '"' + (h.startsWith('mailto:') ? '' : ' target="_blank" rel="noopener noreferrer"') + '><i style="background:' + c + '"></i>' + n + '</a>').join('') + '<button type="button" data-copy>🔗 คัดลอกลิงก์</button>';
+  // ปุ่มเป็นไอคอนล้วน (ไม่มีตัวหนังสือ — ชื่อแอปอยู่ใน title/aria-label) · สีเดียวกันทั้งแถว ตอนชี้เมาส์จึงเปลี่ยนเป็นสีแบรนด์ → ดูไม่รก
+  const IC = { share: '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/>',
+    line: '<path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8z"/>',
+    fb: '<path d="M14 8h3V4h-3a4 4 0 0 0-4 4v3H7v4h3v6h4v-6h3l1-4h-4V8.5c0-.3.2-.5.5-.5z"/>',
+    x: '<path d="M4 4l16 16M20 4L4 20"/>',
+    tg: '<path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>',
+    wa: '<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/>',
+    mail: '<path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/><path d="M22 6l-10 7L2 6"/>',
+    link: '<path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/>' };
+  const svg = (k) => '<svg viewBox="0 0 24 24" aria-hidden="true">' + IC[k] + '</svg>';
+  const T = [['line', 'LINE', '#06C755', 'https://social-plugins.line.me/lineit/share?url=' + u], ['fb', 'Facebook', '#1877F2', 'https://www.facebook.com/sharer/sharer.php?u=' + u], ['x', 'X', '#111111', 'https://twitter.com/intent/tweet?text=' + tx + '&url=' + u],
+    ['tg', 'Telegram', '#229ED9', 'https://t.me/share/url?url=' + u + '&text=' + tx], ['wa', 'WhatsApp', '#25D366', 'https://wa.me/?text=' + encodeURIComponent(text + ' ' + url)], ['mail', 'อีเมล', '#8a7d6b', 'mailto:?subject=' + tx + '&body=' + encodeURIComponent(text + '\n' + url)]];
+  el.innerHTML = (navigator.share ? '<button type="button" data-native class="main" title="แชร์" aria-label="แชร์">' + svg('share') + '</button>' : '') + T.map(([k, n, c, h]) => '<a href="' + E(h) + '"' + (h.startsWith('mailto:') ? '' : ' target="_blank" rel="noopener noreferrer"') + ' style="--c:' + c + '" title="' + n + '" aria-label="' + n + '">' + svg(k) + '</a>').join('') + '<button type="button" data-copy title="คัดลอกลิงก์" aria-label="คัดลอกลิงก์">' + svg('link') + '</button>';
   el._share = { url, text, title };
 }
 document.addEventListener('click', async (e) => {

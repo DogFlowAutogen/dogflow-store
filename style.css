@@ -387,9 +387,10 @@ small{color:var(--muted);font-size:12px}
 .wbox h3{margin:0 0 2px;font-size:17px}
 .wbox p{line-height:1.4}
 
-/* ปุ่มแชร์ในหน้าต่างเล่นคลิป/บทเรียน */
-.shr{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:2px 0 10px}
-.shr a,.shr button{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--fg);font:600 12.5px var(--font);cursor:pointer;text-decoration:none;line-height:1.3}
-.shr a:hover,.shr button:hover{border-color:var(--accent);color:var(--accent)}
-.shr i{width:9px;height:9px;border-radius:50%;display:inline-block}
+/* ปุ่มแชร์ในหน้าต่างเล่นคลิป/บทเรียน — ไอคอนล้วน วงกลมเล็ก สีเรียบ ชี้เมาส์แล้วเปลี่ยนเป็นสีแบรนด์ */
+.shr{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:2px 0 10px}
+.shr a,.shr button{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;width:34px;height:34px;padding:0;border-radius:50%;border:1px solid var(--line);background:var(--surface2);color:var(--fg);cursor:pointer;text-decoration:none;transition:background .15s,border-color .15s,color .15s}
+.shr svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.shr a:hover,.shr a:focus-visible{background:var(--c,var(--accent));border-color:var(--c,var(--accent));color:#fff}
+.shr button:hover,.shr button:focus-visible{background:var(--accent);border-color:var(--accent);color:#fff}
 .shr .main{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
