@@ -230,6 +230,9 @@ small{color:var(--muted);font-size:12px}
   .fab{right:12px;bottom:calc(12px + env(safe-area-inset-bottom));padding:10px 14px}
   .adm{grid-template-columns:1fr}.side{position:static;height:auto;display:flex;flex-wrap:nowrap;overflow-x:auto;gap:6px;padding:10px;border-right:0;border-bottom:1px solid var(--line);-webkit-overflow-scrolling:touch}
   .side h2{display:none}.side a{white-space:nowrap;margin:0;flex:0 0 auto}
+  .side #menu{display:flex;flex-wrap:nowrap;gap:6px;flex:0 0 auto}                                   /* เมนูแอดมินบนมือถือ = แถบเลื่อนแนวนอนแถวเดียว (เดิมเรียงลงเป็นแถวยาว) */
+  .side a{border:1px solid var(--line);background:var(--surface)}.side a.on{border-color:var(--accent)}
+  .main .tabs2{overflow-x:auto;flex-wrap:nowrap!important;-webkit-overflow-scrolling:touch;padding-bottom:4px}.main .tabs2 button{flex:0 0 auto;white-space:nowrap;padding:8px 14px}
   .main{padding:16px}.kpi{grid-template-columns:1fr 1fr}.kpi b{font-size:22px}
   table{font-size:13px}th,td{padding:8px 10px}
 }

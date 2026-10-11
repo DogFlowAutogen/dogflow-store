@@ -170,7 +170,7 @@ const showErr = (el, arr) => { el.innerHTML = arr.map((x) => '• ' + E(x)).join
 /* ===== แสดงผลหน้าแรก ===== */
 document.addEventListener('click', (e) => { if (e.target.closest('[data-rules]')) { e.preventDefault(); $('#rulesTxt').textContent = DB.settings().rules || ''; openM('#mRules'); } });
 function renderStatic() {
-  const lv = DB.latestRelease && DB.latestRelease('windows'); $('#verline').textContent = lv ? 'เวอร์ชันล่าสุด v' + lv.version + ' · อัปเดต ' + DFCommon.thaiDateTime(lv.releasedAt) : '';
+  const lv = DB.latestRelease && DB.latestRelease('windows'); $('#verline').textContent = lv ? 'เวอร์ชันล่าสุด ' + (/^\d/.test(lv.version) ? 'v' : '') + lv.version + ' · อัปเดต ' + DFCommon.thaiDateTime(lv.releasedAt) : '';
   const s = DB.settings(); document.title = s.brand + ' · ร้านโปรแกรม AI';
   $('#brand').textContent = s.brand; $('#ver').textContent = s.version + ' · ' + s.tagline;
   $('#hTitle').textContent = s.heroTitle; $('#hSub').textContent = s.heroSub; $('#hCta').textContent = s.heroCta + ' →';
