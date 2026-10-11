@@ -192,6 +192,8 @@
     async playUrl(t) { return t.url; },
     // ----- ดาวน์โหลดโปรแกรม -----
     canDownload: () => S.releases.some((r) => r.active),
+    // QR เข้ากลุ่ม LINE ลูกค้า: bucket ส่วนตัว — ฐานข้อมูลออก signed URL ให้เฉพาะผู้ที่มี License ใช้งานได้ (policy ใช้ has_license) ไม่มีสิทธิ์ = ''
+    async groupQrUrl() { try { const r = await sb.storage.from('community').createSignedUrl('line-group-qr.jpg', 300); return r.error ? '' : r.data.signedUrl; } catch (e) { return ''; } },
     latestRelease: (platform) => S.latest.find((x) => x.platform === (platform || 'windows')) || null,
     // แอดมิน: ประกาศเวอร์ชันใหม่ให้ลูกค้าที่มีสิทธิ์ (แจ้งในโปรไฟล์ + เข้าคิวอีเมล) → คืนจำนวนผู้รับ
     async countView(entity, id) { const { data, error } = await sb.rpc(entity === 'tutorials' ? 'tutorial_view' : entity === 'showcase' ? 'showcase_view' : 'work_view', { p_id: id }); if (error || data == null) return null; const w = DB.find(entity, id); if (w) w.views = Number(data) || 0; return Number(data) || 0; },   // นับยอดวิวผลงาน (ฟังก์ชันฝั่งฐานข้อมูลบวกทีละ 1) — ยังไม่ได้ลงฟังก์ชัน = คืน null เงียบๆ

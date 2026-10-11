@@ -42,6 +42,7 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
     <div class="box" id="notices"><h3>🔔 การแจ้งเตือน <span class="tag err" id="unr" hidden></span></h3><div id="nlist"></div><button class="btn ghost sm" id="readAll" style="margin-top:8px">ทำเครื่องหมายว่าอ่านทั้งหมด</button></div>
     <div class="box"><h3>🔑 License key ของฉัน</h3><p style="color:var(--mut);font-size:14px;margin-top:0">คีย์จะปรากฏที่นี่อัตโนมัติเมื่อแอดมินยืนยันการชำระเงินแล้ว — นำไปใส่ในโปรแกรมเพื่อเปิดใช้งาน</p><div id="keys"></div></div>
     <div class="box" id="downloads"><h3>💿 ดาวน์โหลดโปรแกรม</h3><div id="dlist"></div><div id="dlguide"></div></div>
+    <div class="box" id="grp" hidden><h3>💬 เข้ากลุ่ม LINE ลูกค้า DogFlow</h3><p style="color:var(--mut);font-size:14px;margin:0 0 10px">สแกน QR Code ด้วยแอป LINE เพื่อเข้ากลุ่ม — สิทธิ์เฉพาะลูกค้าที่ชำระเงินและได้รับ License key แล้ว กรุณาอย่าแชร์ต่อ</p><img id="grpQr" alt="QR Code เข้ากลุ่ม LINE DogFlow" style="width:min(240px,100%);border-radius:12px;background:#fff;display:block"></div>
     <div class="box" id="aff" hidden>
       <div class="aff-hd"><h3>🪪 ตัวแทนขายโปรแกรม</h3><span class="aff-pill" id="affPill" hidden></span></div>
       <p style="color:var(--mut);font-size:14px;margin:0 0 10px">สมาชิกทุกคนแชร์ลิงก์แนะนำได้ทันที รับค่าคอมแบบคงที่ตามแพ็กเกจที่ลูกค้าซื้อ</p>
@@ -76,6 +77,13 @@ const showErr = (el, a) => (el.innerHTML = a.map((x) => '• ' + E(x)).join('<br
 const ST = { pending: ['รอชำระเงิน', 'pending'], review: ['รอตรวจสลิป', 'paid'], paid: ['ชำระแล้ว', 'done'], rejected: ['สลิปไม่ผ่าน', 'cancelled'], cancelled: ['ยกเลิก', 'cancelled'], done: ['เสร็จสิ้น', 'done'] };
 let lastKeys = -1;
 
+// QR กลุ่ม LINE: แสดงเมื่อมีคีย์ที่ไม่ถูกระงับ + ฐานข้อมูลยืนยันสิทธิ์ (ได้ signed URL) — แคช 4 นาทีไม่ให้ขอใหม่ทุกครั้งที่วาดหน้า
+let grpAt = 0, grpUrl = '';
+async function paintGroup(ok) {
+  const box = $('#grp'); if (!ok) { box.hidden = true; grpUrl = ''; grpAt = 0; return; }
+  if (!grpUrl || Date.now() - grpAt > 240000) { const t = Date.now(); const u = await DB.groupQrUrl(); if (!u) { box.hidden = true; return; } grpUrl = u; grpAt = t; $('#grpQr').src = u; }
+  box.hidden = false;
+}
 function render() {
   const m = DB.me(); $('#guest').hidden = !!m; $('#app').hidden = !m; $('#out').hidden = !m; if (!m) return;
   const orders = DB.list('orders').filter((o) => o.memberId === m.id), keys = orders.flatMap((o) => (o.licenseKeys || []).map((k) => Object.assign({ orderId: o.id }, k)));
@@ -98,6 +106,7 @@ function render() {
     : keys.length ? '<p style="color:var(--mut)">ยังไม่มีไฟล์ให้ดาวน์โหลดในตอนนี้ (หรือสิทธิ์/อายุคีย์หมดแล้ว) — หากมีปัญหาติดต่อแอดมิน</p>' : '<p style="color:var(--mut)">ดาวน์โหลดได้เมื่อมี License ที่ใช้งานได้ — <a href="index.html#shop" style="color:var(--cyan)">เลือกซื้อแพ็กเกจ</a></p>';
   const guide = DB.settings().installGuide; $('#dlguide').innerHTML = can && guide ? `<details open style="margin-top:10px"><summary>📖 วิธีติดตั้งและเริ่มใช้งาน</summary><div style="white-space:pre-line;color:var(--mut);font-size:14px;margin-top:6px">${E(guide)}</div></details>` : '';
   paintAff(); paintFb();
+  paintGroup(keys.some((k) => !k.revoked));
   $('#orders').innerHTML = orders.map((o) => `<div style="border:1px solid var(--line);border-radius:12px;padding:12px;margin:10px 0">
     <div class="row"><b>${E(o.id)}</b><span class="tag ${ST[o.status][1]}">${ST[o.status][0]}</span></div>
     <div style="font-size:13px;color:var(--mut)">${new Date(o.createdAt).toLocaleString('th-TH')} · ${o.items.map((i) => E(i.name) + '×' + i.qty).join(', ')}</div>

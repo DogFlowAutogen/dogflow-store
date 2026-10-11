@@ -165,6 +165,7 @@
     revokeKeys: async () => ({ ok: false, errors: ['โหมดทดลองไม่รองรับ — ใช้ Supabase + License Server'] }),
     restoreKeys: async () => ({ ok: false, errors: ['โหมดทดลองไม่รองรับ'] }),
     dispatchNotices: async () => ({ ok: false, errors: ['โหมดทดลองไม่มีระบบอีเมล'] }),
+    async groupQrUrl() { return ''; },   // โหมดเดโม่ไม่มีที่เก็บ QR ส่วนตัว
     canDownload() { const m = DB.me(); return !!m && load().orders.some((o) => o.memberId === m.id && ['paid', 'done'].includes(o.status) && o.licenseKeys && o.licenseKeys.length) && load().releases.some((r) => r.active); },
     async downloadUrl(id) { if (!DB.canDownload()) return { ok: false, errors: ['ต้องมี License ที่ใช้งานได้จึงจะดาวน์โหลดได้'] }; const r = load().releases.find((x) => x.id === id && x.active); return r ? { ok: true, url: r.externalUrl, fileName: r.fileName, sha256: r.sha256 } : { ok: false, errors: ['ไม่พบไฟล์'] }; },
     attachRelease: async () => ({ ok: false, errors: ['โหมดทดลองรองรับเฉพาะลิงก์ภายนอก — ตั้งค่า Supabase เพื่ออัปโหลดไฟล์'] }),
