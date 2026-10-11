@@ -175,6 +175,7 @@
     activeBlocks() { return DFCommon.activeBlocks(load().blocks); },
     find: (e, id) => load()[e].find((x) => x[idKey[e] || 'id'] === id),
     // เพิ่ม/แก้ไข: คืน {ok, errors}
+    async countView(entity, id) { const w = (load()[entity] || []).find((x) => x.id === id); if (!w) return null; w.views = (Number(w.views) || 0) + 1; save(); return w.views; },
     upsert(entity, obj) {
       const errors = validate(entity, obj); if (errors.length) return { ok: false, errors };
       const d = load(), k = idKey[entity] || 'id', i = d[entity].findIndex((x) => x[k] === obj[k]);

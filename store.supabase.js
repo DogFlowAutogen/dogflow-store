@@ -21,9 +21,9 @@
     promos: (r) => ({ id: r.id, name: r.name, percent: r.percent, scope: r.scope, startsAt: r.starts_at, endsAt: r.ends_at, active: r.active }),
     banners: (r) => ({ id: r.id, title: r.title, image: r.image, link: r.link, sort: r.sort, startsAt: r.starts_at || '', endsAt: r.ends_at || '', active: r.active }),
     blocks: (r) => Object.assign({}, r.data || {}, { id: r.id, kind: r.kind, title: r.title, image: r.image || '', sort: r.sort, startsAt: r.starts_at || '', endsAt: r.ends_at || '', active: r.active }),
-    showcase: (r) => ({ id: r.id, title: r.title, caption: r.caption, image: r.image, sort: r.sort, active: r.active }),
-    works: (r) => ({ id: r.id, title: r.title, creator: r.creator || '', caption: r.caption || '', url: r.url, thumb: r.thumb || '', consent: !!r.consent, sort: r.sort, active: r.active, createdAt: r.created_at }),
-    tutorials: (r) => ({ id: r.id, title: r.title, desc: r.description, kind: r.kind, url: r.url, thumb: r.thumb || '', mediaId: '', sort: r.sort, active: r.active }),
+    showcase: (r) => ({ id: r.id, title: r.title, caption: r.caption, image: r.image, sort: r.sort, active: r.active, views: Number(r.views) || 0 }),
+    works: (r) => ({ id: r.id, title: r.title, creator: r.creator || '', caption: r.caption || '', url: r.url, thumb: r.thumb || '', consent: !!r.consent, sort: r.sort, active: r.active, createdAt: r.created_at, views: Number(r.views) || 0 }),
+    tutorials: (r) => ({ id: r.id, title: r.title, desc: r.description, kind: r.kind, url: r.url, thumb: r.thumb || '', mediaId: '', sort: r.sort, active: r.active, views: Number(r.views) || 0 }),
     reviews: (r) => ({ id: r.id, name: r.name, text: r.text, rating: r.rating, active: r.active }),
     faqs: (r) => ({ id: r.id, q: r.q, a: r.a, sort: r.sort }),
     coupons: (r) => ({ code: r.code, type: r.type, value: r.value, minTotal: r.min_total, active: r.active }),
@@ -194,6 +194,7 @@
     canDownload: () => S.releases.some((r) => r.active),
     latestRelease: (platform) => S.latest.find((x) => x.platform === (platform || 'windows')) || null,
     // แอดมิน: ประกาศเวอร์ชันใหม่ให้ลูกค้าที่มีสิทธิ์ (แจ้งในโปรไฟล์ + เข้าคิวอีเมล) → คืนจำนวนผู้รับ
+    async countView(entity, id) { const { data, error } = await sb.rpc(entity === 'tutorials' ? 'tutorial_view' : entity === 'showcase' ? 'showcase_view' : 'work_view', { p_id: id }); if (error || data == null) return null; const w = DB.find(entity, id); if (w) w.views = Number(data) || 0; return Number(data) || 0; },   // นับยอดวิวผลงาน (ฟังก์ชันฝั่งฐานข้อมูลบวกทีละ 1) — ยังไม่ได้ลงฟังก์ชัน = คืน null เงียบๆ
     async announceRelease(id) { const { data, error } = await sb.rpc('announce_release', { p_release: id }); if (error) return fail(error); await Promise.all([loadReleases(), loadDynamic()]); emit(); return { ok: true, count: data }; },
     async setEmailUpdates(on) { const { error } = await sb.rpc('set_email_updates', { p_on: !!on }); if (error) return fail(error); if (S.me) S.me.emailUpdates = !!on; emit(); return { ok: true }; },
     // แอดมิน: ระงับ/คืนสิทธิ์คีย์ของสมาชิกที่ License Server (Edge Function revoke-keys)

@@ -18,7 +18,7 @@
 if(ok)return;window.__legacy=true;document.addEventListener('DOMContentLoaded',function(){var d=document.createElement('div');d.setAttribute('style','position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:#0b1222;color:#fff;font-family:Tahoma,sans-serif;text-align:center;padding:60px 20px');
 d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">เบราว์เซอร์นี้ไม่รองรับ</h2><p style="line-height:1.8;max-width:520px;margin:0 auto">Internet Explorer และเบราว์เซอร์รุ่นเก่าไม่รองรับระบบชำระเงินและความปลอดภัยของเว็บนี้<br>กรุณาเปิดด้วย <b>Microsoft Edge</b>, <b>Google Chrome</b>, <b>Safari</b> หรือ <b>Firefox</b> รุ่นล่าสุด<br>ใช้ได้ทั้งคอมพิวเตอร์ แท็บเล็ต และโทรศัพท์</p>';document.body.appendChild(d);});})();
 </script>
-<link rel="stylesheet" href="style.css?v=20261011d">
+<link rel="stylesheet" href="style.css?v=20261011e">
 </head>
 <body>
 <div id="splash" role="status" aria-live="polite">
@@ -253,7 +253,7 @@ setInterval(() => { if (DB.activeBanners().length > 1) { adIdx++; renderAds(); }
 function renderTuts() {
   const L = DB.list('tutorials').filter((t) => t.active).sort((a, b) => (a.sort || 0) - (b.sort || 0)); $('#guide').hidden = !L.length;
   $('#tuts').innerHTML = L.map((t) => { const em = t.kind === 'link' ? DB.embed(t.url) : null;
-    return `<article class="pc" data-tut="${E(t.id)}" style="cursor:pointer"><div class="pic" style="font-size:54px">${(t.thumb || (em && em.thumb)) ? `<img src="${E(t.thumb || em.thumb)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : '▶️'}</div><div class="bd"><h3>${E(t.title)}</h3><div class="d">${E(t.desc || '')}</div><span class="btn sm">▶ ดูวิดีโอ</span></div></article>`; }).join('');
+    return `<article class="pc" data-tut="${E(t.id)}" style="cursor:pointer"><div class="pic" style="font-size:54px">${(t.thumb || (em && em.thumb)) ? `<img src="${E(t.thumb || em.thumb)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : '▶️'}${t.views != null ? `<span class="wkv" data-v="tutorials:${E(t.id)}" title="ยอดเข้าชม">👁 ${fmtViews(t.views)}</span>` : ''}</div><div class="bd"><h3>${E(t.title)}</h3><div class="d">${E(t.desc || '')}</div><span class="btn sm">▶ ดูวิดีโอ</span></div></article>`; }).join('');
 }
 // ตัวเล่นคู่มือ: ขนาดผูกกับความสูงจอ (--wh) เหมือนหน้าต่างผลงานลูกค้า — เห็นครบทุกส่วน (ชื่อ/วิดีโอ/คำอธิบาย/ปุ่มปิด) โดยไม่มีแถบเลื่อน · วิดีโอที่อัปโหลดปรับตามสัดส่วนจริงเมื่อโหลดข้อมูลแล้ว
 const vidSize = (vertical, ar) => (vertical ? 'height:var(--wh);width:auto;max-width:100%;' : 'width:min(100%,calc(var(--wh) * 16 / 9));height:auto;') + 'aspect-ratio:' + ar + ';';
@@ -263,7 +263,7 @@ function mkVideo(src) {
   return v;
 }
 async function playTut(id) {
-  const t = DB.find('tutorials', id); if (!t) return; const box = $('#vBox'); $('#vT').textContent = t.title; $('#vD').textContent = t.desc || ''; box.innerHTML = '';
+  const t = DB.find('tutorials', id); if (!t) return; countView('tutorials', id); const box = $('#vBox'); $('#vT').textContent = t.title; $('#vD').textContent = t.desc || ''; box.innerHTML = '';
   if (t.kind === 'file') { const u = await DB.playUrl(t); if (!u) box.innerHTML = '<p class="errs" style="display:block">ไม่พบไฟล์วิดีโอในเครื่องนี้ (ไฟล์เก็บเฉพาะเบราว์เซอร์ของแอดมิน)</p>'; else box.appendChild(mkVideo(u)); }
   else { const em = DB.embed(t.url); if (!em) return;
     if (em.type === 'iframe') { const f = document.createElement('iframe'); f.src = em.src; f.allow = 'autoplay; fullscreen; picture-in-picture'; f.allowFullscreen = true; f.referrerPolicy = 'strict-origin-when-cross-origin'; /* YouTube ต้องได้ Referrer (ไม่งั้น Error 153) — ส่งเฉพาะที่อยู่เว็บ ไม่ส่งพาธ */ f.style.cssText = vidSize(false, '16/9') + 'border:0;border-radius:12px'; box.appendChild(f);
@@ -285,10 +285,17 @@ function renderWorks() {
   if (workFilter && !ps.some((p) => p.platform === workFilter)) workFilter = '';
   $('#workTabs').innerHTML = ps.length > 1 ? '<button class="chip' + (workFilter ? '' : ' on') + '" data-wf="">ทั้งหมด</button>' + ps.map((p) => '<button class="chip' + (workFilter === p.platform ? ' on' : '') + '" data-wf="' + E(p.platform) + '">' + p.icon + ' ' + E(p.label) + '</button>').join('') : '';
   $('#workList').innerHTML = L.filter((w) => !workFilter || info(w).platform === workFilter).map((w) => { const c = info(w), th = w.thumb || c.thumb;
-    return '<article class="wk" data-work="' + E(w.id) + '" tabindex="0" role="button" aria-label="เล่นคลิป ' + E(w.title || w.creator || '') + '"><div class="wkp">' + (th ? '<img src="' + E(th) + '" alt="" loading="lazy" referrerpolicy="no-referrer">' : '') + '<span class="wki">' + c.icon + '</span><span class="wkb">' + c.icon + ' ' + E(c.label) + '</span><span class="wkpl">▶</span></div><div class="wkt">' + (w.title ? '<b>' + E(w.title) + '</b>' : '') + (w.creator ? '<small' + (w.title ? '' : ' class="only"') + '>โดย ' + E(w.creator) + '</small>' : '') + '</div></article>'; }).join('');   // ไม่มีชื่อคลิป = แสดงเฉพาะ "โดย @เครดิต"
+    return '<article class="wk" data-work="' + E(w.id) + '" tabindex="0" role="button" aria-label="เล่นคลิป ' + E(w.title || w.creator || '') + '"><div class="wkp">' + (th ? '<img src="' + E(th) + '" alt="" loading="lazy" referrerpolicy="no-referrer">' : '') + '<span class="wki">' + c.icon + '</span><span class="wkb">' + c.icon + ' ' + E(c.label) + '</span><span class="wkpl">▶</span>' + (w.views != null ? '<span class="wkv" data-v="works:' + E(w.id) + '" title="ยอดเข้าชม">👁 ' + fmtViews(w.views) + '</span>' : '') + '</div><div class="wkt">' + (w.title ? '<b>' + E(w.title) + '</b>' : '') + (w.creator ? '<small' + (w.title ? '' : ' class="only"') + '>โดย ' + E(w.creator) + '</small>' : '') + '</div></article>'; }).join('');   // ไม่มีชื่อคลิป = แสดงเฉพาะ "โดย @เครดิต"
+}
+function fmtViews(n) { n = Number(n) || 0; return n >= 1e6 ? (n / 1e6).toFixed(1).replace(/\.0$/, '') + 'M' : n >= 1e3 ? (n / 1e3).toFixed(1).replace(/\.0$/, '') + 'K' : String(n); }
+// นับยอดวิวเมื่อกดเล่น — เบราว์เซอร์เดิมนับซ้ำคลิปเดิมได้อีกครั้งหลัง 6 ชม. (กันกดรัวปั่นยอด)
+async function countView(entity, id) {
+  try { const k = 'df-wv-' + entity + id, t = Number(localStorage.getItem(k)) || 0; if (Date.now() - t < 216e5) return; localStorage.setItem(k, String(Date.now())); } catch (e) { /* ไม่มี localStorage ก็นับตามปกติ */ }
+  const n = await DB.countView(entity, id); if (n == null) return;
+  document.querySelectorAll('[data-v="' + entity + ':' + id + '"]').forEach((el) => { el.textContent = '👁 ' + fmtViews(n); });
 }
 function playWork(id) {
-  const w = DB.find('works', id); if (!w) return; const c = DFCommon.clip(w.url), box = $('#wBox'); if (!c) return;
+  const w = DB.find('works', id); if (!w) return; countView('works', id); const c = DFCommon.clip(w.url), box = $('#wBox'); if (!c) return;
   $('#wT').textContent = w.title || ''; $('#wT').hidden = !w.title; $('#wC').textContent = w.caption || ''; $('#wCr').textContent = w.creator ? (w.title ? 'เครดิต: ' : 'โดย ') + w.creator + ' · ลิขสิทธิ์เป็นของเจ้าของผลงาน' : '';   // ไม่มีชื่อคลิป = ไม่แสดงหัวข้อ เหลือเฉพาะ "โดย เครดิต" box.innerHTML = '';
   // ขนาดตัวเล่นผูกกับความสูงหน้าจอ (--wh ใน .wbox) → กรอบพอดีจอเสมอ ไม่มีแถบเลื่อน · แนวตั้งกำหนดจากความสูง แนวนอนกำหนดจากความกว้าง
   const vert = c.ratio === '9/16', size = (vertical, ar) => (vertical ? 'height:var(--wh);width:auto;max-width:100%;' : 'width:min(100%,calc(var(--wh) * 16 / 9));height:auto;') + 'aspect-ratio:' + ar + ';';
@@ -357,9 +364,9 @@ function renderLd() {
 }
 function renderShots() {
   const L = DB.list('showcase').filter((s) => s.active).sort((a, b) => (a.sort || 0) - (b.sort || 0)); $('#preview').hidden = !L.length;
-  $('#shots').innerHTML = L.map((s) => `<figure data-shot="${E(s.id)}"><img src="${E(s.image)}" alt="${E(s.title)}" loading="lazy"><figcaption><b>${E(s.title)}</b><span>${E(s.caption || '')}</span></figcaption></figure>`).join('');
+  $('#shots').innerHTML = L.map((s) => `<figure data-shot="${E(s.id)}"><div class="shw"><img src="${E(s.image)}" alt="${E(s.title)}" loading="lazy">${s.views != null ? `<span class="wkv" data-v="showcase:${E(s.id)}" title="ยอดเข้าชม">👁 ${fmtViews(s.views)}</span>` : ''}</div><figcaption><b>${E(s.title)}</b><span>${E(s.caption || '')}</span></figcaption></figure>`).join('');
 }
-$('#shots').onclick = (e) => { const f = e.target.closest('[data-shot]'); if (!f) return; const s = DB.find('showcase', f.dataset.shot); $('#shotBig').src = s.image; $('#shotCap').textContent = s.title + ' — ' + (s.caption || ''); openM('#mShot'); };
+$('#shots').onclick = (e) => { const f = e.target.closest('[data-shot]'); if (!f) return; const s = DB.find('showcase', f.dataset.shot); $('#shotBig').src = s.image; $('#shotCap').textContent = s.title + ' — ' + (s.caption || ''); openM('#mShot'); countView('showcase', s.id); };
 function renderBrands() {
   const L = DB.list('brands'); $('#brsec').hidden = !L.length;
   $('#brands').innerHTML = L.map((b) => `<div class="bl" title="${E(b.name)}"><img src="${E(b.logo)}" alt="${E(b.name)}" loading="lazy"></div>`).join('');
