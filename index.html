@@ -144,7 +144,7 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
   <h3>📦 ออเดอร์ของฉัน</h3><div id="myOrders"></div><button class="btn ghost sm" style="margin-top:12px" data-close>ปิด</button>
 </div></div>
 <div class="modal" id="mWork"><div class="mbox wbox" style="width:min(460px,100%);text-align:center"><h3 id="wT"></h3><div id="wBox" style="margin:8px auto;display:flex;flex-direction:column;align-items:center;gap:10px"></div><p id="wC" style="color:var(--mut);margin:0 0 4px"></p><p id="wCr" style="color:var(--mut);font-size:13px;margin:0 0 12px"></p><button class="btn ghost sm" data-close>ปิด</button></div></div>
-<div class="modal" id="mVideo"><div class="mbox" style="width:min(860px,100%)"><h3 id="vT"></h3><div id="vBox" style="margin:12px 0"></div><p id="vD" style="color:var(--mut)"></p><button class="btn ghost sm" data-close>ปิด</button></div></div>
+<div class="modal" id="mVideo"><div class="mbox wbox" style="width:min(860px,100%)"><h3 id="vT"></h3><div id="vBox" style="margin:8px auto;display:flex;flex-direction:column;align-items:center;gap:8px"></div><p id="vD" style="color:var(--mut)"></p><button class="btn ghost sm" data-close>ปิด</button></div></div>
 <div class="modal" id="mRules"><div class="mbox"><h3>📜 เงื่อนไขและกฎการใช้งาน</h3><div id="rulesTxt" style="white-space:pre-line;color:var(--mut);font-size:14px;margin:12px 0"></div><button class="btn sm" data-close>รับทราบ</button></div></div>
 <div class="modal" id="mShot"><div class="mbox" style="width:min(1100px,100%);padding:14px"><img id="shotBig" alt="" style="width:100%;border-radius:12px"><p id="shotCap" style="color:var(--mut);margin:10px 4px"></p><button class="btn ghost sm" data-close>ปิด</button></div></div>
 <div class="toast" id="toast"></div>
@@ -246,15 +246,22 @@ function renderTuts() {
   $('#tuts').innerHTML = L.map((t) => { const em = t.kind === 'link' ? DB.embed(t.url) : null;
     return `<article class="pc" data-tut="${E(t.id)}" style="cursor:pointer"><div class="pic" style="font-size:54px">${(t.thumb || (em && em.thumb)) ? `<img src="${E(t.thumb || em.thumb)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : '▶️'}</div><div class="bd"><h3>${E(t.title)}</h3><div class="d">${E(t.desc || '')}</div><span class="btn sm">▶ ดูวิดีโอ</span></div></article>`; }).join('');
 }
+// ตัวเล่นคู่มือ: ขนาดผูกกับความสูงจอ (--wh) เหมือนหน้าต่างผลงานลูกค้า — เห็นครบทุกส่วน (ชื่อ/วิดีโอ/คำอธิบาย/ปุ่มปิด) โดยไม่มีแถบเลื่อน · วิดีโอที่อัปโหลดปรับตามสัดส่วนจริงเมื่อโหลดข้อมูลแล้ว
+const vidSize = (vertical, ar) => (vertical ? 'height:var(--wh);width:auto;max-width:100%;' : 'width:min(100%,calc(var(--wh) * 16 / 9));height:auto;') + 'aspect-ratio:' + ar + ';';
+function mkVideo(src) {
+  const v = document.createElement('video'), vs = 'border-radius:12px;background:#000;object-fit:contain'; v.src = src; v.controls = true; v.playsInline = true; v.style.cssText = vidSize(false, '16/9') + vs;
+  v.onloadedmetadata = () => { if (v.videoWidth && v.videoHeight) { v.style.cssText = vidSize(v.videoHeight >= v.videoWidth, v.videoWidth + '/' + v.videoHeight) + vs; fitModal('#mVideo'); } };
+  return v;
+}
 $('#tuts').onclick = async (e) => {
   const c = e.target.closest('[data-tut]'); if (!c) return; const t = DB.find('tutorials', c.dataset.tut), box = $('#vBox'); $('#vT').textContent = t.title; $('#vD').textContent = t.desc || ''; box.innerHTML = '';
-  if (t.kind === 'file') { const u = await DB.playUrl(t); if (!u) box.innerHTML = '<p class="errs" style="display:block">ไม่พบไฟล์วิดีโอในเครื่องนี้ (ไฟล์เก็บเฉพาะเบราว์เซอร์ของแอดมิน)</p>'; else { const v = document.createElement('video'); v.src = u; v.controls = true; v.style.cssText = 'width:100%;border-radius:12px;background:#000'; box.appendChild(v); } }
+  if (t.kind === 'file') { const u = await DB.playUrl(t); if (!u) box.innerHTML = '<p class="errs" style="display:block">ไม่พบไฟล์วิดีโอในเครื่องนี้ (ไฟล์เก็บเฉพาะเบราว์เซอร์ของแอดมิน)</p>'; else box.appendChild(mkVideo(u)); }
   else { const em = DB.embed(t.url); if (!em) return;
-    if (em.type === 'iframe') { const f = document.createElement('iframe'); f.src = em.src; f.allow = 'autoplay; fullscreen; picture-in-picture'; f.allowFullscreen = true; f.referrerPolicy = 'strict-origin-when-cross-origin'; /* YouTube ต้องได้ Referrer (ไม่งั้น Error 153) — ส่งเฉพาะที่อยู่เว็บ ไม่ส่งพาธ */ f.style.cssText = 'width:100%;aspect-ratio:16/9;border:0;border-radius:12px'; box.appendChild(f);
-      const o = document.createElement('a'); o.className = 'btn ghost sm'; o.style.marginTop = '10px'; o.href = em.src.replace('youtube-nocookie.com/embed/', 'youtube.com/watch?v=').replace('player.vimeo.com/video/', 'vimeo.com/'); o.target = '_blank'; o.rel = 'noopener noreferrer'; o.textContent = '↗ เปิดวิดีโอในแท็บใหม่ (ถ้าเล่นในหน้านี้ไม่ได้)'; box.appendChild(o); }
-    else if (em.type === 'video') { const v = document.createElement('video'); v.src = em.src; v.controls = true; v.style.cssText = 'width:100%;border-radius:12px;background:#000'; box.appendChild(v); }
+    if (em.type === 'iframe') { const f = document.createElement('iframe'); f.src = em.src; f.allow = 'autoplay; fullscreen; picture-in-picture'; f.allowFullscreen = true; f.referrerPolicy = 'strict-origin-when-cross-origin'; /* YouTube ต้องได้ Referrer (ไม่งั้น Error 153) — ส่งเฉพาะที่อยู่เว็บ ไม่ส่งพาธ */ f.style.cssText = vidSize(false, '16/9') + 'border:0;border-radius:12px'; box.appendChild(f);
+      const o = document.createElement('a'); o.className = 'btn ghost sm'; o.href = em.src.replace('youtube-nocookie.com/embed/', 'youtube.com/watch?v=').replace('player.vimeo.com/video/', 'vimeo.com/'); o.target = '_blank'; o.rel = 'noopener noreferrer'; o.textContent = '↗ เปิดวิดีโอในแท็บใหม่ (ถ้าเล่นในหน้านี้ไม่ได้)'; box.appendChild(o); }
+    else if (em.type === 'video') box.appendChild(mkVideo(em.src));
     else { const a = document.createElement('a'); a.className = 'btn gold'; a.href = em.src; a.target = '_blank'; a.rel = 'noopener noreferrer'; a.textContent = '▶ เปิดวิดีโอในแท็บใหม่'; box.appendChild(a); } }
-  openM('#mVideo');
+  openM('#mVideo'); fitModal('#mVideo');
 };
 // ปิดวิดีโอเมื่อปิดหน้าต่าง (หยุดเสียง)
 document.addEventListener('click', (e) => { if (e.target.closest('[data-close]') || e.target.classList.contains('modal')) $('#vBox').innerHTML = ''; });
@@ -282,12 +289,13 @@ function playWork(id) {
   openM('#mWork'); fitWork();
 }
 // ย่อตัวเล่นลงเท่าที่จำเป็นให้เห็นครบทุกส่วน (ชื่อ/ตัวเล่น/ปุ่ม/เครดิต/ปุ่มปิด) โดยไม่ต้องเลื่อน — วัดจากความสูงจริงของกรอบหลังแสดงแล้ว
-function fitWork() {
-  const bx = document.querySelector('#mWork .wbox'); if (!bx || !$('#mWork').classList.contains('on')) return;
+function fitWork() { fitModal('#mWork'); }
+function fitModal(sel) {
+  const m = $(sel), bx = m && m.querySelector('.wbox'); if (!bx || !m.classList.contains('on')) return;
   const base = Math.max(200, Math.min(640, innerHeight - 230)); bx.style.setProperty('--wh', base + 'px');
   const over = bx.scrollHeight - bx.clientHeight; if (over > 0) bx.style.setProperty('--wh', Math.max(140, base - over - 2) + 'px');
 }
-window.addEventListener('resize', fitWork);
+window.addEventListener('resize', () => { fitModal('#mWork'); fitModal('#mVideo'); });
 $('#workTabs').onclick = (e) => { const b = e.target.closest('[data-wf]'); if (!b) return; workFilter = b.dataset.wf; renderWorks(); };
 $('#workList').onclick = (e) => { const c = e.target.closest('[data-work]'); if (c) playWork(c.dataset.work); };
 $('#workList').onkeydown = (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target.closest('[data-work]')) { e.preventDefault(); playWork(e.target.closest('[data-work]').dataset.work); } };
