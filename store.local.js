@@ -386,6 +386,7 @@
     },
     // แอดมินอนุมัติ → ออก License key / ปฏิเสธ → ให้ลูกค้าส่งสลิปใหม่
     // ตั้งค่าเชื่อมระบบ License (Apps Script): URL เก็บใน settings, ADMIN_TOKEN เก็บแยกในเบราว์เซอร์แอดมิน (ไม่ติดไปกับไฟล์สำรอง)
+    async resolveClip() { return { ok: false, errors: ['โหมดทดลองตรวจลิงก์อัตโนมัติไม่ได้'] }; },
     licenseCfg() { return { url: (load().settings.licenseApiUrl || '').trim(), token: localStorage.getItem('df_lic_token') || '' }; },
     // ออกคีย์จริงผ่าน adminCreate — ทำซ้ำได้ปลอดภัย: ช่อง (สินค้า#ลำดับ) ที่ออกแล้วจะไม่ออกซ้ำ
     async issueKeys(orderId) {

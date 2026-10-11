@@ -561,10 +561,20 @@ const A = {
     $('#main').onchange = async (e) => { const c = e.target.closest('[data-ract]'); if (!c) return; const r = await DB.upsert('releases', Object.assign({}, DB.find('releases', c.dataset.ract), { active: c.checked })); if (!r.ok) { alert(r.errors.join('\n')); render(); } };
   },
   works() {
-    const F = [{ k: 'title', label: 'ชื่อคลิป/ผลงาน', full: true }, { k: 'url', label: 'ลิงก์คลิป (https://… จาก TikTok / YouTube / Instagram / Facebook หรือไฟล์ .mp4)', full: true }, { k: 'creator', label: 'เครดิตเจ้าของผลงาน (ชื่อลูกค้า/ช่อง เช่น @ชื่อช่อง)' }, { k: 'sort', label: 'ลำดับ', type: 'number' }, { k: 'caption', label: 'คำอธิบายสั้น (ไม่บังคับ)', full: true }, { k: 'thumb', label: 'ภาพปก 9:16 (ไม่บังคับ — YouTube ใช้ภาพปกอัตโนมัติ · แพลตฟอร์มอื่นถ้าไม่ใส่จะเป็นพื้นสีพร้อมไอคอน)', type: 'image', max: 720, full: true }, { k: 'consent', label: 'ยืนยันว่าได้รับอนุญาตจากเจ้าของคลิปให้นำมาแสดงบนเว็บนี้แล้ว (จำเป็นก่อนเปิดแสดง)', type: 'check', full: true }, { k: 'active', label: 'แสดงในหน้าแรก', type: 'check', full: true }];
-    $('#add').onclick = () => editor('เพิ่มคลิป', F, { id: DB.uid('w-'), title: '', url: '', creator: '', caption: '', thumb: '', consent: false, sort: DB.list('works').length + 1, active: false }, (o) => DB.upsert('works', o));
+    const F = [{ k: 'url', label: 'ลิงก์คลิป — แปะลิงก์ที่กดแชร์จากแอปได้เลย (รวมลิงก์ย่อ vm.tiktok.com) · TikTok / YouTube / Instagram / Facebook หรือไฟล์ .mp4', full: true }, { k: 'title', label: 'ชื่อคลิป/ผลงาน (เว้นว่าง = ดึงจากแพลตฟอร์มให้อัตโนมัติ)', full: true }, { k: 'creator', label: 'เครดิตเจ้าของผลงาน (เว้นว่าง = ดึงชื่อช่อง/บัญชีให้อัตโนมัติ)' }, { k: 'sort', label: 'ลำดับ', type: 'number' }, { k: 'caption', label: 'คำอธิบายสั้น (ไม่บังคับ)', full: true }, { k: 'thumb', label: 'ภาพปก 9:16 (ไม่บังคับ — YouTube ใช้ภาพปกอัตโนมัติ · แพลตฟอร์มอื่นถ้าไม่ใส่จะเป็นพื้นสีพร้อมไอคอน)', type: 'image', max: 720, full: true }, { k: 'consent', label: 'ยืนยันว่าได้รับอนุญาตจากเจ้าของคลิปให้นำมาแสดงบนเว็บนี้แล้ว (จำเป็นก่อนเปิดแสดง)', type: 'check', full: true }, { k: 'active', label: 'แสดงในหน้าแรก', type: 'check', full: true }];
+    // บันทึก: ลิงก์ย่อ/ลิงก์ที่ยังไม่ครบ → ให้เซิร์ฟเวอร์ขยายเป็นลิงก์เต็ม + เติมชื่อ/เครดิต/ภาพปกที่เว้นว่างไว้ + ตรวจว่าฝังได้ · ตรวจไม่ได้แต่ลิงก์เล่นได้ปกติ = บันทึกต่อได้ (กรอกเอง)
+    const save = async (o) => {
+      const c = DFCommon.clip(o.url);
+      if (o.url && (!c || c.short || !o.title || !o.creator || !o.thumb)) {
+        const r = await DB.resolveClip(o.url);
+        if (r.ok) { o.url = r.url; if (!o.title) o.title = r.title || ''; if (!o.creator) o.creator = r.creator || ''; if (!o.thumb && r.thumb) o.thumb = r.thumb; if (r.embeddable === false) return { ok: false, errors: [r.note || 'แพลตฟอร์มแจ้งว่าฝังคลิปนี้ไม่ได้'] }; if (r.note) toast(r.note); }
+        else if (!c || c.short) return r;
+      }
+      return DB.upsert('works', o);
+    };
+    $('#add').onclick = () => editor('เพิ่มคลิป', F, { id: DB.uid('w-'), title: '', url: '', creator: '', caption: '', thumb: '', consent: false, sort: DB.list('works').length + 1, active: false }, save);
     $('#main').onclick = (e) => { const b = e.target.closest('button'); if (!b) return;
-      if (b.dataset.edit) return editor('แก้ไขคลิป', F, DB.find('works', b.dataset.edit), (o) => DB.upsert('works', o));
+      if (b.dataset.edit) return editor('แก้ไขคลิป', F, DB.find('works', b.dataset.edit), save);
       if (!b.dataset.del) return; const w = DB.find('works', b.dataset.del), c = DFCommon.clip(w.url);
       del('works', w.id, w.title, { title: 'ลบผลงานนี้ถาวร?', sub: w.id, body: 'การ์ดจะหายจากส่วน "ผลงานลูกค้า" ในหน้าแรกของร้านทันที — ย้อนกลับไม่ได้',
         rows: [['คลิป', w.title], ['เครดิต', w.creator || '—'], ['แพลตฟอร์ม', c ? c.label : 'ลิงก์เสีย'], ['สถานะ', w.active ? 'แสดงในหน้าแรก' : 'ซ่อน']],

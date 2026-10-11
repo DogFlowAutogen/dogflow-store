@@ -35,6 +35,7 @@
     if (is('instagram.com')) return out('instagram', 'Instagram', '📸');
     if (is('facebook.com') || is('fb.watch') || is('fb.com')) {
       const vid = h === 'fb.watch' || /\/(reel|reels|watch|videos|video\.php)(\/|$|\?)/.test(u.pathname + u.search);
+      if (/^\/share\//.test(u.pathname) && h !== 'fb.watch') return out('facebook', 'Facebook', '👍', { short: true });   // ลิงก์แชร์ → ต้องให้เซิร์ฟเวอร์ขยายเป็นลิงก์เต็มก่อน (ฟอร์มแอดมินทำให้ตอนบันทึก)
       return out('facebook', 'Facebook', '👍', vid ? { type: 'iframe', src: 'https://www.facebook.com/plugins/video.php?href=' + encodeURIComponent(u.href) + '&show_text=false&autoplay=true&width=380' } : {});
     }
     if (/\.(mp4|webm|ogg)$/i.test(u.pathname)) return out('file', 'ไฟล์วิดีโอ', '🎞️', { type: 'video' });
