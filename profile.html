@@ -50,15 +50,13 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
     <div class="box"><h3>📦 ประวัติการสั่งซื้อ</h3><div id="orders"></div></div>
   </main>
 </div>
-<div class="modal" id="mAv"><div class="mbox" style="width:min(380px,100%);text-align:center"><h3>🖼️ ปรับรูปโปรไฟล์</h3><p style="color:var(--mut);font-size:13px;margin:0 0 10px">ลากเพื่อเลื่อนรูป · เลื่อนแถบเพื่อซูม</p>
-  <canvas id="avCv" width="256" height="256" class="avcv"></canvas><div class="f" style="margin:10px 0 4px"><label>ซูม</label><input type="range" id="avZoom" min="1" max="3" step="0.01" value="1"></div>
-  <div class="errs" id="eAvM"></div><div style="display:flex;gap:8px;justify-content:center;margin-top:10px"><button class="btn" id="avOk" type="button">💾 บันทึกรูปนี้</button><button class="btn ghost" id="avNo" type="button">ยกเลิก</button></div></div></div>
 <div class="toast" id="toast"></div>
 <script src="config.js"></script>
 <script src="vendor/supabase.js"></script>
 <script src="store.common.js"></script>
 <script src="store.local.js"></script>
 <script src="store.supabase.js"></script>
+<script src="avatar.js"></script>
 <script>
 const $ = (s) => document.querySelector(s), E = DB.esc, B = DB.baht;
 const toast = (m) => { const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(t._); t._ = setTimeout(() => t.classList.remove('on'), 2400); };
@@ -155,32 +153,9 @@ function paintAvatar(m) {
   if (av._u !== url) { av._u = url; av.innerHTML = url ? '<img alt="รูปโปรไฟล์" src="' + E(url) + '">' : ''; if (!url) av.textContent = m.name.trim().charAt(0).toUpperCase(); }
   $('#avAct').hidden = !can; $('#avDel').hidden = !m.avatarPath; $('#avPickT').textContent = m.avatarPath ? 'เปลี่ยนรูป' : 'เพิ่มรูปโปรไฟล์';
 }
-const AV = { img: null, z: 1, x: 0, y: 0, drag: null, busy: false };
-function avDraw() {
-  const cv = $('#avCv'), c = cv.getContext('2d'), im = AV.img; if (!im) return; const S = 256, base = Math.max(S / im.width, S / im.height), k = base * AV.z, w = im.width * k, h = im.height * k;
-  AV.x = Math.min(0, Math.max(S - w, AV.x)); AV.y = Math.min(0, Math.max(S - h, AV.y));          // กันรูปหลุดกรอบ
-  c.fillStyle = '#fff'; c.fillRect(0, 0, S, S); c.drawImage(im, AV.x, AV.y, w, h);
-}
-function avFit() { const im = AV.img, base = Math.max(256 / im.width, 256 / im.height); AV.x = (256 - im.width * base * AV.z) / 2; AV.y = (256 - im.height * base * AV.z) / 2; }
 $('#avPick').onclick = () => { showErr($('#eAv'), []); $('#avFile').click(); };
-$('#avFile').onchange = (e) => { const fl = e.target.files[0]; e.target.value = ''; if (!fl) return;
-  if (!/^image\/(png|jpeg|webp)$/.test(fl.type)) return showErr($('#eAv'), ['รองรับเฉพาะไฟล์ PNG / JPG / WebP']);
-  if (fl.size > 8 * 1048576) return showErr($('#eAv'), ['ไฟล์ใหญ่เกิน 8MB — เลือกรูปที่เล็กกว่านี้']);
-  const u = URL.createObjectURL(fl), im = new Image();
-  im.onerror = () => { URL.revokeObjectURL(u); showErr($('#eAv'), ['อ่านไฟล์ภาพไม่ได้ (ไฟล์เสียหรือไม่ใช่รูปภาพ)']); };
-  im.onload = () => { URL.revokeObjectURL(u); if (im.width < 64 || im.height < 64) return showErr($('#eAv'), ['รูปเล็กเกินไป (อย่างน้อย 64×64 พิกเซล)']);
-    showErr($('#eAv'), []); AV.img = im; AV.z = 1; $('#avZoom').value = 1; avFit(); avDraw(); showErr($('#eAvM'), []); $('#mAv').classList.add('on'); };
-  im.src = u; };
-$('#avZoom').oninput = (e) => { const im = AV.img, S = 256, old = AV.z, nz = +e.target.value, base = Math.max(S / im.width, S / im.height); const cx = (S / 2 - AV.x) / (base * old), cy = (S / 2 - AV.y) / (base * old);   // ซูมรอบจุดกึ่งกลางกรอบ
-  AV.z = nz; AV.x = S / 2 - cx * base * nz; AV.y = S / 2 - cy * base * nz; avDraw(); };
-(() => { const cv = $('#avCv'); cv.style.touchAction = 'none';
-  cv.onpointerdown = (e) => { AV.drag = { px: e.clientX, py: e.clientY, x: AV.x, y: AV.y }; cv.setPointerCapture(e.pointerId); };
-  cv.onpointermove = (e) => { if (!AV.drag) return; const r = cv.getBoundingClientRect(), k = 256 / r.width; AV.x = AV.drag.x + (e.clientX - AV.drag.px) * k; AV.y = AV.drag.y + (e.clientY - AV.drag.py) * k; avDraw(); };
-  cv.onpointerup = cv.onpointercancel = () => { AV.drag = null; }; })();
-$('#avNo').onclick = () => { $('#mAv').classList.remove('on'); AV.img = null; };
-$('#avOk').onclick = async () => { if (AV.busy || !AV.img) return; AV.busy = true; const b = $('#avOk'); b.disabled = true; b.textContent = 'กำลังอัปโหลด…';
-  const r = await DB.setAvatar($('#avCv').toDataURL('image/jpeg', 0.88)); AV.busy = false; b.disabled = false; b.textContent = '💾 บันทึกรูปนี้';
-  if (!r.ok) return showErr($('#eAvM'), r.errors); $('#mAv').classList.remove('on'); AV.img = null; toast('บันทึกรูปโปรไฟล์แล้ว ✔'); render(); };
+$('#avFile').onchange = async (e) => { const fl = e.target.files[0]; e.target.value = ''; if (!fl) return; showErr($('#eAv'), []);
+  const er = await DFAvatar.open(fl, (d) => DB.setAvatar(d), () => { toast('บันทึกรูปโปรไฟล์แล้ว ✔'); render(); }); if (er) showErr($('#eAv'), [er]); };
 $('#avDel').onclick = async () => { if (!confirm('ลบรูปโปรไฟล์ของคุณ?\nรูปจะถูกลบออกจากระบบถาวร (ยังเพิ่มรูปใหม่ได้ภายหลัง)')) return;
   const r = await DB.removeAvatar(); r.ok ? (toast('ลบรูปโปรไฟล์แล้ว'), render()) : showErr($('#eAv'), r.errors); };
 $('#emUpd').onchange = async (e) => { const r = await DB.setEmailUpdates(e.target.checked); r.ok ? toast(e.target.checked ? 'เปิดรับอีเมลแจ้งอัปเดต' : 'ปิดรับอีเมลแจ้งอัปเดตแล้ว (ยังเห็นในโปรไฟล์)') : (alert(r.errors.join('\n')), (e.target.checked = !e.target.checked)); };

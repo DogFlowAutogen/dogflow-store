@@ -153,7 +153,8 @@ footer{border-top:1px solid var(--line);margin-top:40px;padding:28px 0;color:var
 .av{width:68px;height:68px;border-radius:50%;background:var(--accent);color:var(--accent-fg);display:grid;place-items:center;font-size:30px;font-weight:700;margin-bottom:10px}
 .av{overflow:hidden;position:relative}.av img{width:100%;height:100%;object-fit:cover}
 .avact{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 8px}.avcv{width:min(256px,100%);height:auto;aspect-ratio:1;border-radius:50%;border:2px solid var(--line);background:#fff;cursor:grab;touch-action:none;display:block;margin:0 auto}
-.avcv:active{cursor:grabbing}.adm-av{width:28px;height:28px;border-radius:50%;object-fit:cover;vertical-align:middle;margin-right:6px;border:1px solid var(--line)}
+.avcv:active{cursor:grabbing}.av-lg{width:96px;height:96px;font-size:40px}.me-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;max-width:1000px}.me-grid .box{margin:0}
+.adm-av{width:28px;height:28px;border-radius:50%;object-fit:cover;vertical-align:middle;margin-right:6px;border:1px solid var(--line)}
 .key{display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:var(--surface2);border:1px dashed var(--accent);border-radius:12px;padding:12px;margin:8px 0}
 .key code{font-family:var(--mono);font-size:17px;font-weight:600;letter-spacing:.04em;color:var(--accent);user-select:all}
 .hl{display:flex;gap:10px;padding:10px 14px;border-radius:12px;margin-bottom:8px;background:var(--surface);border:1px solid var(--line)}

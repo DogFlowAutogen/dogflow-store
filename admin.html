@@ -52,6 +52,7 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
 <script src="store.common.js"></script>
 <script src="store.local.js"></script>
 <script src="store.supabase.js"></script>
+<script src="avatar.js"></script>
 <script>
 const $ = (s) => document.querySelector(s), E = DB.esc, B = DB.baht;
 const toast = (m) => { const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(t._); t._ = setTimeout(() => t.classList.remove('on'), 2400); };
@@ -77,7 +78,7 @@ setInterval(async () => { const was = !$('#app').hidden; if (was && !authed()) {
 $('#out').onclick = async () => { if (SB) await DB.logout(); else sessionStorage.removeItem('df_admin'); gate(); };
 
 /* ===== เมนู ===== */
-const TABS = [['dash', '📊 ภาพรวม'], ['orders', '🧾 ออเดอร์/ชำระเงิน'], ['products', '📦 สินค้า'], ['cats', '🗂️ หมวดหมู่'], ['members', '👥 สมาชิก'], ['affiliate', '🪪 ตัวแทนขาย'], ['showcase', '🖥️ ภาพหน้าตาโปรแกรม'], ['releases', '💿 ดาวน์โหลดโปรแกรม'], ['tutorials', '📚 คู่มือ/วิดีโอ'], ['banners', '🖼️ แบนเนอร์โฆษณา'], ['blocks', '🧱 บล็อกหน้าแรก'], ['promos', '🔥 โปรโมชัน'], ['brands', '🏷️ แบรนด์สินค้า'], ['coupons', '🎟️ คูปอง'], ['content', '📝 รีวิว/FAQ'], ['settings', '⚙️ ตั้งค่าหน้าแรก'], ['health', '🩺 ตรวจสอบระบบ'], ['data', '💾 สำรอง/ประวัติ']];
+const TABS = [['dash', '📊 ภาพรวม'], ['me', '👤 โปรไฟล์ของฉัน'], ['orders', '🧾 ออเดอร์/ชำระเงิน'], ['products', '📦 สินค้า'], ['cats', '🗂️ หมวดหมู่'], ['members', '👥 สมาชิก'], ['affiliate', '🪪 ตัวแทนขาย'], ['showcase', '🖥️ ภาพหน้าตาโปรแกรม'], ['releases', '💿 ดาวน์โหลดโปรแกรม'], ['tutorials', '📚 คู่มือ/วิดีโอ'], ['banners', '🖼️ แบนเนอร์โฆษณา'], ['blocks', '🧱 บล็อกหน้าแรก'], ['promos', '🔥 โปรโมชัน'], ['brands', '🏷️ แบรนด์สินค้า'], ['coupons', '🎟️ คูปอง'], ['content', '📝 รีวิว/FAQ'], ['settings', '⚙️ ตั้งค่าหน้าแรก'], ['health', '🩺 ตรวจสอบระบบ'], ['data', '💾 สำรอง/ประวัติ']];
 function render() {
   const pend = DB.list('orders').filter((o) => o.status === 'review').length;
   $('#menu').innerHTML = TABS.map(([k, n]) => `<a class="${tab === k ? 'on' : ''}" data-t="${k}">${n}${k === 'orders' && pend ? ` <span class="tag err">${pend}</span>` : ''}</a>`).join('');
@@ -178,6 +179,17 @@ const V = {
     <div class="toolbar"><button class="btn" id="add">＋ เพิ่มสมาชิก</button><input id="mq" placeholder="🔍 ค้นหาชื่อ/อีเมล/เบอร์" value="${E(window._mq || '')}" style="max-width:280px"></div>
     <div class="tw"><table><tr><th>ชื่อ</th><th>อีเมล</th><th>โทร</th><th>สมัครเมื่อ</th><th>ออเดอร์ / ยอดซื้อ</th><th>เตือน</th><th></th></tr>${list.map((m) => `<tr><td>${m.avatarPath ? `<img class="adm-av" src="${E(DB.avatarUrl(m.avatarPath))}" alt="">` : ''}${E(m.name)} ${m.banned ? '<span class="tag err" title="' + E(m.banReason || '') + '">ระงับ</span>' : ''}${m.addedByAdmin ? ' <small>(แอดมินเพิ่ม)</small>' : ''}</td><td>${E(m.email)}</td><td>${E(m.phone)}</td><td>${fmt(m.createdAt)}</td><td>${DB.list('orders').filter((o) => o.memberId === m.id).length} · ${B(spent(m.id))}</td><td>${m.strikes ? '<span class="tag ' + (m.strikes >= 2 ? 'err' : 'warn') + '">' + m.strikes + '/3</span>' : '—'}</td>
     <td>${m.avatarPath ? `<button class="btn sm ghost" data-avclr="${m.id}">🖼️ ลบรูป</button> ` : ''}<button class="btn sm ghost" data-warn="${m.id}">⚠ แจ้งเตือน</button> <button class="btn sm ghost" data-edit="${m.id}">แก้ไข</button> <button class="btn sm ghost" data-pw="${m.id}">รหัสผ่าน</button> <button class="btn sm ghost" data-ban="${m.id}">${m.banned ? 'ปลดระงับ' : 'ระงับ'}</button> <button class="btn sm danger" data-del="${m.id}">ลบ</button></td></tr>`).join('') || '<tr><td colspan="7" style="color:var(--mut)">ไม่พบสมาชิก</td></tr>'}</table></div>`;
+  },
+  me() {
+    const m = DB.me();
+    if (!SB || !m) return '<h1>👤 โปรไฟล์ของฉัน</h1><p style="color:var(--mut)">ใช้ได้เฉพาะโหมด Supabase เมื่อเข้าสู่ระบบด้วยบัญชีแอดมิน</p>';
+    const url = DB.avatarUrl(m.avatarPath);
+    return '<h1>👤 โปรไฟล์ของฉัน (แอดมิน)</h1><p style="color:var(--mut)">ข้อมูลบัญชีแอดมินของคุณ — ใช้ข้อมูลชุดเดียวกับโปรไฟล์สมาชิกบนหน้าร้าน</p><div class="me-grid">'
+      + '<div class="box"><h3>🖼️ รูปโปรไฟล์</h3><div class="av av-lg" id="meAv">' + (url ? '<img alt="รูปโปรไฟล์" src="' + E(url) + '">' : E(m.name.trim().charAt(0).toUpperCase())) + '</div>'
+      + '<div class="avact"><button class="btn ghost sm" id="mePick" type="button">📷 ' + (m.avatarPath ? 'เปลี่ยนรูป' : 'เพิ่มรูปโปรไฟล์') + '</button>' + (m.avatarPath ? '<button class="btn danger sm" id="meDel" type="button">🗑 ลบรูป</button>' : '') + '<input type="file" id="meFile" accept="image/png,image/jpeg,image/webp" hidden></div>'
+      + '<div class="errs" id="eMeAv"></div><small style="color:var(--mut)">PNG / JPG / WebP ไม่เกิน 8MB · ลากเลื่อนและซูมในกรอบได้ · ระบบย่อเป็น 256×256</small></div>'
+      + '<div class="box"><h3>✏️ ข้อมูลส่วนตัว</h3><form id="fMe" novalidate><div class="f"><label>ชื่อ-นามสกุล</label><input name="name" value="' + E(m.name) + '"></div><div class="f"><label>เบอร์โทร</label><input name="phone" inputmode="tel" value="' + E(m.phone) + '"></div><div class="f"><label>อีเมล (เปลี่ยนไม่ได้)</label><input value="' + E(m.email) + '" disabled></div><div class="errs" id="eMe"></div><button class="btn">💾 บันทึก</button></form></div>'
+      + '<div class="box"><h3>🔒 เปลี่ยนรหัสผ่าน</h3><form id="fMePw" novalidate><div class="f"><label>รหัสผ่านเดิม</label><input name="old" type="password" autocomplete="current-password"></div><div class="f"><label>รหัสผ่านใหม่ (≥ 8 ตัว)</label><input name="n1" type="password" autocomplete="new-password"></div><div class="f"><label>ยืนยันรหัสผ่านใหม่</label><input name="n2" type="password" autocomplete="new-password"></div><div class="errs" id="eMePw"></div><button class="btn">เปลี่ยนรหัสผ่าน</button></form></div></div>';
   },
   affiliate() {
     if (!SB) return '<h1>🪪 ตัวแทนขายโปรแกรม</h1><p style="color:var(--mut)">ใช้ได้เฉพาะโหมด Supabase (ฐานข้อมูลจริง)</p>';
@@ -290,6 +302,16 @@ const V = {
 /* ===== ตัวจัดการปุ่มในแต่ละแท็บ ===== */
 const PF = () => [{ k: 'name', label: 'ชื่อสินค้า', full: true }, { k: 'sku', label: 'SKU' }, { k: 'categoryId', label: 'หมวดหมู่', type: 'select', opts: catOpts() }, { k: 'brandId', label: 'แบรนด์', type: 'select', opts: [['', '— ไม่ระบุ —'], ...DB.list('brands').map((b) => [b.id, b.name])] }, { k: 'price', label: 'ราคาปกติ', type: 'number' }, { k: 'salePrice', label: 'ราคาโปร (0 = ไม่มี)', type: 'number' }, { k: 'stock', label: 'สต็อก', type: 'number' }, { k: 'badge', label: 'ป้าย (เช่น ยอดนิยม)' }, { k: 'icon', label: 'ไอคอน emoji' }, { k: 'licenseDevices', label: '🔑 จำนวนเครื่อง License (0 = ไม่ใช่สินค้าคีย์)', type: 'number' }, { k: 'licenseDays', label: '🔑 อายุคีย์ (วัน, 0 = ตลอดชีพ)', type: 'number' }, { k: 'commission', label: '🪪 ค่าคอมตัวแทนต่อชิ้น (บาท, 0 = ไม่มี)', type: 'number' }, { k: 'image', label: 'รูปสินค้า', type: 'image' }, { k: 'desc', label: 'คำอธิบาย', type: 'textarea', full: true }, { k: 'features', label: 'จุดเด่น (บรรทัดละข้อ)', type: 'textarea', full: true, list: true }, { k: 'active', label: 'เปิดขาย', type: 'check', full: true }];
 const A = {
+  me() {
+    if (!SB || !DB.me()) return; const er = (id, a) => { $(id).innerHTML = a.map((x) => '• ' + E(x)).join('<br>'); };
+    $('#mePick').onclick = () => { er('#eMeAv', []); $('#meFile').click(); };
+    $('#meFile').onchange = async (e) => { const fl = e.target.files[0]; e.target.value = ''; if (!fl) return; er('#eMeAv', []);
+      const msg = await DFAvatar.open(fl, (d) => DB.setAvatar(d), () => { toast('บันทึกรูปโปรไฟล์แล้ว ✔'); render(); }); if (msg) er('#eMeAv', [msg]); };
+    const dl = $('#meDel'); if (dl) dl.onclick = async () => { const ok = await confirmDlg({ danger: true, title: 'ลบรูปโปรไฟล์ของคุณ?', body: 'รูปจะถูกลบออกจากระบบถาวร — เพิ่มรูปใหม่ได้ภายหลัง', okText: 'ยืนยันลบรูป', cancelText: 'ไม่ลบ' }); if (!ok) return;
+      const r = await DB.removeAvatar(); r.ok ? (toast('ลบรูปโปรไฟล์แล้ว'), render()) : er('#eMeAv', r.errors); };
+    $('#fMe').onsubmit = async (e) => { e.preventDefault(); const f = e.target, r = await DB.updateProfile({ name: f.name.value, phone: f.phone.value }); r.ok ? (er('#eMe', []), toast('บันทึกแล้ว ✔'), render()) : er('#eMe', r.errors); };
+    $('#fMePw').onsubmit = async (e) => { e.preventDefault(); const f = e.target, r = await DB.changeMyPassword(f.old.value, f.n1.value, f.n2.value); if (r.ok) { f.reset(); er('#eMePw', []); toast('เปลี่ยนรหัสผ่านแล้ว ✔'); } else er('#eMePw', r.errors); };
+  },
   orders() {
     $('#main').onclick = async (e) => { const b = e.target.closest('button'); if (!b) return;
       const act = async (p) => { const r = await p; if (r && r.ok === false) alert(r.errors.join('\n')); render(); };
