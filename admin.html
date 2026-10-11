@@ -561,9 +561,25 @@ const A = {
     $('#main').onchange = async (e) => { const c = e.target.closest('[data-ract]'); if (!c) return; const r = await DB.upsert('releases', Object.assign({}, DB.find('releases', c.dataset.ract), { active: c.checked })); if (!r.ok) { alert(r.errors.join('\n')); render(); } };
   },
   works() {
-    const F = [{ k: 'url', label: 'ลิงก์คลิป — แปะลิงก์ที่กดแชร์จากแอปได้เลย (รวมลิงก์ย่อ vm.tiktok.com) · TikTok / YouTube / Instagram / Facebook หรือไฟล์ .mp4', full: true }, { k: 'title', label: 'ชื่อคลิป/ผลงาน (เว้นว่าง = ดึงจากแพลตฟอร์มให้อัตโนมัติ)', full: true }, { k: 'creator', label: 'เครดิตเจ้าของผลงาน (เว้นว่าง = ดึงชื่อช่อง/บัญชีให้อัตโนมัติ)' }, { k: 'sort', label: 'ลำดับ', type: 'number' }, { k: 'caption', label: 'คำอธิบายสั้น (ไม่บังคับ)', full: true }, { k: 'thumb', label: 'ภาพปก 9:16 (ไม่บังคับ — YouTube ใช้ภาพปกอัตโนมัติ · แพลตฟอร์มอื่นถ้าไม่ใส่จะเป็นพื้นสีพร้อมไอคอน)', type: 'image', max: 720, full: true }, { k: 'consent', label: 'ยืนยันว่าได้รับอนุญาตจากเจ้าของคลิปให้นำมาแสดงบนเว็บนี้แล้ว (จำเป็นก่อนเปิดแสดง)', type: 'check', full: true }, { k: 'active', label: 'แสดงในหน้าแรก', type: 'check', full: true }];
+    const F = [{ k: 'url', label: 'ลิงก์คลิป — แปะลิงก์ที่กดแชร์จากแอปได้เลย (รวมลิงก์ย่อ vm.tiktok.com) · TikTok / YouTube / Instagram / Facebook หรือไฟล์ .mp4', full: true }, { k: 'file', label: SB ? 'หรืออัปโหลดไฟล์วิดีโอ (.mp4 / .webm ไม่เกิน 50MB) — ใช้แทนลิงก์ · ภาพปกสร้างจากเฟรมแรกให้อัตโนมัติถ้าไม่ได้ใส่เอง · แก้ไขโดยไม่เลือกไฟล์ = ใช้ไฟล์เดิม' : 'อัปโหลดไฟล์ไม่ได้ในโหมดทดลอง — ใช้ลิงก์', type: 'file', accept: 'video/mp4,video/webm,.mp4,.webm', full: true }, { k: 'title', label: 'ชื่อคลิป/ผลงาน (เว้นว่าง = ดึงจากแพลตฟอร์มให้อัตโนมัติ)', full: true }, { k: 'creator', label: 'เครดิตเจ้าของผลงาน (เว้นว่าง = ดึงชื่อช่อง/บัญชีให้อัตโนมัติ)' }, { k: 'sort', label: 'ลำดับ', type: 'number' }, { k: 'caption', label: 'คำอธิบายสั้น (ไม่บังคับ)', full: true }, { k: 'thumb', label: 'ภาพปก 9:16 (ไม่บังคับ — YouTube ใช้ภาพปกอัตโนมัติ · แพลตฟอร์มอื่นถ้าไม่ใส่จะเป็นพื้นสีพร้อมไอคอน)', type: 'image', max: 720, full: true }, { k: 'consent', label: 'ยืนยันว่าได้รับอนุญาตจากเจ้าของคลิปให้นำมาแสดงบนเว็บนี้แล้ว (จำเป็นก่อนเปิดแสดง)', type: 'check', full: true }, { k: 'active', label: 'แสดงในหน้าแรก', type: 'check', full: true }];
     // บันทึก: ลิงก์ย่อ/ลิงก์ที่ยังไม่ครบ → ให้เซิร์ฟเวอร์ขยายเป็นลิงก์เต็ม + เติมชื่อ/เครดิต/ภาพปกที่เว้นว่างไว้ + ตรวจว่าฝังได้ · ตรวจไม่ได้แต่ลิงก์เล่นได้ปกติ = บันทึกต่อได้ (กรอกเอง)
+    // ภาพปกจากเฟรมแรกของวิดีโอ (ย่อ ≤ 720px กว้าง) — ทำในเบราว์เซอร์ ไม่ต้องใช้เซิร์ฟเวอร์ · ไม่ได้ (เช่น codec เบราว์เซอร์ไม่รู้จัก) = ข้าม ไม่ถือเป็นข้อผิดพลาด
+    const videoPoster = (file) => new Promise((res) => {
+      const v = document.createElement('video'), u = URL.createObjectURL(file), done = (r) => { URL.revokeObjectURL(u); res(r); };
+      v.muted = true; v.preload = 'auto'; v.playsInline = true; v.src = u; const t = setTimeout(() => done(''), 8000);
+      v.onerror = () => { clearTimeout(t); done(''); };
+      v.onloadeddata = () => { v.currentTime = Math.min(0.6, (v.duration || 1) / 2); };
+      v.onseeked = () => { clearTimeout(t); try { const w = Math.min(720, v.videoWidth || 720), h = Math.round(w * (v.videoHeight || 1280) / (v.videoWidth || 720)), cv = document.createElement('canvas'); cv.width = w; cv.height = h; cv.getContext('2d').drawImage(v, 0, 0, w, h); done(cv.toDataURL('image/jpeg', 0.82)); } catch (e) { done(''); } };
+    });
     const save = async (o) => {
+      const file = o.file; delete o.file;
+      if (file) {
+        if (!SB) return { ok: false, errors: ['โหมดทดลองอัปโหลดไฟล์ไม่ได้ — ใช้ลิงก์'] };
+        const r = await DB.attachVideo(o, file); if (!r.ok) return r;    // ตรวจชนิด/ขนาด + ส่งเข้าที่เก็บ → o.url เป็นลิงก์ https ของไฟล์
+        if (!o.thumb) o.thumb = await videoPoster(file);
+        if (!o.title) o.title = file.name.replace(/\.[^.]+$/, '');
+        return DB.upsert('works', o);
+      }
       const c = DFCommon.clip(o.url);
       if (o.url && (!c || c.short || !o.title || !o.creator || !o.thumb)) {
         const r = await DB.resolveClip(o.url);

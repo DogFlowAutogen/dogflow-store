@@ -166,6 +166,7 @@
     },
     async remove(entity, k) {
       try {
+        if (entity === 'works') { const cur = DB.find('works', k), base = sb.storage.from('media').getPublicUrl('').data.publicUrl; if (cur && cur.url && cur.url.startsWith(base) && !S.works.some((x) => x.id !== k && x.url === cur.url)) { try { await sb.storage.from('media').remove([decodeURIComponent(cur.url.slice(base.length))]); } catch (e) { /* ลบไฟล์ไม่ได้ก็ลบรายการต่อ */ } } }
         if (entity === 'releases') { const cur = DB.find('releases', k); if (cur && cur.filePath && !S.releases.some((x) => x.id !== k && x.filePath === cur.filePath)) { try { await sb.storage.from('releases').remove([cur.filePath]); } catch (e) { /* ลบไฟล์ไม่ได้ก็ลบรายการต่อ */ } } }
         const { error } = entity === 'members' ? await sb.rpc('admin_delete_member', { p_member: k }) : await sb.from(tbl(entity)).delete().eq(key(entity), k);
         if (error) return fail(error);
