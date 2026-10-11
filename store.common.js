@@ -181,7 +181,8 @@
       if (!o.title || !o.title.trim()) er.push('ใส่หัวข้อ'); if (!o.image) er.push('อัปโหลดภาพหน้าจอ');
     } else if (entity === 'works') {
       const c = clip(o.url || '');
-      if (!o.title || o.title.trim().length < 2) er.push('ใส่ชื่อคลิป/ผลงาน');
+      const tl = (o.title || '').trim().length, cl = (o.creator || '').trim().length;
+      if (!tl && !cl) er.push('ใส่ชื่อคลิป หรือเครดิตเจ้าของผลงาน อย่างน้อยหนึ่งอย่าง'); else if (tl && tl < 2) er.push('ชื่อคลิปสั้นเกินไป (เว้นว่างได้ ถ้าจะแสดงเฉพาะเครดิต)');
       if (!c) er.push('ลิงก์คลิปไม่ถูกต้อง (ต้องเป็น https://)');
       else if (c.short) er.push('ลิงก์ย่อของ TikTok เล่นในหน้าเว็บไม่ได้ — เปิดลิงก์นั้นแล้วคัดลอก URL เต็ม (tiktok.com/@ชื่อ/video/เลข) มาแปะ');
       if (o.active && !o.consent) er.push('ต้องติ๊ก "ได้รับอนุญาตจากเจ้าของคลิปแล้ว" ก่อนเปิดแสดงในหน้าแรก');
