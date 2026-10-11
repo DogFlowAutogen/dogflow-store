@@ -366,3 +366,15 @@ small{color:var(--muted);font-size:12px}
 .fb-split{display:grid;grid-template-columns:1fr 1fr;gap:16px}.fb-row:hover{background:var(--surface2)}
 .stars{display:inline-flex;gap:4px}.stars button{border:0;background:transparent;font-size:26px;cursor:pointer;color:var(--line);padding:0;line-height:1}.stars button.on,.stars button:hover{color:#f5b301}
 @media(max-width:760px){.fb-split{grid-template-columns:1fr}.tkm{max-width:100%}}
+
+/* ผลงานลูกค้า: การ์ดคลิปแนวตั้ง 9:16 เลื่อนแนวนอน */
+.wks{display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x proximity;padding:4px 2px 12px;-webkit-overflow-scrolling:touch}
+.wk{flex:0 0 clamp(150px,22vw,200px);scroll-snap-align:start;cursor:pointer;border-radius:14px;outline-offset:3px}
+.wkp{position:relative;aspect-ratio:9/16;border-radius:14px;overflow:hidden;background:linear-gradient(160deg,var(--accent-soft),var(--surface2));border:1px solid var(--line);transition:transform .2s,box-shadow .2s}
+.wk:hover .wkp,.wk:focus-visible .wkp{transform:translateY(-3px);box-shadow:0 10px 24px rgba(0,0,0,.18)}
+.wkp img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.wki{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:44px;opacity:.55}
+.wkp img + .wki{display:none}
+.wkb{position:absolute;left:8px;top:8px;padding:3px 9px;border-radius:999px;background:rgba(0,0,0,.62);color:#fff;font:600 11.5px var(--font)}
+.wkpl{position:absolute;right:10px;bottom:10px;width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,.62);color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;padding-left:2px}
+.wkt{padding:8px 2px 0}.wkt b{display:block;font-size:14px;line-height:1.35}.wkt small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}

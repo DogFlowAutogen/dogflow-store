@@ -67,7 +67,7 @@
     if (cache) return cache;
     try { cache = JSON.parse(localStorage.getItem(KEY)); } catch (e) { cache = null; }
     if (!cache || !cache.products) { cache = seed(); save(); }
-    ['members', 'notices', 'showcase', 'releases', 'tutorials', 'banners', 'blocks', 'tickets', 'brands', 'promos', 'reviews', 'faqs', 'audit'].forEach((k) => { if (!cache[k]) cache[k] = []; }); // ข้อมูลเก่าที่ยังไม่มีส่วนใหม่
+    ['members', 'notices', 'showcase', 'works', 'releases', 'tutorials', 'banners', 'blocks', 'tickets', 'brands', 'promos', 'reviews', 'faqs', 'audit'].forEach((k) => { if (!cache[k]) cache[k] = []; }); // ข้อมูลเก่าที่ยังไม่มีส่วนใหม่
     return cache;
   }
   function save() {
@@ -111,6 +111,8 @@
       if (!o.externalUrl || !/^https:\/\//.test(o.externalUrl)) er.push('โหมดทดลอง: ใส่ลิงก์ดาวน์โหลด https://');
     } else if (entity === 'showcase') {
       if (!o.title || !o.title.trim()) er.push('ใส่หัวข้อ'); if (!o.image) er.push('อัปโหลดภาพหน้าจอ');
+    } else if (entity === 'works') {
+      return DFCommon.validate(entity, o, d);
     } else if (entity === 'tutorials') {
       if (!o.title || o.title.trim().length < 2) er.push('ใส่ชื่อบทเรียน');
       if (o.kind === 'file') { if (!o.mediaId) er.push('ยังไม่ได้เลือกไฟล์วิดีโอ'); }

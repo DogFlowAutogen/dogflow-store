@@ -18,6 +18,29 @@
     return { type: 'link', src: u.href };
   }
 
+  // ตัวแปลงลิงก์ "ผลงานลูกค้า" (คลิปสั้นแนวตั้ง) → { platform, label, icon, type:'iframe'|'video'|'link', src, thumb, open, ratio, short }
+  // รองรับ YouTube (รวม Shorts) · TikTok (ลิงก์เต็ม .../video/เลข) · Instagram Reels/โพสต์ · Facebook Reels/วิดีโอ · ไฟล์ .mp4/.webm · อื่น ๆ = เปิดแท็บใหม่
+  // ตัวเล่นของแต่ละแพลตฟอร์มโหลดเมื่อผู้เข้าชมกดเล่นเท่านั้น (ดู index.html) — ลิงก์ย่อของ TikTok (vm./vt./tiktok.com/t/) แปลงเป็นลิงก์เต็มในเบราว์เซอร์ไม่ได้ → short:true
+  function clip(url) {
+    let u; try { u = new URL(String(url || '').trim()); } catch (e) { return null; } if (u.protocol !== 'https:') return null;
+    const h = u.hostname.replace(/^(www|m|mobile)\./, ''), is = (d) => h === d || h.endsWith('.' + d); let id, m;
+    const out = (platform, label, icon, o) => Object.assign({ platform, label, icon, type: 'link', src: u.href, thumb: '', open: u.href, ratio: '9/16', short: false }, o);
+    if (h === 'youtu.be') id = u.pathname.slice(1).split('/')[0]; else if (is('youtube.com')) id = u.searchParams.get('v') || (u.pathname.match(/^\/(shorts|embed|live)\/([\w-]{11})/) || [])[2];
+    if (id && /^[\w-]{11}$/.test(id)) { const sh = /^\/shorts\//.test(u.pathname); return out('youtube', 'YouTube', '▶️', { type: 'iframe', src: 'https://www.youtube-nocookie.com/embed/' + id + '?autoplay=1&playsinline=1&rel=0', thumb: 'https://i.ytimg.com/vi/' + id + '/hqdefault.jpg', open: 'https://www.youtube.com/watch?v=' + id, ratio: sh ? '9/16' : '16/9' }); }
+    if (is('tiktok.com')) {
+      if ((m = u.pathname.match(/\/video\/(\d{8,25})/))) return out('tiktok', 'TikTok', '🎵', { type: 'iframe', src: 'https://www.tiktok.com/player/v1/' + m[1] + '?autoplay=1&controls=1&progress_bar=1&play_button=1&volume_control=1&fullscreen_button=1&description=0&music_info=0' });
+      return out('tiktok', 'TikTok', '🎵', { short: true });
+    }
+    if (is('instagram.com') && (m = u.pathname.match(/^\/(?:[\w.]+\/)?(reel|reels|p|tv)\/([\w-]{5,})/))) { const k = m[1] === 'reels' ? 'reel' : m[1]; return out('instagram', 'Instagram', '📸', { type: 'iframe', src: 'https://www.instagram.com/' + k + '/' + m[2] + '/embed', open: 'https://www.instagram.com/' + k + '/' + m[2] + '/' }); }
+    if (is('instagram.com')) return out('instagram', 'Instagram', '📸');
+    if (is('facebook.com') || is('fb.watch') || is('fb.com')) {
+      const vid = h === 'fb.watch' || /\/(reel|reels|watch|videos|video\.php)(\/|$|\?)/.test(u.pathname + u.search);
+      return out('facebook', 'Facebook', '👍', vid ? { type: 'iframe', src: 'https://www.facebook.com/plugins/video.php?href=' + encodeURIComponent(u.href) + '&show_text=false&autoplay=true&width=380' } : {});
+    }
+    if (/\.(mp4|webm|ogg)$/i.test(u.pathname)) return out('file', 'ไฟล์วิดีโอ', '🎞️', { type: 'video' });
+    return out('other', 'ลิงก์ภายนอก', '🔗');
+  }
+
   const activePromos = (promos, now) => { now = now || Date.now(); return promos.filter((x) => x.active && new Date(x.startsAt) <= now && now <= new Date(x.endsAt)); };
   // ราคาแสดงผล = ราคาโปรของสินค้า แล้วหักแคมเปญที่ตรงขอบเขต (เลือกส่วนลดมากสุด 1 แคมเปญ) — ตรงกับ _price() ในฐานข้อมูล; ราคาจริงตอนสั่งซื้อคิดที่เซิร์ฟเวอร์
   function price(p, promos) {
@@ -155,6 +178,13 @@
       if (!o.startsAt || !o.endsAt) er.push('ระบุวันเริ่ม-สิ้นสุด'); else if (new Date(o.endsAt) <= new Date(o.startsAt)) er.push('วันสิ้นสุดต้องหลังวันเริ่ม');
     } else if (entity === 'showcase') {
       if (!o.title || !o.title.trim()) er.push('ใส่หัวข้อ'); if (!o.image) er.push('อัปโหลดภาพหน้าจอ');
+    } else if (entity === 'works') {
+      const c = clip(o.url || '');
+      if (!o.title || o.title.trim().length < 2) er.push('ใส่ชื่อคลิป/ผลงาน');
+      if (!c) er.push('ลิงก์คลิปไม่ถูกต้อง (ต้องเป็น https://)');
+      else if (c.short) er.push('ลิงก์ย่อของ TikTok เล่นในหน้าเว็บไม่ได้ — เปิดลิงก์นั้นแล้วคัดลอก URL เต็ม (tiktok.com/@ชื่อ/video/เลข) มาแปะ');
+      if (o.active && !o.consent) er.push('ต้องติ๊ก "ได้รับอนุญาตจากเจ้าของคลิปแล้ว" ก่อนเปิดแสดงในหน้าแรก');
+      if ((o.creator || '').length > 80 || (o.caption || '').length > 200) er.push('เครดิตไม่เกิน 80 ตัวอักษร · คำอธิบายไม่เกิน 200');
     } else if (entity === 'tutorials') {
       if (!o.title || o.title.trim().length < 2) er.push('ใส่ชื่อบทเรียน');
       if (o.kind === 'file' && !o.url && !o.mediaId) er.push('ยังไม่ได้เลือกไฟล์วิดีโอ');
@@ -181,5 +211,5 @@
     el.classList.add('done'); setTimeout(() => { el.classList.add('hide'); setTimeout(() => el.remove(), 600); }, 250);
   };
   setTimeout(hideSplash, 15000);
-  w.DFCommon = { thaiDateTime, esc, baht, uid, embed, validate, price, activePromos, activeBanners, activeBlocks, BLOCKS, BLOCK_COLS, blockFields, blockHealth, cartId, FB, verCmp, couponCalc, hideSplash };
+  w.DFCommon = { thaiDateTime, esc, baht, uid, embed, clip, validate, price, activePromos, activeBanners, activeBlocks, BLOCKS, BLOCK_COLS, blockFields, blockHealth, cartId, FB, verCmp, couponCalc, hideSplash };
 })(window);

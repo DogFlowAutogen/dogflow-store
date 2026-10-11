@@ -11,7 +11,7 @@
   const sb = w.supabase.createClient(CFG.supabaseUrl, CFG.supabaseAnonKey, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } });
 
   const DEFAULTS = { brand: 'DogFlow Auto Gen', version: 'v1.0', tagline: '', heroTitle: '', heroSub: '', heroCta: 'เลือกแพ็กเกจเลย', promoText: '', installGuide: '', promoEndsAt: '', lineId: '', contactEmail: '', paymentInfo: '', paymentQr: '', heroImage: '', rules: '', affEnabled: true, affHoldDays: 7, affMin: 300, affTerms: '' };
-  const S = { user: null, me: null, isAdmin: false, settings: Object.assign({}, DEFAULTS), categories: [], brands: [], products: [], releases: [], latest: [], promos: [], banners: [], blocks: [], commissions: [], payouts: [], tickets: [], aff: null, showcase: [], tutorials: [], reviews: [], faqs: [], coupons: [], members: [], orders: [], notices: [], audit: [] };
+  const S = { user: null, me: null, isAdmin: false, settings: Object.assign({}, DEFAULTS), categories: [], brands: [], products: [], releases: [], latest: [], promos: [], banners: [], blocks: [], commissions: [], payouts: [], tickets: [], aff: null, showcase: [], works: [], tutorials: [], reviews: [], faqs: [], coupons: [], members: [], orders: [], notices: [], audit: [] };
 
   /* ---------- แปลงแถวฐานข้อมูล ↔ วัตถุในแอป ---------- */
   const IN = {
@@ -22,6 +22,7 @@
     banners: (r) => ({ id: r.id, title: r.title, image: r.image, link: r.link, sort: r.sort, startsAt: r.starts_at || '', endsAt: r.ends_at || '', active: r.active }),
     blocks: (r) => Object.assign({}, r.data || {}, { id: r.id, kind: r.kind, title: r.title, image: r.image || '', sort: r.sort, startsAt: r.starts_at || '', endsAt: r.ends_at || '', active: r.active }),
     showcase: (r) => ({ id: r.id, title: r.title, caption: r.caption, image: r.image, sort: r.sort, active: r.active }),
+    works: (r) => ({ id: r.id, title: r.title, creator: r.creator || '', caption: r.caption || '', url: r.url, thumb: r.thumb || '', consent: !!r.consent, sort: r.sort, active: r.active, createdAt: r.created_at }),
     tutorials: (r) => ({ id: r.id, title: r.title, desc: r.description, kind: r.kind, url: r.url, mediaId: '', sort: r.sort, active: r.active }),
     reviews: (r) => ({ id: r.id, name: r.name, text: r.text, rating: r.rating, active: r.active }),
     faqs: (r) => ({ id: r.id, q: r.q, a: r.a, sort: r.sort }),
@@ -42,14 +43,15 @@
     commissions: (o) => { const q = Math.max(1, Number(o.qty) || 1), amt = Number(o.amount) || 0; return { id: o.id, order_id: o.orderId || null, referrer_id: o.referrerId, buyer_id: o.buyerId || null, product_id: o.productId || null, product_name: (o.product || '').trim(), qty: q, unit_amount: Math.round(amt / q), amount: amt, status: o.status, available_at: o.availableAt || new Date().toISOString(), manual: o.manual !== false && !o.orderId, note: (o.note || '').trim().slice(0, 300) }; },
     tickets: (o) => ({ id: o.id, member_id: o.memberId || null, source: o.source || 'admin', category: o.category, severity: o.severity, priority: o.priority, module: (o.module || '').trim(), title: o.title.trim(), body: o.body.trim(), app_version: (o.appVersion || '').trim(), os: (o.os || '').trim(), status: o.status }),
     showcase: (o) => ({ id: o.id, title: o.title.trim(), caption: o.caption || '', image: o.image, sort: Number(o.sort) || 0, active: !!o.active }),
+    works: (o) => ({ id: o.id, title: o.title.trim(), creator: (o.creator || '').trim(), caption: (o.caption || '').trim(), url: (o.url || '').trim(), thumb: o.thumb || '', consent: !!o.consent, sort: Number(o.sort) || 0, active: !!o.active }),
     tutorials: (o) => ({ id: o.id, title: o.title.trim(), description: o.desc || '', kind: o.kind === 'file' ? 'file' : 'link', url: (o.url || '').trim(), sort: Number(o.sort) || 0, active: !!o.active }),
     reviews: (o) => ({ id: o.id, name: o.name.trim(), text: o.text.trim(), rating: Number(o.rating), active: o.active !== false }),
     faqs: (o) => ({ id: o.id, q: o.q.trim(), a: o.a.trim(), sort: Number(o.sort) || 0 }),
     releases: (o) => ({ id: o.id, version: o.version.trim(), platform: o.platform, title: o.title || '', notes: o.notes || '', file_path: o.filePath || null, external_url: o.externalUrl || null, file_name: o.fileName || '', size_bytes: Number(o.sizeBytes) || 0, sha256: o.sha256 || null, mandatory: !!o.mandatory, active: !!o.active }),
     coupons: (o) => ({ code: o.code, type: o.type, value: Number(o.value), min_total: Number(o.minTotal) || 0, active: !!o.active })
   };
-  const TABLE = { members: 'profiles', blocks: 'home_blocks' }, KEY = { coupons: 'code' }, IMG = { products: ['image'], banners: ['image'], blocks: ['image'], showcase: ['image'], brands: ['logo'] };
-  const ORDER = { categories: 'sort', faqs: 'sort', banners: 'sort', blocks: 'sort', showcase: 'sort', tutorials: 'sort' };
+  const TABLE = { members: 'profiles', blocks: 'home_blocks' }, KEY = { coupons: 'code' }, IMG = { products: ['image'], banners: ['image'], blocks: ['image'], showcase: ['image'], works: ['thumb'], brands: ['logo'] };
+  const ORDER = { categories: 'sort', faqs: 'sort', banners: 'sort', blocks: 'sort', showcase: 'sort', works: 'sort', tutorials: 'sort' };
   const tbl = (e) => TABLE[e] || e, key = (e) => KEY[e] || 'id';
 
   const mapPay = (p) => p && ({ id: p.id, ref: p.ref, amount: Number(p.amount), paidAt: p.paid_at, slipPath: p.slip_path, flags: p.flags || [], reviewNote: p.review_note, submittedAt: p.submitted_at, verifiedAt: p.verified_at });
@@ -81,7 +83,7 @@
   /* ---------- โหลดข้อมูล ---------- */
   async function loadPublic() {
     const rd = (t) => { let q = sb.from(TABLE[t] || t).select('*'); if (ORDER[t]) q = q.order(ORDER[t]); return q; };
-    const names = ['categories', 'brands', 'products', 'promos', 'banners', 'blocks', 'showcase', 'tutorials', 'reviews', 'faqs'];
+    const names = ['categories', 'brands', 'products', 'promos', 'banners', 'blocks', 'showcase', 'works', 'tutorials', 'reviews', 'faqs'];
     const [st, ...rs] = await Promise.all([sb.from('app_settings').select('data').eq('id', 1).maybeSingle(), ...names.map(rd)]);
     if (st.error) throw st.error;
     S.settings = Object.assign({}, DEFAULTS, (st.data && st.data.data) || {});
@@ -374,7 +376,7 @@
       }
       if (!r.length) add('ok', 'ข้อมูลทุกส่วนผ่านการตรวจสอบ ✔'); return r;
     },
-    exportJSON() { const o = { exportedAt: new Date().toISOString() }; ['settings'].forEach((k) => (o[k] = S[k])); ['categories', 'brands', 'products', 'promos', 'banners', 'blocks', 'showcase', 'tutorials', 'reviews', 'faqs', 'coupons', 'members', 'orders', 'commissions', 'payouts', 'tickets'].forEach((k) => (o[k] = S[k])); return JSON.stringify(o, null, 2); },
+    exportJSON() { const o = { exportedAt: new Date().toISOString() }; ['settings'].forEach((k) => (o[k] = S[k])); ['categories', 'brands', 'products', 'promos', 'banners', 'blocks', 'showcase', 'works', 'tutorials', 'reviews', 'faqs', 'coupons', 'members', 'orders', 'commissions', 'payouts', 'tickets'].forEach((k) => (o[k] = S[k])); return JSON.stringify(o, null, 2); },
     importJSON() { return { ok: false, errors: ['โหมด Supabase ไม่รองรับนำเข้าไฟล์ — ใช้ Supabase Dashboard (SQL/Table editor) เพื่อกู้ข้อมูล'] }; },
     reset() { return { ok: false, errors: ['โหมด Supabase ไม่รองรับรีเซ็ตจากหน้าเว็บ'] }; }
   };
