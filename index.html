@@ -143,8 +143,8 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
 <div class="modal" id="mOrders"><div class="mbox" style="width:min(640px,100%)">
   <h3>📦 ออเดอร์ของฉัน</h3><div id="myOrders"></div><button class="btn ghost sm" style="margin-top:12px" data-close>ปิด</button>
 </div></div>
-<div class="modal" id="mWork"><div class="mbox wbox" style="width:min(460px,100%);text-align:center"><h3 id="wT"></h3><div id="wBox" style="margin:8px auto;display:flex;flex-direction:column;align-items:center;gap:10px"></div><p id="wC" style="color:var(--mut);margin:0 0 4px"></p><p id="wCr" style="color:var(--mut);font-size:13px;margin:0 0 12px"></p><button class="btn ghost sm" data-close>ปิด</button></div></div>
-<div class="modal" id="mVideo"><div class="mbox wbox" style="width:min(860px,100%)"><h3 id="vT"></h3><div id="vBox" style="margin:8px auto;display:flex;flex-direction:column;align-items:center;gap:8px"></div><p id="vD" style="color:var(--mut)"></p><button class="btn ghost sm" data-close>ปิด</button></div></div>
+<div class="modal" id="mWork"><div class="mbox wbox" style="width:min(460px,100%);text-align:center"><h3 id="wT"></h3><div id="wBox" style="margin:8px auto;display:flex;flex-direction:column;align-items:center;gap:10px"></div><p id="wC" style="color:var(--mut);margin:0 0 4px"></p><p id="wCr" style="color:var(--mut);font-size:13px;margin:0 0 6px"></p><div class="shr" id="wShr"></div><button class="btn ghost sm" data-close>ปิด</button></div></div>
+<div class="modal" id="mVideo"><div class="mbox wbox" style="width:min(860px,100%)"><h3 id="vT"></h3><div id="vBox" style="margin:8px auto;display:flex;flex-direction:column;align-items:center;gap:8px"></div><p id="vD" style="color:var(--mut)"></p><div class="shr" id="vShr"></div><button class="btn ghost sm" data-close>ปิด</button></div></div>
 <div class="modal" id="mRules"><div class="mbox"><h3>📜 เงื่อนไขและกฎการใช้งาน</h3><div id="rulesTxt" style="white-space:pre-line;color:var(--mut);font-size:14px;margin:12px 0"></div><button class="btn sm" data-close>รับทราบ</button></div></div>
 <div class="modal" id="mShot"><div class="mbox" style="width:min(1100px,100%);padding:14px"><img id="shotBig" alt="" style="width:100%;border-radius:12px"><p id="shotCap" style="color:var(--mut);margin:10px 4px"></p><button class="btn ghost sm" data-close>ปิด</button></div></div>
 <div class="toast" id="toast"></div>
@@ -253,16 +253,17 @@ function mkVideo(src) {
   v.onloadedmetadata = () => { if (v.videoWidth && v.videoHeight) { v.style.cssText = vidSize(v.videoHeight >= v.videoWidth, v.videoWidth + '/' + v.videoHeight) + vs; fitModal('#mVideo'); } };
   return v;
 }
-$('#tuts').onclick = async (e) => {
-  const c = e.target.closest('[data-tut]'); if (!c) return; const t = DB.find('tutorials', c.dataset.tut), box = $('#vBox'); $('#vT').textContent = t.title; $('#vD').textContent = t.desc || ''; box.innerHTML = '';
+async function playTut(id) {
+  const t = DB.find('tutorials', id); if (!t) return; const box = $('#vBox'); $('#vT').textContent = t.title; $('#vD').textContent = t.desc || ''; box.innerHTML = '';
   if (t.kind === 'file') { const u = await DB.playUrl(t); if (!u) box.innerHTML = '<p class="errs" style="display:block">ไม่พบไฟล์วิดีโอในเครื่องนี้ (ไฟล์เก็บเฉพาะเบราว์เซอร์ของแอดมิน)</p>'; else box.appendChild(mkVideo(u)); }
   else { const em = DB.embed(t.url); if (!em) return;
     if (em.type === 'iframe') { const f = document.createElement('iframe'); f.src = em.src; f.allow = 'autoplay; fullscreen; picture-in-picture'; f.allowFullscreen = true; f.referrerPolicy = 'strict-origin-when-cross-origin'; /* YouTube ต้องได้ Referrer (ไม่งั้น Error 153) — ส่งเฉพาะที่อยู่เว็บ ไม่ส่งพาธ */ f.style.cssText = vidSize(false, '16/9') + 'border:0;border-radius:12px'; box.appendChild(f);
       const o = document.createElement('a'); o.className = 'btn ghost sm'; o.href = em.src.replace('youtube-nocookie.com/embed/', 'youtube.com/watch?v=').replace('player.vimeo.com/video/', 'vimeo.com/'); o.target = '_blank'; o.rel = 'noopener noreferrer'; o.textContent = '↗ เปิดวิดีโอในแท็บใหม่ (ถ้าเล่นในหน้านี้ไม่ได้)'; box.appendChild(o); }
     else if (em.type === 'video') box.appendChild(mkVideo(em.src));
     else { const a = document.createElement('a'); a.className = 'btn gold'; a.href = em.src; a.target = '_blank'; a.rel = 'noopener noreferrer'; a.textContent = '▶ เปิดวิดีโอในแท็บใหม่'; box.appendChild(a); } }
-  openM('#mVideo'); fitModal('#mVideo');
-};
+  shareBar($('#vShr'), 't', t.id, t.title); openM('#mVideo'); fitModal('#mVideo');
+}
+$('#tuts').onclick = (e) => { const c = e.target.closest('[data-tut]'); if (c) playTut(c.dataset.tut); };
 // ปิดวิดีโอเมื่อปิดหน้าต่าง (หยุดเสียง)
 document.addEventListener('click', (e) => { if (e.target.closest('[data-close]') || e.target.classList.contains('modal')) $('#vBox').innerHTML = ''; });
 /* ===== ผลงานลูกค้า (คลิปแนวตั้ง) — การ์ด + กดเล่น (ตัวเล่นของแพลตฟอร์มโหลดตอนกดเท่านั้น กันการติดตามก่อนผู้ชมเลือกเล่น) ===== */
@@ -286,14 +287,14 @@ function playWork(id) {
     f.style.cssText = size(vert, c.ratio) + 'border:0;border-radius:12px;background:#000'; box.appendChild(f); }
   else if (c.type === 'video') { const v = document.createElement('video'); v.src = c.src; v.controls = true; v.playsInline = true; v.autoplay = true; const vs = 'border-radius:12px;background:#000;object-fit:contain'; v.style.cssText = size(true, '9/16') + vs; v.onloadedmetadata = () => { if (v.videoWidth && v.videoHeight) v.style.cssText = size(v.videoHeight >= v.videoWidth, v.videoWidth + '/' + v.videoHeight) + vs; }; box.appendChild(v); }   // ไฟล์ที่อัปโหลดไม่รู้สัดส่วนล่วงหน้า → ปรับตามขนาดจริงเมื่อโหลดข้อมูลวิดีโอ
   const o = document.createElement('a'); o.className = 'btn ' + (c.type === 'link' ? 'gold' : 'ghost sm'); o.href = c.open; o.target = '_blank'; o.rel = 'noopener noreferrer'; o.textContent = c.type === 'link' ? '▶ เปิดคลิปบน ' + c.label : '↗ เปิดบน ' + c.label + ' (ถ้าเล่นในหน้านี้ไม่ได้)'; box.appendChild(o);
-  openM('#mWork'); fitWork();
+  shareBar($('#wShr'), 'w', w.id, w.title || (w.creator ? 'โดย ' + w.creator : 'ผลงานลูกค้า')); openM('#mWork'); fitWork();
 }
 // ย่อตัวเล่นลงเท่าที่จำเป็นให้เห็นครบทุกส่วน (ชื่อ/ตัวเล่น/ปุ่ม/เครดิต/ปุ่มปิด) โดยไม่ต้องเลื่อน — วัดจากความสูงจริงของกรอบหลังแสดงแล้ว
 function fitWork() { fitModal('#mWork'); }
 function fitModal(sel) {
   const m = $(sel), bx = m && m.querySelector('.wbox'); if (!bx || !m.classList.contains('on')) return;
   const base = Math.max(200, Math.min(640, innerHeight - 230)); bx.style.setProperty('--wh', base + 'px');
-  const over = bx.scrollHeight - bx.clientHeight; if (over > 0) bx.style.setProperty('--wh', Math.max(140, base - over - 2) + 'px');
+  const over = bx.scrollHeight - bx.clientHeight; if (over > 0) bx.style.setProperty('--wh', Math.max(80, base - over - 2) + 'px');
 }
 window.addEventListener('resize', () => { fitModal('#mWork'); fitModal('#mVideo'); });
 $('#workTabs').onclick = (e) => { const b = e.target.closest('[data-wf]'); if (!b) return; workFilter = b.dataset.wf; renderWorks(); };
@@ -301,6 +302,32 @@ $('#workList').onclick = (e) => { const c = e.target.closest('[data-work]'); if 
 $('#workList').onkeydown = (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target.closest('[data-work]')) { e.preventDefault(); playWork(e.target.closest('[data-work]').dataset.work); } };
 document.addEventListener('click', (e) => { if (e.target.closest('[data-close]') || e.target.classList.contains('modal')) $('#wBox').innerHTML = ''; });   // ปิดหน้าต่าง = หยุดเสียง/ถอดตัวเล่นทันที
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') $('#wBox').innerHTML = ''; });
+/* ===== แชร์คลิป/บทเรียน: เมนูแชร์ของเครื่อง (มือถือ/แท็บเล็ต/Safari/Edge = ทุกแอปที่ติดตั้ง) + ปุ่ม LINE · Facebook · X · Telegram · WhatsApp · อีเมล · คัดลอกลิงก์ =====
+   ลิงก์ที่แชร์ = หน้าร้านนี้ + #w=รหัส (ผลงานลูกค้า) หรือ #t=รหัส (บทเรียน) → ผู้รับเปิดแล้วหน้าต่างเล่นเด้งขึ้นเอง · เปิดได้เฉพาะรายการที่แสดงอยู่จริง (ซ่อน/ยังไม่ได้รับอนุญาต = ไม่เปิด)
+   หมายเหตุ: ตัวอย่างลิงก์ในแอปแชท (ภาพ/ชื่อ) ขึ้นเป็นของหน้าร้านโดยรวม เพราะแอปเหล่านั้นไม่รันสคริปต์ของหน้าเว็บ */
+function shareBar(el, kind, id, title) {
+  if (!el) return;
+  const url = location.href.split('#')[0] + '#' + kind + '=' + encodeURIComponent(id), text = title + ' · DogFlow Auto Gen', u = encodeURIComponent(url), tx = encodeURIComponent(text);
+  const L = [['LINE', '#06C755', 'https://social-plugins.line.me/lineit/share?url=' + u], ['Facebook', '#1877F2', 'https://www.facebook.com/sharer/sharer.php?u=' + u], ['X', '#111', 'https://twitter.com/intent/tweet?text=' + tx + '&url=' + u],
+    ['Telegram', '#229ED9', 'https://t.me/share/url?url=' + u + '&text=' + tx], ['WhatsApp', '#25D366', 'https://wa.me/?text=' + encodeURIComponent(text + ' ' + url)], ['อีเมล', '#8a7d6b', 'mailto:?subject=' + tx + '&body=' + encodeURIComponent(text + '\n' + url)]];
+  el.innerHTML = (navigator.share ? '<button type="button" data-native class="main">📤 แชร์…</button>' : '') + L.map(([n, c, h]) => '<a href="' + E(h) + '"' + (h.startsWith('mailto:') ? '' : ' target="_blank" rel="noopener noreferrer"') + '><i style="background:' + c + '"></i>' + n + '</a>').join('') + '<button type="button" data-copy>🔗 คัดลอกลิงก์</button>';
+  el._share = { url, text, title };
+}
+document.addEventListener('click', async (e) => {
+  const b = e.target.closest('.shr [data-native], .shr [data-copy]'); if (!b) return; const s = b.closest('.shr')._share; if (!s) return;
+  if (b.hasAttribute('data-native')) { try { await navigator.share({ title: s.title, text: s.text, url: s.url }); } catch (x) { /* ผู้ใช้ปิดเมนูแชร์ */ } return; }
+  let ok = false; try { await navigator.clipboard.writeText(s.url); ok = true; } catch (x) { try { const t = document.createElement('textarea'); t.value = s.url; t.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(t); t.select(); ok = document.execCommand('copy'); t.remove(); } catch (y) { /* คัดลอกไม่ได้ */ } }
+  toast(ok ? 'คัดลอกลิงก์แล้ว' : 'คัดลอกไม่ได้ — กดค้างที่แถบที่อยู่เพื่อคัดลอก');
+});
+function openDeep() {
+  const m = /^#(w|t)=([\w-]+)$/.exec(location.hash); if (!m) return;
+  if (m[1] === 'w') { const w = DB.find('works', m[2]); if (w && w.active && w.consent) playWork(m[2]); }
+  else { const t = DB.find('tutorials', m[2]); if (t && t.active) playTut(m[2]); }
+}
+const clearDeep = () => { if (/^#(w|t)=/.test(location.hash)) history.replaceState(null, '', location.pathname + location.search); };   // ปิดหน้าต่าง = เอาส่วน #… ออกจากแถบที่อยู่ (รีเฟรชแล้วไม่เด้งซ้ำ)
+document.addEventListener('click', (e) => { if (e.target.closest('[data-close]') || e.target.classList.contains('modal')) clearDeep(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') clearDeep(); });
+window.addEventListener('hashchange', openDeep);
 function renderShots() {
   const L = DB.list('showcase').filter((s) => s.active).sort((a, b) => (a.sort || 0) - (b.sort || 0)); $('#preview').hidden = !L.length;
   $('#shots').innerHTML = L.map((s) => `<figure data-shot="${E(s.id)}"><img src="${E(s.image)}" alt="${E(s.title)}" loading="lazy"><figcaption><b>${E(s.title)}</b><span>${E(s.caption || '')}</span></figcaption></figure>`).join('');
@@ -424,6 +451,7 @@ $('#myOrders').onclick = (e) => { const b = e.target.closest('[data-pay]'); if (
 const fatal = (e) => { document.body.insertAdjacentHTML('afterbegin', '<div style="background:#7f1d1d;color:#fff;padding:14px;text-align:center;font-weight:600">เชื่อมต่อฐานข้อมูลไม่สำเร็จ — ' + String((e && e.message) || e).replace(/[<>&]/g, '') + ' · กรุณารีเฟรชหรือลองใหม่ภายหลัง</div>'); console.error(e); };
 function boot() {
 renderStatic(); renderBlocks(); renderAds(); renderBrands(); renderShots(); renderWorks(); renderTuts(); renderShop(); renderCart(); tick();
+openDeep();
 if (/^#pay=DF\d+$/.test(location.hash) && DB.me()) { const o = DB.find('orders', location.hash.slice(5)); if (o && o.memberId === DB.me().id && ['pending', 'rejected'].includes(o.status)) openPay(o.id); } // มาจากหน้าโปรไฟล์
 setInterval(() => { tick(); tickBlocks(); }, 1000);
 window.addEventListener('db:change', () => { renderStatic(); renderBlocks(); renderAds(); renderBrands(); renderShots(); renderWorks(); renderTuts(); renderShop(); renderCart(); });
