@@ -34,6 +34,7 @@ code{font-family:var(--mono);font-size:.92em}
 .btn.ghost{background:var(--surface);border-color:var(--line);color:var(--fg)}
 .btn.ghost:hover:not(:disabled){filter:none;border-color:var(--accent)}
 .btn.line{background:var(--line-g);border-color:var(--line-g);color:#fff}
+.hero .cta .btn{min-height:46px;padding:10px 24px;font-size:14.5px}   /* ปุ่มหลัก + ปุ่ม LINE ในหัวหน้าแรก สูงเท่ากัน ข้อความไม่ชิดขอบ */
 .btn.danger{background:var(--bad-soft);border-color:transparent;color:var(--bad)}
 .btn.danger:hover:not(:disabled){filter:none;border-color:var(--bad)}
 .btn.sm{min-height:32px;padding:4px 12px;font-size:12.5px}
@@ -135,7 +136,7 @@ footer{border-top:1px solid var(--line);margin-top:40px;padding:28px 0;color:var
 .drawer header{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;font-weight:700}
 .drawer .body{flex:1;overflow:auto;padding:16px}
 .drawer footer{margin:0;padding:16px;border-top:1px solid var(--line);text-align:left;color:var(--fg)}
-.line{display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}.line .i{font-size:30px}.line .t{flex:1;font-size:14px}
+.line:not(.btn){display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}   /* แถวสินค้าในตะกร้า — ไม่ให้ชนกับปุ่ม .btn.line (LINE) */.line .i{font-size:30px}.line .t{flex:1;font-size:14px}
 .qty{display:flex;align-items:center;gap:8px;font-variant-numeric:tabular-nums}
 .qty button{width:28px;height:28px;border-radius:8px;border:1px solid var(--line);background:var(--surface);cursor:pointer}.qty button:hover{border-color:var(--accent)}
 .row{display:flex;justify-content:space-between;gap:10px;margin:4px 0}.row.tot{font-size:19px;font-weight:700;color:var(--accent)}
