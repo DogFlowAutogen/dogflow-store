@@ -11,7 +11,7 @@
   const sb = w.supabase.createClient(CFG.supabaseUrl, CFG.supabaseAnonKey, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } });
 
   const DEFAULTS = { brand: 'DogFlow Auto Gen', version: 'v1.0', tagline: '', heroTitle: '', heroSub: '', heroCta: 'เลือกแพ็กเกจเลย', promoText: '', installGuide: '', promoEndsAt: '', lineId: '', contactEmail: '', paymentInfo: '', paymentQr: '', heroImage: '', rules: '', affEnabled: true, affHoldDays: 7, affMin: 300, affTerms: '' };
-  const S = { user: null, me: null, isAdmin: false, settings: Object.assign({}, DEFAULTS), categories: [], brands: [], products: [], releases: [], latest: [], promos: [], banners: [], blocks: [], commissions: [], payouts: [], aff: null, showcase: [], tutorials: [], reviews: [], faqs: [], coupons: [], members: [], orders: [], notices: [], audit: [] };
+  const S = { user: null, me: null, isAdmin: false, settings: Object.assign({}, DEFAULTS), categories: [], brands: [], products: [], releases: [], latest: [], promos: [], banners: [], blocks: [], commissions: [], payouts: [], tickets: [], aff: null, showcase: [], tutorials: [], reviews: [], faqs: [], coupons: [], members: [], orders: [], notices: [], audit: [] };
 
   /* ---------- แปลงแถวฐานข้อมูล ↔ วัตถุในแอป ---------- */
   const IN = {
@@ -27,6 +27,7 @@
     faqs: (r) => ({ id: r.id, q: r.q, a: r.a, sort: r.sort }),
     coupons: (r) => ({ code: r.code, type: r.type, value: r.value, minTotal: r.min_total, active: r.active }),
     releases: (r) => ({ id: r.id, version: r.version, platform: r.platform, title: r.title, notes: r.notes, filePath: r.file_path || '', externalUrl: r.external_url || '', fileName: r.file_name, sizeBytes: Number(r.size_bytes) || 0, sha256: r.sha256 || '', mandatory: !!r.mandatory, announcedAt: r.announced_at || '', active: r.active, createdAt: r.created_at }),
+    tickets: (r) => ({ id: r.id, code: r.code, memberId: r.member_id || '', keyMask: r.key_mask || '', verified: !!r.verified, deviceId: r.device_id || '', deviceName: r.device_name || '', source: r.source, category: r.category, severity: r.severity, priority: r.priority, module: r.module || '', title: r.title, body: r.body, appVersion: r.app_version || '', os: r.os || '', diagnostics: r.diagnostics || {}, attachments: r.attachments || [], status: r.status, dupOf: r.dup_of || '', firstResponseAt: r.first_response_at || '', resolvedAt: r.resolved_at || '', userUnread: !!r.user_unread, adminUnread: !!r.admin_unread, rating: r.rating || 0, ratingComment: r.rating_comment || '', createdAt: r.created_at, updatedAt: r.updated_at, lastActivityAt: r.last_activity_at }),
     commissions: (r) => ({ id: r.id, orderId: r.order_id || '', referrerId: r.referrer_id, buyerId: r.buyer_id || '', productId: r.product_id || '', product: r.product_name, qty: r.qty, unit: r.unit_amount, amount: r.amount, status: r.status, availableAt: r.available_at, payoutId: r.payout_id || '', manual: !!r.manual, note: r.note || '', createdAt: r.created_at, paidAt: r.paid_at || '' }),
     payouts: (r) => ({ id: r.id, memberId: r.member_id, amount: r.amount, status: r.status, info: r.info || {}, requestedAt: r.requested_at, processedAt: r.processed_at || '', transferRef: r.transfer_ref || '', adminNote: r.admin_note || '' }),
     members: (r) => ({ id: r.id, name: r.name, email: r.email, phone: r.phone, banned: r.banned, emailUpdates: r.email_updates, banReason: r.ban_reason, strikes: r.strikes, createdAt: r.created_at, refCode: r.ref_code || '', referredBy: r.referred_by || '', referredAt: r.referred_at || '', affBlocked: !!r.aff_blocked, affReason: r.aff_block_reason || '', avatarPath: r.avatar_path || '' })
@@ -39,6 +40,7 @@
     banners: (o) => ({ id: o.id, title: o.title.trim(), image: o.image, link: o.link || '#shop', sort: Number(o.sort) || 0, starts_at: o.startsAt || null, ends_at: o.endsAt || null, active: !!o.active }),
     blocks: (o) => { const data = {}; ((C.BLOCKS[o.kind] || { fields: [] }).fields).forEach((f) => { if (f.k !== 'image') data[f.k] = o[f.k] === undefined ? (f.list ? [] : f.type === 'check' ? false : '') : o[f.k]; }); return { id: o.id, kind: o.kind, title: o.title.trim(), image: o.image || '', data, sort: Number(o.sort) || 0, starts_at: o.startsAt || null, ends_at: o.endsAt || null, active: !!o.active }; },
     commissions: (o) => { const q = Math.max(1, Number(o.qty) || 1), amt = Number(o.amount) || 0; return { id: o.id, order_id: o.orderId || null, referrer_id: o.referrerId, buyer_id: o.buyerId || null, product_id: o.productId || null, product_name: (o.product || '').trim(), qty: q, unit_amount: Math.round(amt / q), amount: amt, status: o.status, available_at: o.availableAt || new Date().toISOString(), manual: o.manual !== false && !o.orderId, note: (o.note || '').trim().slice(0, 300) }; },
+    tickets: (o) => ({ id: o.id, member_id: o.memberId || null, source: o.source || 'admin', category: o.category, severity: o.severity, priority: o.priority, module: (o.module || '').trim(), title: o.title.trim(), body: o.body.trim(), app_version: (o.appVersion || '').trim(), os: (o.os || '').trim(), status: o.status }),
     showcase: (o) => ({ id: o.id, title: o.title.trim(), caption: o.caption || '', image: o.image, sort: Number(o.sort) || 0, active: !!o.active }),
     tutorials: (o) => ({ id: o.id, title: o.title.trim(), description: o.desc || '', kind: o.kind === 'file' ? 'file' : 'link', url: (o.url || '').trim(), sort: Number(o.sort) || 0, active: !!o.active }),
     reviews: (o) => ({ id: o.id, name: o.name.trim(), text: o.text.trim(), rating: Number(o.rating), active: o.active !== false }),
@@ -94,6 +96,8 @@
     if (S.isAdmin) jobs.push(sb.from('profiles').select('*').order('created_at', { ascending: false }).limit(1000), sb.from('coupons').select('*'), sb.from('audit').select('*').order('ts', { ascending: false }).limit(300), sb.from('commissions').select('*').order('created_at', { ascending: false }).limit(2000), sb.from('payouts').select('*').order('requested_at', { ascending: false }).limit(500));
     const [o, p, k, n, m, cp, au, cm, po] = await Promise.all(jobs);
     for (const r of [o, p, k, n, m, cp, au, cm, po]) if (r && r.error) throw r.error;
+    const tkq = await sb.from('feedback_tickets').select('*').order('created_at', { ascending: false }).limit(S.isAdmin ? 1000 : 100);   // แอดมินเห็นทั้งหมด · สมาชิกเห็นเฉพาะของตัวเอง (RLS)
+    S.tickets = tkq.error ? [] : tkq.data.map(IN.tickets);
     const pays = groupBy(p.data, 'order_id'), keys = groupBy(k.data, 'order_id');
     S.orders = o.data.map((r) => mapOrder(r, pays, keys));
     S.notices = n.data.map((r) => ({ id: r.id, memberId: r.member_id, type: r.type, title: r.title, body: r.body, read: r.read, createdAt: r.created_at }));
@@ -106,14 +110,15 @@
     if (live || !S.user) return;
     const refresh = () => { clearTimeout(timer); timer = setTimeout(() => Promise.all([loadDynamic(), loadAff()]).then(emit).catch(() => {}), 400); };
     live = sb.channel('df-live');
-    ['orders', 'payments', 'license_keys', 'notices', 'commissions', 'payouts'].forEach((t) => live.on('postgres_changes', { event: '*', schema: 'public', table: t }, refresh));
+    ['orders', 'payments', 'license_keys', 'notices', 'commissions', 'payouts', 'feedback_tickets'].forEach((t) => live.on('postgres_changes', { event: '*', schema: 'public', table: t }, refresh));
+    live.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'feedback_messages' }, () => { refresh(); w.dispatchEvent(new CustomEvent('fb:msg')); });   // ข้อความใหม่ในตั๋ว → ให้หน้าต่างสนทนาที่เปิดอยู่โหลดใหม่
     live.subscribe();
   }
   function unsubscribe() { if (live) { sb.removeChannel(live); live = null; } }
   async function loadReleases() { const r = await sb.from('releases').select('*').order('created_at', { ascending: false }); if (r.error) throw r.error; S.releases = r.data.map(IN.releases); }   // RLS: คืนเฉพาะผู้มีคีย์ที่ใช้งานได้ / แอดมิน
   async function loadMine() {
     const { data: s } = await sb.auth.getSession(); S.user = (s.session && s.session.user) || null;
-    S.me = null; S.isAdmin = false; S.orders = []; S.notices = []; S.members = []; S.coupons = []; S.audit = []; S.commissions = []; S.payouts = []; S.aff = null;
+    S.me = null; S.isAdmin = false; S.orders = []; S.notices = []; S.members = []; S.coupons = []; S.audit = []; S.commissions = []; S.payouts = []; S.tickets = []; S.aff = null;
     S.releases = [];
     if (!S.user) { unsubscribe(); return; }
     const { data: p } = await sb.from('profiles').select('*').eq('id', S.user.id).maybeSingle();
@@ -324,6 +329,17 @@
       if (cur && cur.avatarPath) await sb.storage.from('avatars').remove([cur.avatarPath]).catch(() => {});
       await loadDynamic(); emit(); return { ok: true };
     },
+    // ----- แจ้งปัญหา / เสนอแนะ (Feedback) -----
+    fbMsgs: async (id) => { const { data, error } = await sb.from('feedback_messages').select('*').eq('ticket_id', id).order('created_at'); if (error) return []; return data.map((m) => ({ id: m.id, author: m.author, body: m.body, internal: !!m.internal, at: m.created_at })); },
+    async fbCreate(f) { const { data, error } = await sb.rpc('fb_create_web', { p_category: f.category, p_severity: f.severity, p_title: f.title, p_body: f.body, p_module: f.module || '' }); if (error) return fail(error); await loadDynamic(); emit(); return { ok: true, code: data.code, id: data.id }; },
+    async fbReply(id, body) { const { error } = await sb.rpc('fb_member_reply', { p_ticket: id, p_body: body }); if (error) return fail(error); await loadDynamic(); emit(); return { ok: true }; },
+    async fbRate(id, rating, comment) { const { error } = await sb.rpc('fb_member_rate', { p_ticket: id, p_rating: rating, p_comment: comment || '' }); if (error) return fail(error); await loadDynamic(); emit(); return { ok: true }; },
+    async fbSeen(id) { const t = S.tickets.find((x) => x.id === id); if (!t || !t.userUnread) return; await sb.rpc('fb_mark_seen', { p_ticket: id }); t.userUnread = false; emit(); },
+    async fbAdminReply(id, body, status, internal) { const { error } = await sb.rpc('fb_admin_reply', { p_ticket: id, p_body: body, p_status: status || null, p_internal: !!internal }); if (error) return fail(error); await loadDynamic(); emit(); return { ok: true }; },
+    async fbAdminSet(id, p) { const { error } = await sb.rpc('fb_admin_set', { p_ticket: id, p_status: p.status || null, p_priority: p.priority || null, p_category: p.category || null, p_dup_of: p.dupOf || null, p_clear_dup: !!p.clearDup }); if (error) return fail(error); await loadDynamic(); emit(); return { ok: true }; },
+    async fbAttachUrls(t) { const out = []; for (const a of t.attachments || []) { const r = await sb.storage.from('feedback').createSignedUrl(a.path, 600); if (!r.error) out.push({ name: a.name, size: a.size, url: r.data.signedUrl }); } return out; },
+    async fbDelete(id) { const t = S.tickets.find((x) => x.id === id); if (t) { const ps = (t.attachments || []).map((a) => a.path).filter(Boolean); if (ps.length) { try { await sb.storage.from('feedback').remove(ps); } catch (e) { /* ลบไฟล์ไม่ได้ก็ลบรายการต่อ */ } } }
+      const { error } = await sb.from('feedback_tickets').delete().eq('id', id); if (error) return fail(error); await loadDynamic(); emit(); return { ok: true }; },
     // ----- ตัวแทนขายโปรแกรม (Affiliate) -----
     aff: () => S.aff, async affRefresh() { await loadAff(); emit(); return S.aff; },
     async affSavePayout(f) { const { error } = await sb.rpc('aff_save_payout_info', { p_method: f.method, p_bank: f.bank || '', p_account: f.account || '', p_name: f.name || '' }); if (error) return fail(error); await loadMine(); emit(); return { ok: true }; },
@@ -347,6 +363,10 @@
       if (!S.settings.lineId) add('warn', 'ยังไม่ได้ตั้ง LINE ID สำหรับให้ลูกค้าติดต่อ (ตั้งค่าหน้าแรก)'); if (!S.settings.paymentQr) add('err', 'ยังไม่ได้อัปโหลด QR รับเงิน (ตั้งค่าหน้าแรก)');
       if (S.settings.promoEndsAt && S.settings.promoText && new Date(S.settings.promoEndsAt) < new Date()) add('warn', 'เวลาโปรโมชันหมดแล้ว — ตั้งวันใหม่ในแท็บตั้งค่า');
       C.blockHealth(S).forEach((x) => r.push(x));
+      if (S.isAdmin) {
+        const old = S.tickets.filter((t) => t.status === 'new' && Date.now() - new Date(t.createdAt) > 864e5); if (old.length) add('warn', 'มีเรื่องแจ้งปัญหา/เสนอแนะที่ยังไม่ตอบเกิน 24 ชม. ' + old.length + ' เรื่อง (แท็บ แจ้งปัญหา/เสนอแนะ)');
+        const hot = S.tickets.filter((t) => ['new', 'open'].includes(t.status) && (t.priority === 'urgent' || t.severity === 'high')); if (hot.length) add('warn', 'มีเรื่องความสำคัญสูง/กระทบมากที่ยังเปิดอยู่ ' + hot.length + ' เรื่อง');
+      }
       if (S.settings.affEnabled !== false) {
         const wp = S.payouts.filter((x) => x.status === 'requested'); if (wp.length) add('warn', 'มีคำขอถอนค่าคอมรอโอน ' + wp.length + ' รายการ รวม ฿' + wp.reduce((a, x) => a + x.amount, 0).toLocaleString('th-TH'));
         if (S.products.some((p) => p.active) && !S.products.some((p) => p.active && p.commission > 0)) add('warn', 'เปิดระบบตัวแทนขายแล้ว แต่ยังไม่ได้ตั้งค่าคอมให้แพ็กเกจใด (แท็บ ตัวแทนขาย → อัตราค่าคอม)');
@@ -354,7 +374,7 @@
       }
       if (!r.length) add('ok', 'ข้อมูลทุกส่วนผ่านการตรวจสอบ ✔'); return r;
     },
-    exportJSON() { const o = { exportedAt: new Date().toISOString() }; ['settings'].forEach((k) => (o[k] = S[k])); ['categories', 'brands', 'products', 'promos', 'banners', 'blocks', 'showcase', 'tutorials', 'reviews', 'faqs', 'coupons', 'members', 'orders', 'commissions', 'payouts'].forEach((k) => (o[k] = S[k])); return JSON.stringify(o, null, 2); },
+    exportJSON() { const o = { exportedAt: new Date().toISOString() }; ['settings'].forEach((k) => (o[k] = S[k])); ['categories', 'brands', 'products', 'promos', 'banners', 'blocks', 'showcase', 'tutorials', 'reviews', 'faqs', 'coupons', 'members', 'orders', 'commissions', 'payouts', 'tickets'].forEach((k) => (o[k] = S[k])); return JSON.stringify(o, null, 2); },
     importJSON() { return { ok: false, errors: ['โหมด Supabase ไม่รองรับนำเข้าไฟล์ — ใช้ Supabase Dashboard (SQL/Table editor) เพื่อกู้ข้อมูล'] }; },
     reset() { return { ok: false, errors: ['โหมด Supabase ไม่รองรับรีเซ็ตจากหน้าเว็บ'] }; }
   };

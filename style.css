@@ -349,3 +349,16 @@ small{color:var(--muted);font-size:12px}
 .aff-note{background:var(--warn-soft);color:var(--warn);border-radius:10px;padding:9px 12px;font-size:13px;margin:10px 0}
 .aff-pay{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}.aff-pay .full{grid-column:1/-1}
 @media(max-width:760px){.aff-kpi{grid-template-columns:1fr 1fr}.aff-pay{grid-template-columns:1fr}}
+
+/* ===== 💬 แจ้งปัญหา / เสนอแนะ (แอดมิน + โปรไฟล์) ===== */
+.tk-box{width:min(820px,100%)!important}.tk-hd{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap}
+.tk-meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:6px 14px;font-size:13px;margin:8px 0}.tk-meta>div{display:flex;flex-direction:column;border:1px solid var(--line);background:var(--surface2);border-radius:10px;padding:6px 10px}.tk-meta span{color:var(--muted);font-size:12px}.tk-meta b{font-weight:600;word-break:break-word}
+.tk-body{white-space:pre-wrap;background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:12px;margin:8px 0;font-size:14.5px}
+#tkAtt,.tk-atts{display:flex;gap:8px;flex-wrap:wrap}#tkAtt img,.tk-atts img{height:90px;border-radius:8px;border:1px solid var(--line)}
+.tk-diag{margin:8px 0}.tk-diag pre{max-height:220px;overflow:auto;background:#14100c;color:#e9ddc8;border-radius:10px;padding:10px;font:12px/1.5 var(--mono);white-space:pre-wrap;word-break:break-word}
+.tk-thread{display:flex;flex-direction:column;gap:8px;max-height:300px;overflow:auto;padding:4px}.tkm{border:1px solid var(--line);border-radius:12px;padding:8px 12px;background:var(--surface);max-width:88%;white-space:pre-wrap;word-break:break-word;font-size:14px}.tkm .who{font-size:11.5px;color:var(--muted);margin-bottom:2px}
+.tkm.user{align-self:flex-start}.tkm.admin{align-self:flex-end;background:var(--accent-soft);border-color:color-mix(in srgb,var(--accent) 35%,transparent)}.tkm.system{align-self:center;background:var(--surface2);color:var(--muted);font-size:13px}.tkm.int{align-self:flex-end;background:var(--warn-soft);border-style:dashed}
+.tk-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}.tk-act{border-top:1px solid var(--line);margin-top:12px;padding-top:10px}
+.fb-split{display:grid;grid-template-columns:1fr 1fr;gap:16px}.fb-row:hover{background:var(--surface2)}
+.stars{display:inline-flex;gap:4px}.stars button{border:0;background:transparent;font-size:26px;cursor:pointer;color:var(--line);padding:0;line-height:1}.stars button.on,.stars button:hover{color:#f5b301}
+@media(max-width:760px){.fb-split{grid-template-columns:1fr}.tkm{max-width:100%}}

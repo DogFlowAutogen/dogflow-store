@@ -67,7 +67,7 @@
     if (cache) return cache;
     try { cache = JSON.parse(localStorage.getItem(KEY)); } catch (e) { cache = null; }
     if (!cache || !cache.products) { cache = seed(); save(); }
-    ['members', 'notices', 'showcase', 'releases', 'tutorials', 'banners', 'blocks', 'brands', 'promos', 'reviews', 'faqs', 'audit'].forEach((k) => { if (!cache[k]) cache[k] = []; }); // ข้อมูลเก่าที่ยังไม่มีส่วนใหม่
+    ['members', 'notices', 'showcase', 'releases', 'tutorials', 'banners', 'blocks', 'tickets', 'brands', 'promos', 'reviews', 'faqs', 'audit'].forEach((k) => { if (!cache[k]) cache[k] = []; }); // ข้อมูลเก่าที่ยังไม่มีส่วนใหม่
     return cache;
   }
   function save() {

@@ -78,6 +78,17 @@
     });
     return r;
   }
+  /* ---------- แจ้งปัญหา / เสนอแนะ: ป้ายสถานะ/ประเภท ใช้ร่วมกันหน้าแอดมิน/โปรไฟล์ ---------- */
+  const FB = {
+    status: { new: ['ใหม่', 'err'], open: ['กำลังดำเนินการ', 'paid'], waiting_user: ['รอลูกค้าตอบ', 'pending'], resolved: ['แก้ไขแล้ว', 'okk'], closed: ['ปิดแล้ว', 'cancelled'], duplicate: ['ซ้ำกับเรื่องอื่น', 'cancelled'] },
+    cat: { bug: '🐞 บั๊ก / ใช้งานไม่ได้', crash: '💥 โปรแกรมปิดเอง / ค้าง', suggestion: '💡 ข้อเสนอแนะ', question: '❓ สอบถาม', other: '📝 อื่น ๆ' },
+    sev: { low: 'เล็กน้อย', normal: 'ปกติ', high: 'กระทบการใช้งานมาก' }, prio: { low: 'ต่ำ', normal: 'ปกติ', high: 'สูง', urgent: 'ด่วน' },
+    quick: [['รับเรื่องแล้ว ทีมงานกำลังตรวจสอบ และจะแจ้งความคืบหน้าในเรื่องนี้', 'open'], ['รบกวนแจ้งขั้นตอนที่ทำก่อนเกิดปัญหา และแนบภาพหน้าจอ/ข้อความผิดพลาดเพิ่มเติมได้ไหมครับ', 'waiting_user'],
+      ['ปัญหานี้แก้ไขแล้วในเวอร์ชันล่าสุด กรุณาอัปเดตโปรแกรมแล้วลองใหม่ หากยังพบอีกตอบกลับในเรื่องนี้ได้เลย', 'resolved'], ['ขอบคุณสำหรับข้อเสนอแนะ เราบันทึกไว้พิจารณาในรุ่นถัดไปแล้วครับ', 'closed']],
+  };
+  // เทียบเลขเวอร์ชันจากข้อความ (ดึงชุดตัวเลขแรกที่เป็น x.y.z) — คืน >0 ถ้า a ใหม่กว่า b · ไม่พบเลข = null
+  const verNum = (v) => { const m = /(\d+(?:\.\d+){0,3})/.exec(String(v || '')); return m ? m[1].split('.').map(Number) : null; };
+  const verCmp = (a, b) => { const x = verNum(a), y = verNum(b); if (!x || !y) return null; for (let i = 0; i < Math.max(x.length, y.length); i++) { const d = (x[i] || 0) - (y[i] || 0); if (d) return d; } return 0; };
   const couponCalc = (c, subtotal) => (c.type === 'percent' ? Math.round(subtotal * c.value / 100) : Math.min(c.value, subtotal));
 
   // d = { categories, products, brands, members }
@@ -107,6 +118,11 @@
       if (!o.title || !o.title.trim()) er.push('ใส่ชื่อแบนเนอร์'); if (!o.image) er.push('อัปโหลดภาพแบนเนอร์');
       if (o.link && !/^(https?:\/\/|#|\/)/.test(o.link)) er.push('ลิงก์ต้องขึ้นต้น http(s):// หรือ #');
       if (o.startsAt && o.endsAt && new Date(o.endsAt) <= new Date(o.startsAt)) er.push('วันสิ้นสุดต้องหลังวันเริ่ม');
+    } else if (entity === 'tickets') {
+      if (!o.title || o.title.trim().length < 3 || o.title.length > 120) er.push('หัวข้อต้อง 3-120 ตัวอักษร');
+      if (!o.body || o.body.trim().length < 5 || o.body.length > 4000) er.push('รายละเอียดต้อง 5-4000 ตัวอักษร');
+      if (!FB.cat[o.category]) er.push('เลือกประเภท'); if (!FB.sev[o.severity]) er.push('เลือกระดับผลกระทบ'); if (!FB.prio[o.priority]) er.push('เลือกความสำคัญ'); if (!FB.status[o.status]) er.push('เลือกสถานะ');
+      if (String(o.module || '').length > 40 || String(o.appVersion || '').length > 40) er.push('โมดูล/เวอร์ชันยาวเกิน 40 ตัวอักษร');
     } else if (entity === 'commissions') {
       if (!o.referrerId) er.push('เลือกสมาชิกผู้รับค่าคอม');
       if (!o.product || !o.product.trim()) er.push('ใส่ชื่อรายการ/แพ็กเกจ');
@@ -165,5 +181,5 @@
     el.classList.add('done'); setTimeout(() => { el.classList.add('hide'); setTimeout(() => el.remove(), 600); }, 250);
   };
   setTimeout(hideSplash, 15000);
-  w.DFCommon = { thaiDateTime, esc, baht, uid, embed, validate, price, activePromos, activeBanners, activeBlocks, BLOCKS, BLOCK_COLS, blockFields, blockHealth, cartId, couponCalc, hideSplash };
+  w.DFCommon = { thaiDateTime, esc, baht, uid, embed, validate, price, activePromos, activeBanners, activeBlocks, BLOCKS, BLOCK_COLS, blockFields, blockHealth, cartId, FB, verCmp, couponCalc, hideSplash };
 })(window);

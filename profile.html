@@ -47,9 +47,21 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
       <p style="color:var(--mut);font-size:14px;margin:0 0 10px">สมาชิกทุกคนแชร์ลิงก์แนะนำได้ทันที รับค่าคอมแบบคงที่ตามแพ็กเกจที่ลูกค้าซื้อ</p>
       <div id="affBody"></div>
     </div>
+    <div class="box" id="fb" hidden>
+      <div class="aff-hd"><h3>💬 แจ้งปัญหา / เสนอแนะ <span class="tag err" id="fbUnr" hidden></span></h3><button class="btn sm" id="fbNew">＋ ส่งเรื่องใหม่</button></div>
+      <p style="color:var(--mut);font-size:14px;margin:0 0 8px">เรื่องที่ส่งจากโปรแกรม DogFlow (ตั้งค่า → แจ้งปัญหา / เสนอแนะ) จะแสดงที่นี่อัตโนมัติ เมื่อใช้ License key ที่ซื้อกับบัญชีนี้ · ทีมงานตอบกลับในเรื่องนั้น และแจ้งเตือนในโปรไฟล์</p>
+      <div id="fbSum" style="font-size:13px;color:var(--mut);margin-bottom:6px"></div><div id="fbList"></div>
+    </div>
     <div class="box"><h3>📦 ประวัติการสั่งซื้อ</h3><div id="orders"></div></div>
   </main>
 </div>
+<div class="modal" id="mFbNew"><div class="mbox" style="width:min(560px,100%)"><h3>💬 ส่งเรื่องใหม่</h3><p style="color:var(--mut);font-size:13px;margin:0 0 6px">ใช้แจ้งปัญหา เสนอแนะ หรือสอบถาม — ทีมงานจะตอบในหน้านี้</p>
+  <form id="fFb" novalidate><div class="fgrid"><div class="f"><label>ประเภท</label><select name="category" style="width:100%"></select></div><div class="f"><label>ผลกระทบต่อการใช้งาน</label><select name="severity" style="width:100%"></select></div>
+  <div class="f full"><label>เกี่ยวกับส่วนไหนของโปรแกรม (ไม่บังคับ)</label><select name="module" style="width:100%"><option value="">— ไม่ระบุ —</option><option>Meta Bot</option><option>Flow Bot</option><option>Auto Story</option><option>TikTok</option><option>Facebook</option><option>Shopee</option><option>License / บัญชี</option><option>ร้านค้า / การสั่งซื้อ</option><option>อื่น ๆ</option></select></div>
+  <div class="f full"><label>หัวข้อ</label><input name="title" maxlength="120" placeholder="สรุปสั้น ๆ เช่น กดสร้างคลิปแล้วไม่มีอะไรเกิดขึ้น"></div>
+  <div class="f full"><label>รายละเอียด <small id="fbCnt" style="color:var(--mut)"></small></label><textarea name="body" rows="6" maxlength="4000" placeholder="เกิดอะไรขึ้น · ทำอะไรก่อนหน้านั้น · คาดหวังให้เป็นอย่างไร"></textarea></div></div>
+  <div class="errs" id="eFb"></div><div style="display:flex;gap:8px"><button class="btn" id="fbSend">📨 ส่งเรื่อง</button><button class="btn ghost" type="button" data-fbclose>ยกเลิก</button></div></form></div></div>
+<div class="modal" id="mFbTk"><div class="mbox tk-box" id="fbBox"></div></div>
 <div class="toast" id="toast"></div>
 <script src="config.js"></script>
 <script src="vendor/supabase.js"></script>
@@ -85,7 +97,7 @@ function render() {
       <button class="btn ${i === 0 ? 'gold' : 'ghost'} sm" data-dl="${E(r.id)}">⬇ ดาวน์โหลด</button></div>`).join('')
     : keys.length ? '<p style="color:var(--mut)">ยังไม่มีไฟล์ให้ดาวน์โหลดในตอนนี้ (หรือสิทธิ์/อายุคีย์หมดแล้ว) — หากมีปัญหาติดต่อแอดมิน</p>' : '<p style="color:var(--mut)">ดาวน์โหลดได้เมื่อมี License ที่ใช้งานได้ — <a href="index.html#shop" style="color:var(--cyan)">เลือกซื้อแพ็กเกจ</a></p>';
   const guide = DB.settings().installGuide; $('#dlguide').innerHTML = can && guide ? `<details open style="margin-top:10px"><summary>📖 วิธีติดตั้งและเริ่มใช้งาน</summary><div style="white-space:pre-line;color:var(--mut);font-size:14px;margin-top:6px">${E(guide)}</div></details>` : '';
-  paintAff();
+  paintAff(); paintFb();
   $('#orders').innerHTML = orders.map((o) => `<div style="border:1px solid var(--line);border-radius:12px;padding:12px;margin:10px 0">
     <div class="row"><b>${E(o.id)}</b><span class="tag ${ST[o.status][1]}">${ST[o.status][0]}</span></div>
     <div style="font-size:13px;color:var(--mut)">${new Date(o.createdAt).toLocaleString('th-TH')} · ${o.items.map((i) => E(i.name) + '×' + i.qty).join(', ')}</div>
@@ -147,6 +159,41 @@ $('#aff').addEventListener('change', (e) => { if (e.target.name === 'method') { 
 $('#aff').addEventListener('submit', async (e) => { if (e.target.id !== 'fAffPay') return; e.preventDefault(); const f = e.target;
   const r = await DB.affSavePayout({ method: f.method.value, bank: f.bank.value, account: f.account.value, name: f.name.value }); if (r.ok) { affSig = ''; showErr($('#eAffPay'), []); toast('บันทึกข้อมูลรับเงินแล้ว ✔'); } else showErr($('#eAffPay'), r.errors); });
 $('#readAll').onclick = () => DB.markNoticesRead();
+/* ===== 💬 แจ้งปัญหา / เสนอแนะ — เรื่องของฉัน (ส่งจากโปรแกรม/เว็บ) · ข้อมูลเรียลไทม์ ===== */
+const FBX = DFCommon.FB, fbTagP = (k) => { const x = FBX.status[k] || [k, 'pending']; return '<span class="tag ' + x[1] + '">' + E(x[0]) + '</span>'; };
+const fbAgoP = (t) => { const s = Math.max(0, (Date.now() - new Date(t)) / 1000); return s < 60 ? 'เมื่อสักครู่' : s < 3600 ? Math.floor(s / 60) + ' นาทีที่แล้ว' : s < 86400 ? Math.floor(s / 3600) + ' ชม.ที่แล้ว' : Math.floor(s / 86400) + ' วันที่แล้ว'; };
+function paintFb() {
+  const box = $('#fb'), can = DB.mode === 'supabase' && !!DB.fbCreate; box.hidden = !can; if (!can) return;
+  const T = DB.list('tickets'), un = T.filter((t) => t.userUnread).length;
+  $('#fbUnr').hidden = !un; $('#fbUnr').textContent = un + ' ตอบใหม่';
+  $('#fbSum').textContent = T.length ? 'ทั้งหมด ' + T.length + ' เรื่อง · กำลังดำเนินการ ' + T.filter((t) => ['new', 'open', 'waiting_user'].includes(t.status)).length + ' · แก้ไขแล้ว ' + T.filter((t) => ['resolved', 'closed'].includes(t.status)).length : '';
+  $('#fbList').innerHTML = T.map((t) => '<div class="hl fb-row" data-fbtk="' + E(t.id) + '" style="cursor:pointer;align-items:center"><span style="flex:1"><b>' + E(t.title) + '</b>' + (t.userUnread ? ' <span class="tag err">ตอบใหม่</span>' : '') + '<br><small style="color:var(--mut)">' + E(t.code) + ' · ' + E(FBX.cat[t.category]) + ' · ' + (t.source === 'app' ? '🖥️ จากโปรแกรม' : '🌐 จากเว็บ') + ' · ' + fbAgoP(t.lastActivityAt) + '</small></span>' + fbTagP(t.status) + '</div>').join('') || '<div class="aff-empty"><div style="font-size:32px">💬</div><b>ยังไม่มีเรื่องที่ส่ง</b>แจ้งปัญหา/เสนอแนะจากโปรแกรม DogFlow (ตั้งค่า → แจ้งปัญหา / เสนอแนะ) หรือกด “ส่งเรื่องใหม่” ด้านบน</div>';
+}
+let _fbOpen = null;
+async function fbOpenThread(id, rerender) {
+  _fbOpen = id; const t = DB.find('tickets', id); if (!t) return; const msgs = await DB.fbMsgs(id), box = $('#fbBox'), done = ['resolved', 'closed'].includes(t.status);
+  const keep = rerender && box.querySelector('textarea') ? box.querySelector('textarea').value : '';
+  box.innerHTML = '<div class="tk-hd"><div><b style="font-size:17px">' + E(t.code) + '</b> ' + fbTagP(t.status) + '</div><button class="btn ghost sm" data-fbclose>✕ ปิด</button></div><h3 style="margin:6px 0">' + E(t.title) + '</h3>'
+    + '<div class="tk-meta">' + [['ประเภท', FBX.cat[t.category]], ['ผลกระทบ', FBX.sev[t.severity]], ['ส่งเมื่อ', new Date(t.createdAt).toLocaleString('th-TH')], ['ที่มา', t.source === 'app' ? 'โปรแกรม DogFlow' + (t.appVersion ? ' · ' + t.appVersion : '') : 'หน้าเว็บ'], ['โมดูล', t.module || '—']].map(([k, v]) => '<div><span>' + k + '</span><b>' + E(v) + '</b></div>').join('') + '</div>'
+    + '<div class="tk-body">' + E(t.body) + '</div><h4 style="margin:10px 0 6px">สนทนา</h4><div class="tk-thread" id="fbThread">' + msgs.map((m) => '<div class="tkm ' + m.author + '"><div class="who">' + (m.author === 'admin' ? '🛠️ ทีมงาน' : m.author === 'user' ? '🙋 คุณ' : '⚙️ ระบบ') + ' · ' + E(new Date(m.at).toLocaleString('th-TH')) + '</div><div>' + E(m.body) + '</div></div>').join('') + '</div>'
+    + (t.status === 'duplicate' ? '<p style="color:var(--mut)">เรื่องนี้ถูกรวมกับเรื่องอื่นที่ทีมงานกำลังดูแลอยู่แล้ว</p>' : '<form id="fFbReply" novalidate style="margin-top:10px"><textarea name="body" rows="3" maxlength="4000" placeholder="' + (done ? 'ยังพบปัญหาอยู่? พิมพ์ที่นี่เพื่อเปิดเรื่องนี้ใหม่…' : 'พิมพ์ข้อความตอบทีมงาน…') + '"></textarea><div class="errs" id="eFbR"></div><button class="btn sm">📨 ส่งข้อความ</button></form>')
+    + (done ? (t.rating ? '<p style="margin-top:10px">ความพึงพอใจของคุณ: <span style="color:#f5b301;font-size:20px">' + '★'.repeat(t.rating) + '☆'.repeat(5 - t.rating) + '</span> ขอบคุณครับ 🙏</p>' : '<div style="margin-top:12px;border-top:1px solid var(--line);padding-top:10px"><b>เรื่องนี้ได้รับการแก้ไขแล้ว — ให้คะแนนความพึงพอใจ</b><div class="stars" id="fbStars" style="margin:6px 0">' + [1, 2, 3, 4, 5].map((n) => '<button type="button" data-star="' + n + '" aria-label="' + n + ' ดาว">★</button>').join('') + '</div><input id="fbRc" placeholder="ความเห็นเพิ่มเติม (ไม่บังคับ)" maxlength="500"></div>') : '');
+  if (keep) box.querySelector('textarea').value = keep; $('#mFbTk').classList.add('on'); const th = $('#fbThread'); th.scrollTop = th.scrollHeight;
+  if (t.userUnread) DB.fbSeen(id);
+}
+$('#fb').addEventListener('click', (e) => { const r = e.target.closest('[data-fbtk]'); if (r) fbOpenThread(r.dataset.fbtk); if (e.target.closest('#fbNew')) { const f = $('#fFb'); f.reset(); showErr($('#eFb'), []); $('#fbCnt').textContent = ''; $('#mFbNew').classList.add('on'); } });
+document.addEventListener('click', async (e) => {
+  if (e.target.closest('[data-fbclose]') || e.target.id === 'mFbNew' || e.target.id === 'mFbTk') { $('#mFbNew').classList.remove('on'); $('#mFbTk').classList.remove('on'); _fbOpen = null; return; }
+  const st = e.target.closest('[data-star]'); if (st && _fbOpen) { const r = await DB.fbRate(_fbOpen, +st.dataset.star, $('#fbRc').value); r.ok ? (toast('ขอบคุณสำหรับคะแนน ⭐'), fbOpenThread(_fbOpen, true)) : alert(r.errors.join('\n')); } });
+(() => { const f = $('#fFb'); f.category.innerHTML = Object.entries(FBX.cat).map(([k, v]) => '<option value="' + k + '">' + E(v) + '</option>').join(''); f.severity.innerHTML = Object.entries(FBX.sev).map(([k, v]) => '<option value="' + k + '"' + (k === 'normal' ? ' selected' : '') + '>' + E(v) + '</option>').join('');
+  f.body.oninput = () => { $('#fbCnt').textContent = f.body.value.length + '/4000'; };
+  f.onsubmit = async (e) => { e.preventDefault(); const t = f.title.value.trim(), b = f.body.value.trim(), er = [];
+    if (t.length < 3 || t.length > 120) er.push('หัวข้อต้อง 3-120 ตัวอักษร'); if (b.length < 5 || b.length > 4000) er.push('รายละเอียดต้อง 5-4000 ตัวอักษร'); if (er.length) return showErr($('#eFb'), er);
+    const btn = $('#fbSend'); btn.disabled = true; const r = await DB.fbCreate({ category: f.category.value, severity: f.severity.value, module: f.module.value, title: t, body: b }); btn.disabled = false;
+    if (!r.ok) return showErr($('#eFb'), r.errors); $('#mFbNew').classList.remove('on'); toast('ส่งเรื่องแล้ว รหัส ' + r.code + ' ✔'); fbOpenThread(r.id); }; })();
+document.addEventListener('submit', async (e) => { if (e.target.id !== 'fFbReply' || !_fbOpen) return; e.preventDefault(); const f = e.target, b = f.body.value.trim(); if (!b) return showErr($('#eFbR'), ['พิมพ์ข้อความก่อนส่ง']);
+  const r = await DB.fbReply(_fbOpen, b); r.ok ? (toast('ส่งข้อความแล้ว ✔'), fbOpenThread(_fbOpen)) : showErr($('#eFbR'), r.errors); });
+window.addEventListener('fb:msg', () => { if (_fbOpen) fbOpenThread(_fbOpen, true); });
 /* ===== 🖼️ รูปโปรไฟล์: เลือกไฟล์ → ปรับตำแหน่ง/ซูมในกรอบสี่เหลี่ยม → ย่อ 256px (JPEG) → อัปโหลด · ลบ/เปลี่ยนได้ ===== */
 function paintAvatar(m) {
   const av = $('#av'), url = DB.avatarUrl ? DB.avatarUrl(m.avatarPath) : '', can = DB.mode === 'supabase' && !!DB.setAvatar;

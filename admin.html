@@ -35,6 +35,7 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
 
 <div class="modal" id="mEdit"><div class="mbox" style="width:min(640px,100%)"><h3 id="eT"></h3><form id="eF" novalidate></form></div></div>
 <div class="modal" id="mSlip"><div class="mbox" style="width:min(560px,100%)" id="slipBox"></div></div>
+<div class="modal" id="mTk"><div class="mbox tk-box" id="tkBox"></div></div>
 <div class="dlg" id="dlg" hidden role="dialog" aria-modal="true" aria-labelledby="dlgTitle"><form class="dlg-card" id="dlgForm" novalidate>
   <div class="dlg-hd"><span class="dlg-ic" id="dlgIc" aria-hidden="true"></span><div style="min-width:0"><div class="dlg-t" id="dlgTitle"></div><div class="dlg-s" id="dlgSub"></div></div></div>
   <p class="dlg-body" id="dlgBody" hidden></p>
@@ -79,14 +80,14 @@ $('#out').onclick = async () => { if (SB) await DB.logout(); else sessionStorage
 
 document.addEventListener('click', (e) => { const g = e.target.closest('[data-gotab]'); if (g && authed()) { tab = g.dataset.gotab; render(); } });   // ปุ่มลัดข้ามแท็บ
 /* ===== เมนู ===== */
-const TABS = [['dash', '📊 ภาพรวม'], ['me', '👤 โปรไฟล์ของฉัน'], ['orders', '🧾 ออเดอร์/ชำระเงิน'], ['products', '📦 สินค้า'], ['cats', '🗂️ หมวดหมู่'], ['members', '👥 สมาชิก'], ['affiliate', '🪪 ตัวแทนขาย'], ['showcase', '🖥️ ภาพหน้าตาโปรแกรม'], ['releases', '💿 ดาวน์โหลดโปรแกรม'], ['tutorials', '📚 คู่มือ/วิดีโอ'], ['banners', '🖼️ แบนเนอร์โฆษณา'], ['blocks', '🧱 บล็อกหน้าแรก'], ['promos', '🔥 โปรโมชัน'], ['brands', '🏷️ แบรนด์สินค้า'], ['coupons', '🎟️ คูปอง'], ['content', '📝 รีวิว/FAQ'], ['settings', '⚙️ ตั้งค่าหน้าแรก'], ['health', '🩺 ตรวจสอบระบบ'], ['data', '💾 สำรอง/ประวัติ']];
+const TABS = [['dash', '📊 ภาพรวม'], ['me', '👤 โปรไฟล์ของฉัน'], ['orders', '🧾 ออเดอร์/ชำระเงิน'], ['feedback', '💬 แจ้งปัญหา/เสนอแนะ'], ['products', '📦 สินค้า'], ['cats', '🗂️ หมวดหมู่'], ['members', '👥 สมาชิก'], ['affiliate', '🪪 ตัวแทนขาย'], ['showcase', '🖥️ ภาพหน้าตาโปรแกรม'], ['releases', '💿 ดาวน์โหลดโปรแกรม'], ['tutorials', '📚 คู่มือ/วิดีโอ'], ['banners', '🖼️ แบนเนอร์โฆษณา'], ['blocks', '🧱 บล็อกหน้าแรก'], ['promos', '🔥 โปรโมชัน'], ['brands', '🏷️ แบรนด์สินค้า'], ['coupons', '🎟️ คูปอง'], ['content', '📝 รีวิว/FAQ'], ['settings', '⚙️ ตั้งค่าหน้าแรก'], ['health', '🩺 ตรวจสอบระบบ'], ['data', '💾 สำรอง/ประวัติ']];
 function render() {
   const pend = DB.list('orders').filter((o) => o.status === 'review').length;
-  $('#menu').innerHTML = TABS.map(([k, n]) => `<a class="${tab === k ? 'on' : ''}" data-t="${k}">${n}${k === 'orders' && pend ? ` <span class="tag err">${pend}</span>` : ''}</a>`).join('');
+  $('#menu').innerHTML = TABS.map(([k, n]) => `<a class="${tab === k ? 'on' : ''}" data-t="${k}">${n}${k === 'orders' && pend ? ` <span class="tag err">${pend}</span>` : ''}${k === 'feedback' && fbUnread() ? ` <span class="tag err">${fbUnread()}</span>` : ''}</a>`).join('');
   $('#main').innerHTML = V[tab](); (A[tab] || (() => {}))();
 }
 $('#menu').onclick = (e) => { const a = e.target.closest('[data-t]'); if (a) { tab = a.dataset.t; render(); } };
-window.addEventListener('db:change', () => { if (authed()) { if (!$('#mEdit').classList.contains('on') && !$('#mSlip').classList.contains('on')) render(); } else if (!$('#app').hidden) gate(); });
+window.addEventListener('db:change', () => { fbNotify(); if (authed()) { if (!$('#mEdit').classList.contains('on') && !$('#mSlip').classList.contains('on')) render(); } else if (!$('#app').hidden) gate(); });
 
 /* ===== ฟอร์มแก้ไขแบบทั่วไป (เพิ่ม/แก้) ===== */
 // fields: [{k,label,type,opts,full}]  — คืนค่าผ่าน onSave(obj) → {ok,errors}
@@ -145,6 +146,74 @@ const memRows = (m) => { const os = DB.list('orders').filter((o) => o.memberId =
 // info (ไม่บังคับ) = ตัวเลือกของ confirmDlg → ใช้หน้าต่างยืนยันแบบเต็ม · ไม่ส่ง = กล่องยืนยันของเบราว์เซอร์แบบเดิม
 const del = async (entity, key, label, info) => { if (info ? !(await confirmDlg(Object.assign({ danger: true, okText: 'ยืนยันลบ', cancelText: 'ไม่ลบ' }, info))) : !confirm('ลบ "' + label + '" ถาวร?')) return; const r = await DB.remove(entity, key); r.ok ? (toast('ลบแล้ว'), render()) : alert(r.errors.join('\n')); };
 
+/* ===== 💬 แจ้งปัญหา / เสนอแนะ: ตัวช่วย + หน้าต่างสนทนา (ข้อมูลเรียลไทม์จาก Supabase Realtime) ===== */
+const FBX = DFCommon.FB, fbUnread = () => (DB.list('tickets') || []).filter((t) => t.adminUnread).length;
+let _fbPrev = null;
+function fbNotify() {   // เรื่องใหม่/ลูกค้าตอบ → แจ้งเตือน + ตัวเลขบนแท็บชื่อหน้าต่าง
+  const n = fbUnread(), base = document.title.replace(/^\(\d+\)\s*/, ''); document.title = (n ? '(' + n + ') ' : '') + base;
+  if (_fbPrev !== null && n > _fbPrev && authed()) toast('💬 มีเรื่องแจ้งปัญหา/เสนอแนะใหม่หรือลูกค้าตอบกลับ (' + n + ' เรื่องรอตรวจ)'); _fbPrev = n;
+}
+const fbAgo = (t) => { if (!t) return '—'; const s = Math.max(0, (Date.now() - new Date(t)) / 1000); return s < 60 ? 'เมื่อสักครู่' : s < 3600 ? Math.floor(s / 60) + ' นาทีที่แล้ว' : s < 86400 ? Math.floor(s / 3600) + ' ชม.ที่แล้ว' : Math.floor(s / 86400) + ' วันที่แล้ว'; };
+const fbTag = (k) => { const x = FBX.status[k] || [k, 'pending']; return '<span class="tag ' + x[1] + '">' + E(x[0]) + '</span>'; };
+const fbLatest = () => ((DB.latestRelease && DB.latestRelease('windows')) || {}).version || '';
+const fbOutdated = (v) => { const l = fbLatest(); return !!(v && l && (DFCommon.verCmp(v, l) || 0) < 0); };
+let _tk = null;   // { id, msgs, att }
+async function tkOpen(id) { _tk = { id, msgs: [], att: [] }; $('#mTk').classList.add('on'); await tkLoad(true); }
+async function tkLoad(full) {
+  if (!_tk) return; const t = DB.find('tickets', _tk.id); if (!t) { $('#mTk').classList.remove('on'); _tk = null; return; }
+  _tk.msgs = await DB.fbMsgs(t.id); if (full) _tk.att = await DB.fbAttachUrls(t).catch(() => []);
+  tkPaint(full);
+}
+function tkPaint(full) {
+  const t = _tk && DB.find('tickets', _tk.id); if (!t) return; const m = DB.list('members').find((x) => x.id === t.memberId), box = $('#tkBox');
+  const orders = m ? DB.list('orders').filter((o) => o.memberId === m.id) : [], paid = orders.filter((o) => ['paid', 'done'].includes(o.status)).length, lat = fbLatest(), old = fbOutdated(t.appVersion);
+  const frt = t.firstResponseAt ? ((new Date(t.firstResponseAt) - new Date(t.createdAt)) / 36e5).toFixed(1) + ' ชม.' : '— (ยังไม่ตอบ)';
+  const dup = t.dupOf && DB.list('tickets').find((x) => x.id === t.dupOf), thread = _tk.msgs.map((x) => '<div class="tkm ' + (x.internal ? 'int' : x.author) + '"><div class="who">' + (x.internal ? '🔒 โน้ตภายใน (ลูกค้าไม่เห็น)' : x.author === 'admin' ? '🛠️ ทีมงาน' : x.author === 'user' ? '🙋 ลูกค้า' : '⚙️ ระบบ') + ' · ' + E(fmt(x.at)) + '</div><div>' + E(x.body) + '</div></div>').join('');
+  const diag = JSON.stringify(t.diagnostics || {}, null, 2);
+  if (full || !box.querySelector('#tkThread')) {
+    const sel = (id, obj, cur, all) => '<select id="' + id + '">' + Object.entries(obj).map(([k, v]) => '<option value="' + k + '"' + (cur === k ? ' selected' : '') + '>' + E(Array.isArray(v) ? v[0] : v) + '</option>').join('') + '</select>';
+    box.innerHTML = '<div class="tk-hd"><div><b style="font-size:17px">' + E(t.code) + '</b> <span id="tkSt"></span> <span class="tag ' + (t.priority === 'urgent' ? 'err' : t.priority === 'high' ? 'warn' : 'pending') + '">ความสำคัญ ' + E(FBX.prio[t.priority] || t.priority) + '</span></div><button class="btn ghost sm" data-tkclose>✕ ปิด</button></div>'
+      + '<h3 style="margin:6px 0">' + E(t.title) + '</h3><div class="tk-meta" id="tkMeta"></div><div class="tk-body">' + E(t.body) + '</div>'
+      + '<div id="tkAtt">' + (_tk.att.length ? _tk.att.map((a) => '<a href="' + E(a.url) + '" target="_blank" rel="noopener"><img src="' + E(a.url) + '" alt="' + E(a.name) + '" title="' + E(a.name) + '"></a>').join('') : '') + '</div>'
+      + '<details class="tk-diag"><summary>🧪 ข้อมูลวินิจฉัยจากโปรแกรม (ล้างข้อมูลลับแล้ว)</summary><pre>' + E(diag) + '</pre><button class="btn ghost sm" data-tkcopy>📋 คัดลอก</button></details>'
+      + '<h4 style="margin:12px 0 6px">สนทนา</h4><div id="tkThread" class="tk-thread"></div>'
+      + '<form id="tkForm" novalidate><textarea name="body" rows="3" placeholder="พิมพ์ข้อความตอบลูกค้า… (ลูกค้าเห็นในโปรแกรม + หน้าโปรไฟล์ และได้รับแจ้งเตือน)" maxlength="4000"></textarea>'
+      + '<div class="tk-row"><select id="tkQuick"><option value="">⚡ ข้อความสำเร็จรูป…</option>' + FBX.quick.map((q, i) => '<option value="' + i + '">' + E(q[0].slice(0, 46)) + '…</option>').join('') + '</select>'
+      + '<label style="display:flex;gap:6px;align-items:center;font-size:13px"><input type="checkbox" name="internal" style="width:auto"> 🔒 โน้ตภายใน (ลูกค้าไม่เห็น)</label>'
+      + '<span style="font-size:13px">หลังส่งตั้งเป็น</span><select name="after"><option value="">อัตโนมัติ (รอลูกค้า)</option>' + Object.entries(FBX.status).map(([k, v]) => '<option value="' + k + '">' + E(v[0]) + '</option>').join('') + '</select><button class="btn" id="tkSend">📨 ส่ง</button></div><div class="errs" id="tkErr"></div></form>'
+      + '<div class="tk-act"><b>จัดการเรื่องนี้</b><div class="tk-row">สถานะ ' + sel('tkS', Object.fromEntries(Object.entries(FBX.status)), t.status) + ' ความสำคัญ ' + sel('tkP', FBX.prio, t.priority) + ' ประเภท ' + sel('tkC', FBX.cat, t.category) + '<button class="btn sm" data-tkset>💾 บันทึก</button></div>'
+      + '<div class="tk-row"><input id="tkDup" placeholder="ซ้ำกับเรื่องรหัส (เช่น FB-XXXXXX)" style="max-width:240px"><button class="btn sm ghost" data-tkdup>🔗 ตั้งเป็นเรื่องซ้ำ</button>' + (t.dupOf ? '<button class="btn sm ghost" data-tkundup>ยกเลิกซ้ำ</button>' : '') + '<span style="flex:1"></span><button class="btn sm ghost" data-tkedit>✏️ แก้ไขข้อมูล</button><button class="btn sm danger" data-tkdel>🗑 ลบเรื่อง</button></div></div>';
+  }
+  $('#tkSt').innerHTML = fbTag(t.status);
+  $('#tkMeta').innerHTML = [['📅 ส่งเมื่อ', fmt(t.createdAt) + ' (' + fbAgo(t.createdAt) + ')'], ['🧾 ที่มา', t.source === 'app' ? 'โปรแกรม DogFlow' : t.source === 'web' ? 'หน้าเว็บ (สมาชิก)' : 'แอดมินเพิ่มเอง'], ['🏷️ ประเภท', FBX.cat[t.category]], ['⚠️ ผลกระทบ', FBX.sev[t.severity]], ['🧩 โมดูล', t.module || '—'],
+    ['🏷️ เวอร์ชันโปรแกรม', (t.appVersion || '—') + (old ? ' ⚠ เก่ากว่าล่าสุด (' + lat + ')' : t.appVersion && lat ? ' ✔ ล่าสุด' : '')], ['💻 ระบบ', t.os || '—'],
+    ['👤 สมาชิก', m ? m.name + ' · ' + m.email + ' · ออเดอร์ชำระแล้ว ' + paid : t.source === 'app' ? 'ไม่พบสมาชิกที่ผูกกับคีย์นี้' : '—'], ['🔑 License', (t.keyMask || '—') + (t.verified ? ' ✔ ยืนยันแล้ว' : t.keyMask ? ' ⚠ ยังไม่ยืนยัน (ไม่พบในคีย์ที่ออกให้ หรือถูกระงับ)' : '')],
+    ['🖥️ เครื่อง', (t.deviceName || '—') + (t.deviceId ? ' · ' + t.deviceId.slice(0, 8) + '…' : '')], ['⏱️ ตอบครั้งแรก', frt], ['⭐ ความพึงพอใจ', t.rating ? '★'.repeat(t.rating) + '☆'.repeat(5 - t.rating) + (t.ratingComment ? ' — ' + t.ratingComment : '') : '—'],
+    ...(dup ? [['🔗 ซ้ำกับ', dup.code + ' — ' + dup.title]] : [])].map(([k, v]) => '<div><span>' + k + '</span><b>' + E(v) + '</b></div>').join('');
+  const th = $('#tkThread'), atBottom = th.scrollHeight - th.scrollTop - th.clientHeight < 40; th.innerHTML = thread || '<p style="color:var(--mut)">ยังไม่มีข้อความ</p>'; if (full || atBottom) th.scrollTop = th.scrollHeight;
+  if (t.adminUnread && !tkPaint._busy) { tkPaint._busy = true; DB.fbAdminSet(t.id, {}).finally(() => { tkPaint._busy = false; }); }   // เปิดอ่านแล้ว = ล้างสถานะ "รอตรวจ"
+}
+window.addEventListener('fb:msg', () => { if (_tk) tkLoad(false); });
+window.addEventListener('db:change', () => { if (_tk && $('#mTk').classList.contains('on')) tkPaint(false); });
+$('#mTk').addEventListener('click', async (e) => {
+  if (e.target.id === 'mTk' || e.target.closest('[data-tkclose]')) { $('#mTk').classList.remove('on'); _tk = null; return; }
+  const t = _tk && DB.find('tickets', _tk.id); if (!t) return;
+  if (e.target.closest('[data-tkcopy]')) return navigator.clipboard.writeText(JSON.stringify(t.diagnostics, null, 2)).then(() => toast('คัดลอกข้อมูลวินิจฉัยแล้ว'));
+  const act = async (p, ok) => { const r = await p; r.ok ? (toast(ok), tkLoad(false)) : alert(r.errors.join('\n')); };
+  if (e.target.closest('[data-tkset]')) return act(DB.fbAdminSet(t.id, { status: $('#tkS').value, priority: $('#tkP').value, category: $('#tkC').value }), 'บันทึกแล้ว ✔');
+  if (e.target.closest('[data-tkdup]')) { const code = $('#tkDup').value.trim().toUpperCase(), o = DB.list('tickets').find((x) => x.code === code); if (!o) return alert('ไม่พบเรื่องรหัส ' + code); if (o.id === t.id) return alert('ซ้ำกับตัวเองไม่ได้'); return act(DB.fbAdminSet(t.id, { dupOf: o.id }), 'ตั้งเป็นเรื่องซ้ำกับ ' + o.code + ' แล้ว'); }
+  if (e.target.closest('[data-tkundup]')) return act(DB.fbAdminSet(t.id, { status: 'open', clearDup: true }), 'ยกเลิกเรื่องซ้ำแล้ว');
+  if (e.target.closest('[data-tkedit]')) { const F = [{ k: 'title', label: 'หัวข้อ', full: true }, { k: 'body', label: 'รายละเอียด', type: 'textarea', full: true }, { k: 'category', label: 'ประเภท', type: 'select', opts: Object.entries(FBX.cat) }, { k: 'severity', label: 'ผลกระทบ', type: 'select', opts: Object.entries(FBX.sev) }, { k: 'priority', label: 'ความสำคัญ', type: 'select', opts: Object.entries(FBX.prio) }, { k: 'status', label: 'สถานะ', type: 'select', opts: Object.entries(FBX.status).map(([k, v]) => [k, v[0]]) }, { k: 'module', label: 'โมดูล' }, { k: 'appVersion', label: 'เวอร์ชันโปรแกรม' }, { k: 'os', label: 'ระบบปฏิบัติการ' }];
+    return editor('แก้ไขข้อมูลเรื่อง ' + t.code, F, t, (o) => DB.upsert('tickets', o)); }
+  if (e.target.closest('[data-tkdel]')) { const ok = await confirmDlg({ danger: true, title: 'ลบเรื่องนี้ถาวร?', sub: t.code, body: 'ลบเรื่อง ข้อความทั้งหมด และภาพแนบ — ย้อนกลับไม่ได้ (ถ้าแค่ไม่ต้องการให้รก ให้ตั้งสถานะ "ปิดแล้ว" แทน)', rows: [['หัวข้อ', t.title], ['ประเภท', FBX.cat[t.category]], ['สถานะ', (FBX.status[t.status] || [t.status])[0]], ['ส่งเมื่อ', fmt(t.createdAt)], ['ภาพแนบ', String((t.attachments || []).length)]], check: 'ฉันตรวจสอบแล้ว ต้องการลบเรื่อง ' + t.code + ' ถาวร', okText: 'ยืนยันลบ', cancelText: 'ไม่ลบ' });
+    if (ok) { const r = await DB.fbDelete(t.id); r.ok ? (toast('ลบแล้ว'), $('#mTk').classList.remove('on'), _tk = null, render()) : alert(r.errors.join('\n')); } return; }
+});
+$('#mTk').addEventListener('change', (e) => { if (e.target.id !== 'tkQuick') return; const q = FBX.quick[+e.target.value]; if (!q) return; const f = $('#tkForm'); f.body.value = q[0]; f.after.value = q[1]; e.target.value = ''; f.body.focus(); });
+$('#mTk').addEventListener('submit', async (e) => { if (e.target.id !== 'tkForm') return; e.preventDefault(); const f = e.target, t = _tk && DB.find('tickets', _tk.id); if (!t) return; const body = f.body.value.trim();
+  if (!body) return ($('#tkErr').textContent = 'พิมพ์ข้อความก่อนส่ง'); if (body.length > 4000) return ($('#tkErr').textContent = 'ข้อความยาวเกิน 4000 ตัวอักษร');
+  const wasInt = f.internal.checked, b = $('#tkSend'); b.disabled = true; const r = await DB.fbAdminReply(t.id, body, f.after.value || null, wasInt); b.disabled = false;
+  if (!r.ok) return ($('#tkErr').textContent = r.errors.join(' ')); f.body.value = ''; f.internal.checked = false; $('#tkErr').textContent = ''; toast(wasInt ? 'บันทึกโน้ตภายในแล้ว' : 'ส่งข้อความถึงลูกค้าแล้ว ✔'); tkLoad(false); });
+
 /* ===== วิว ===== */
 const V = {
   dash() {
@@ -191,6 +260,23 @@ const V = {
       + '<div class="errs" id="eMeAv"></div><small style="color:var(--mut)">PNG / JPG / WebP ไม่เกิน 8MB · ลากเลื่อนและซูมในกรอบได้ · ระบบย่อเป็น 256×256</small></div>'
       + '<div class="box"><h3>✏️ ข้อมูลส่วนตัว</h3><form id="fMe" novalidate><div class="f"><label>ชื่อ-นามสกุล</label><input name="name" value="' + E(m.name) + '"></div><div class="f"><label>เบอร์โทร</label><input name="phone" inputmode="tel" value="' + E(m.phone) + '"></div><div class="f"><label>อีเมล (เปลี่ยนไม่ได้)</label><input value="' + E(m.email) + '" disabled></div><div class="errs" id="eMe"></div><button class="btn">💾 บันทึก</button></form></div>'
       + '<div class="box"><h3>🔒 เปลี่ยนรหัสผ่าน</h3><form id="fMePw" novalidate><div class="f"><label>รหัสผ่านเดิม</label><input name="old" type="password" autocomplete="current-password"></div><div class="f"><label>รหัสผ่านใหม่ (≥ 8 ตัว)</label><input name="n1" type="password" autocomplete="new-password"></div><div class="f"><label>ยืนยันรหัสผ่านใหม่</label><input name="n2" type="password" autocomplete="new-password"></div><div class="errs" id="eMePw"></div><button class="btn">เปลี่ยนรหัสผ่าน</button></form></div></div>';
+  },
+  feedback() {
+    if (!SB) return '<h1>💬 แจ้งปัญหา / เสนอแนะ</h1><p style="color:var(--mut)">ใช้ได้เฉพาะโหมด Supabase (ฐานข้อมูลจริง)</p>';
+    const T = DB.list('tickets') || [], now = Date.now(), d30 = now - 30 * 864e5, mem = DB.list('members'), lat = fbLatest();
+    const f = window._fbf || (window._fbf = { st: 'active', cat: 'all', q: '' }), isOpen = (t) => ['new', 'open', 'waiting_user'].includes(t.status);
+    const frt = T.filter((t) => t.firstResponseAt && new Date(t.createdAt) > d30).map((t) => (new Date(t.firstResponseAt) - new Date(t.createdAt)) / 36e5).sort((a, b) => a - b), med = frt.length ? frt[Math.floor(frt.length / 2)] : null;
+    const rated = T.filter((t) => t.rating), csat = rated.length ? rated.reduce((a, t) => a + t.rating, 0) / rated.length : null, stale = T.filter((t) => t.status === 'new' && now - new Date(t.createdAt) > 864e5).length;
+    const q = f.q.toLowerCase(), list = T.filter((t) => (f.st === 'all' || (f.st === 'active' ? isOpen(t) : t.status === f.st)) && (f.cat === 'all' || t.category === f.cat) && (!q || (t.code + t.title + t.body + t.appVersion + ((mem.find((m) => m.id === t.memberId) || {}).email || '')).toLowerCase().includes(q)));
+    const byVer = {}; T.forEach((t) => { const v = t.appVersion || '(ไม่ระบุ)'; (byVer[v] = byVer[v] || { n: 0, open: 0 }).n++; if (isOpen(t)) byVer[v].open++; });
+    const byCat = Object.entries(FBX.cat).map(([k, v]) => [v, T.filter((t) => t.category === k).length]);
+    const stamp = new Date().toLocaleTimeString('th-TH');
+    return '<h1>💬 แจ้งปัญหา / เสนอแนะ</h1><p style="color:var(--mut)">เรื่องที่ส่งมาจากโปรแกรม DogFlow (ตั้งค่า → แจ้งปัญหา / เสนอแนะ) และจากหน้าโปรไฟล์สมาชิก · <span class="ok">🟢 เรียลไทม์</span> อัปเดตล่าสุด ' + stamp + ' · ข้อมูลทุกตัวเลขคำนวณจากรายการจริงในฐานข้อมูล</p>'
+      + '<div class="kpi"><div><b>' + T.filter((t) => t.status === 'new').length + '</b><span>ใหม่ (ยังไม่ตอบ)' + (stale ? ' · เกิน 24 ชม. ' + stale : '') + '</span></div><div><b>' + T.filter((t) => t.status === 'open').length + '</b><span>กำลังดำเนินการ</span></div><div><b>' + T.filter((t) => t.status === 'waiting_user').length + '</b><span>รอลูกค้าตอบ</span></div><div><b>' + T.filter((t) => ['resolved', 'closed'].includes(t.status) && t.resolvedAt && new Date(t.resolvedAt) > d30).length + '</b><span>แก้ไขแล้ว 30 วัน</span></div><div><b>' + (med === null ? '—' : med.toFixed(1) + ' ชม.') + '</b><span>ตอบกลับแรก (มัธยฐาน 30 วัน, n=' + frt.length + ')</span></div><div><b>' + (csat === null ? '—' : csat.toFixed(2) + ' / 5') + '</b><span>ความพึงพอใจ (n=' + rated.length + ')</span></div></div>'
+      + '<div class="fb-split"><div><h3>📊 ตามประเภท</h3>' + byCat.map(([k, n]) => '<div class="hl"><span style="flex:1">' + E(k) + '</span><b>' + n + '</b></div>').join('') + '</div><div><h3>🏷️ ตามเวอร์ชันโปรแกรม <small style="font-weight:400;color:var(--mut)">(ล่าสุด ' + E(lat || '—') + ')</small></h3>' + (Object.entries(byVer).sort((a, b) => b[1].n - a[1].n).slice(0, 6).map(([v, x]) => '<div class="hl"><span style="flex:1">' + E(v) + (fbOutdated(v) ? ' <span class="tag warn">เก่ากว่าล่าสุด</span>' : '') + '</span><span>เปิดอยู่ ' + x.open + '</span><b>' + x.n + '</b></div>').join('') || '<p style="color:var(--mut)">ยังไม่มีข้อมูล</p>') + '</div></div>'
+      + '<div class="toolbar" style="margin-top:14px;flex-wrap:wrap"><button class="btn" id="fbAdd">＋ เพิ่มเรื่องเอง</button><select id="fbSt">' + [['active', 'ที่ยังเปิดอยู่'], ['all', 'ทุกสถานะ'], ...Object.entries(FBX.status).map(([k, v]) => [k, v[0]])].map(([k, n]) => '<option value="' + k + '"' + (f.st === k ? ' selected' : '') + '>' + E(n) + '</option>').join('') + '</select><select id="fbCat"><option value="all">ทุกประเภท</option>' + Object.entries(FBX.cat).map(([k, v]) => '<option value="' + k + '"' + (f.cat === k ? ' selected' : '') + '>' + E(v) + '</option>').join('') + '</select><input id="fbQ" placeholder="🔍 ค้นหารหัส/หัวข้อ/รายละเอียด/อีเมล" value="' + E(f.q) + '" style="max-width:300px"><span style="color:var(--mut)">' + list.length + ' เรื่อง</span></div>'
+      + '<div class="tw"><table><tr><th></th><th>เรื่อง</th><th>ผู้ส่ง</th><th>เวอร์ชัน</th><th>ผลกระทบ</th><th>สถานะ</th><th>ล่าสุด</th></tr>'
+      + (list.map((t) => { const m = mem.find((x) => x.id === t.memberId); return '<tr class="fb-row" data-tk="' + E(t.id) + '" style="cursor:pointer"><td>' + (t.adminUnread ? '<span class="tag err" title="รอตรวจ/ลูกค้าตอบใหม่">●</span>' : '') + '</td><td><b>' + E(t.title) + '</b><br><small>' + E(t.code) + ' · ' + E(FBX.cat[t.category]) + ' · ' + (t.source === 'app' ? '🖥️ โปรแกรม' : t.source === 'web' ? '🌐 เว็บ' : '✍️ แอดมิน') + '</small></td><td>' + (m ? E(m.name) + '<br><small>' + E(m.email) + '</small>' : '<small>' + E(t.keyMask || '—') + '</small>') + (t.keyMask && !t.verified ? '<br><span class="tag warn">คีย์ยังไม่ยืนยัน</span>' : '') + '</td><td>' + E(t.appVersion || '—') + (fbOutdated(t.appVersion) ? '<br><span class="tag warn">เก่า</span>' : '') + '</td><td>' + E(FBX.sev[t.severity]) + (t.priority === 'urgent' || t.priority === 'high' ? '<br><span class="tag err">' + E(FBX.prio[t.priority]) + '</span>' : '') + '</td><td>' + fbTag(t.status) + (t.rating ? '<br><small>' + '★'.repeat(t.rating) + '</small>' : '') + '</td><td><small>' + fbAgo(t.lastActivityAt) + '</small></td></tr>'; }).join('') || '<tr><td colspan="7" style="color:var(--mut)">ไม่มีเรื่องในตัวกรองนี้</td></tr>') + '</table></div>';
   },
   affiliate() {
     if (!SB) return '<h1>🪪 ตัวแทนขายโปรแกรม</h1><p style="color:var(--mut)">ใช้ได้เฉพาะโหมด Supabase (ฐานข้อมูลจริง)</p>';
@@ -349,6 +435,15 @@ const A = {
       if (np) return confirmDlg({ danger: true, title: 'ลบหมวดหมู่นี้ไม่ได้ในตอนนี้', sub: c.id, body: 'ยังมีสินค้าอยู่ในหมวดนี้ ระบบไม่อนุญาตให้ลบจนกว่าจะย้ายสินค้าไปหมวดอื่น หรือลบสินค้าเหล่านั้นก่อน', rows, okText: 'รับทราบ', cancelText: 'ปิด' });
       del('categories', c.id, c.name, { title: 'ลบหมวดหมู่นี้ถาวร?', sub: c.id, body: 'หมวดหมู่จะหายจากตัวกรองหน้าร้านทันที — ย้อนกลับไม่ได้', rows,
         warn: npm ? '⚠ มีโปรโมชันที่ใช้กับหมวดนี้ ' + npm + ' รายการ — ควรแก้หรือลบโปรโมชันเหล่านั้นด้วย ไม่งั้นจะแสดงเป็น "ไม่มีหมวด"' : '', check: 'ฉันตรวจสอบแล้ว ต้องการลบหมวด "' + c.name + '" ถาวร' }); };
+  },
+  feedback() {
+    if (!SB) return;
+    $('#main').onclick = (e) => { const r = e.target.closest('[data-tk]'); if (r) return tkOpen(r.dataset.tk);
+      if (e.target.closest('#fbAdd')) { const mo = DB.list('members').map((m) => [m.id, m.name + ' · ' + m.email]);
+        const F = [{ k: 'title', label: 'หัวข้อ', full: true }, { k: 'body', label: 'รายละเอียด', type: 'textarea', full: true }, { k: 'memberId', label: 'สมาชิก (ถ้ามี)', type: 'select', opts: [['', '— ไม่ระบุ —'], ...mo], full: true }, { k: 'category', label: 'ประเภท', type: 'select', opts: Object.entries(FBX.cat) }, { k: 'severity', label: 'ผลกระทบ', type: 'select', opts: Object.entries(FBX.sev) }, { k: 'priority', label: 'ความสำคัญ', type: 'select', opts: Object.entries(FBX.prio) }, { k: 'status', label: 'สถานะ', type: 'select', opts: Object.entries(FBX.status).map(([k, v]) => [k, v[0]]) }, { k: 'module', label: 'โมดูล' }, { k: 'appVersion', label: 'เวอร์ชันโปรแกรม' }];
+        return editor('เพิ่มเรื่องเอง (เช่น รับแจ้งทาง LINE)', F, { id: crypto.randomUUID(), source: 'admin', memberId: '', title: '', body: '', category: 'bug', severity: 'normal', priority: 'normal', status: 'open', module: '', appVersion: '', os: '' }, (o) => DB.upsert('tickets', o)); } };
+    $('#main').onchange = (e) => { const t = e.target; if (t.id === 'fbSt') { window._fbf.st = t.value; render(); } if (t.id === 'fbCat') { window._fbf.cat = t.value; render(); } };
+    const q = $('#fbQ'); if (q) q.oninput = (e) => { window._fbf.q = e.target.value; const p = e.target.selectionStart; render(); const n = $('#fbQ'); n.focus(); n.setSelectionRange(p, p); };
   },
   affiliate() {
     const go = (t) => { window._affTab = t; render(); }, copy = (t, m) => navigator.clipboard.writeText(t).then(() => toast(m || 'คัดลอกแล้ว')), mem = () => DB.list('members'), by = (id) => mem().find((m) => m.id === id) || {}, link = (m) => new URL('./?ref=' + m.refCode, new URL('index.html', location.href)).href.replace('index.html', '');
