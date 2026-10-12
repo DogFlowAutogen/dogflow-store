@@ -477,3 +477,17 @@ small{color:var(--muted);font-size:12px}
   .bk-buy .bk-img{width:100%;max-width:440px;margin:0 auto;aspect-ratio:2/3}
 }
 .foot-links a{display:inline-block;padding:7px 4px}.nav nav a{padding:8px 2px}   /* ปุ่ม/ลิงก์แตะง่ายขึ้น (เดิมสูงแค่ 20-22px) */
+
+/* แอดมิน: ป้ายในตารางไม่ตกบรรทัด + ตารางผลงานลูกค้าบนมือถือเป็นการ์ด (เห็นปุ่มแก้ไข/ลบไม่ต้องเลื่อนข้าง) */
+.tw .tag{white-space:nowrap}
+@media(max-width:640px){
+  .wk-tbl,.wk-tbl tbody{display:block}
+  .wk-tbl tr:first-child{display:none}
+  .wk-tbl tr{display:grid;grid-template-columns:72px 1fr;gap:4px 12px;padding:12px;margin-bottom:10px;border:1px solid var(--line);border-radius:14px;background:var(--surface)}
+  .wk-tbl td{display:block;border:0;padding:0;min-width:0}
+  .wk-tbl td:nth-child(1){grid-row:1/span 6}
+  .wk-tbl td:nth-child(n+2){grid-column:2}
+  .wk-tbl td[data-l]{font-size:13px}
+  .wk-tbl td[data-l]::before{content:attr(data-l) ": ";color:var(--muted)}
+  .wk-tbl td:last-child{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+}
