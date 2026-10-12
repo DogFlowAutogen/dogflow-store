@@ -469,3 +469,11 @@ small{color:var(--muted);font-size:12px}
 
 /* ผลงานลูกค้า: บรรทัด "Bot : ชื่อบอท" ใต้เครดิตเจ้าของ */
 .wkt small.wkbot{font-weight:700;color:var(--accent);margin-top:1px}
+
+/* ===== ปรับการแสดงผลมือถือ/แท็บเล็ต (ตรวจเมื่อ 2026-10-12) ===== */
+@media(max-width:760px){.carousel{aspect-ratio:3/1}}   /* แบนเนอร์โฆษณาเป็นภาพ 3:1 — เดิมมือถือบังคับ 2:1 ทำให้ตัดข้อความขอบภาพ */
+@media(max-width:1000px){   /* บล็อกแพ็กเกจ: แท็บเล็ตเรียงบน-ล่าง โปสเตอร์กว้างพอดี ไม่เหลือพื้นว่างข้างภาพ */
+  .bk-buy:not(.noimg){grid-template-columns:1fr;gap:20px}
+  .bk-buy .bk-img{width:100%;max-width:440px;margin:0 auto;aspect-ratio:2/3}
+}
+.foot-links a{display:inline-block;padding:7px 4px}.nav nav a{padding:8px 2px}   /* ปุ่ม/ลิงก์แตะง่ายขึ้น (เดิมสูงแค่ 20-22px) */
