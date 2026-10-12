@@ -16,7 +16,7 @@
       settings: {
         brand: 'DogFlow Auto Gen', version: 'v1.0',
         tagline: 'เครื่องมือสร้างคลิปขายของด้วย AI ครบจบในโปรแกรมเดียว',
-        heroTitle: 'สร้างคลิปขายของ\nด้วย AI อัตโนมัติ', heroSub: 'Meta Bot · Auto Story · Flow — AI คิดบท สร้างภาพ ทำคลิปมีเสียงพูด แล้วโพสต์ TikTok / Facebook / Shopee ให้เอง รันหลายบัญชีพร้อมกันได้',
+        heroTitle: 'สร้างคลิปขายของ\nด้วย AI อัตโนมัติ', heroSub: 'Auto · Meta Bot · Flow Bot · Auto Story — AI คิดบท สร้างภาพ ทำคลิปมีเสียงพูดฉากละ 8–10 วินาที ต่อได้สูงสุด 8 ฉาก แล้วปักตะกร้าและโพสต์ TikTok / Facebook / Shopee ให้เอง รันหลายบัญชีพร้อมกันได้',
         heroCta: 'เลือกแพ็กเกจเลย', promoText: '', promoEndsAt: end.toISOString(),
         lineId: '', contactEmail: '', paymentInfo: 'สแกน QR ด้านบนเพื่อโอน แล้วกรอกยอด/เลขอ้างอิง พร้อมแนบสลิปด้านล่าง — คีย์จะเข้าโปรไฟล์อัตโนมัติหลังแอดมินยืนยัน',
         paymentQr: 'assets/promptpay-qr.jpg', installGuide: '1) ดาวน์โหลดไฟล์ติดตั้งด้านบน (แนะนำให้ตรวจ SHA-256 ให้ตรงกับที่แสดง)\n2) เปิดไฟล์เพื่อติดตั้ง — ถ้า Windows แจ้งเตือน ให้เลือก "ข้อมูลเพิ่มเติม" แล้ว "เรียกใช้ต่อไป" (เมื่อมั่นใจว่าโหลดจากหน้านี้)\n3) เปิดโปรแกรม แล้วใส่ License key จากหน้าโปรไฟล์ของคุณ\n4) มีปัญหาติดต่อแอดมินทาง LINE', rules: '1) ใช้งานได้ 1 License ต่อ 1 ชุดเครื่องตามจำนวนที่ซื้อ ห้ามแชร์คีย์ ขาย หรือนำไปเผยแพร่\n2) ห้ามส่งสลิปปลอม สลิปซ้ำ หรือสลิปที่ไม่ตรงกับยอดสั่งซื้อ\n3) ห้ามพยายามเจาะระบบ แก้ไขโปรแกรม หรือหลีกเลี่ยงระบบตรวจสอบ License\n4) ใช้ข้อมูลจริงในการสมัครสมาชิก และรักษารหัสผ่านของตนเอง\n5) สินค้าดิจิทัลหลังออกคีย์แล้วไม่รับคืนเงิน ยกเว้นกรณีระบบขัดข้องจากฝั่งผู้ขาย\n\nการฝ่าฝืน: เตือน 3 ครั้งระงับบัญชีอัตโนมัติ · กรณีร้ายแรง (แชร์คีย์/สลิปปลอม) ระงับ License และบัญชีทันทีโดยไม่คืนเงิน', freeShipOver: 0, adminPin: '1234', heroImage: 'assets/app-meta-bot.png'
@@ -51,6 +51,13 @@
         { id: 'rq-browser', title: 'ใช้ผ่าน Google Chrome หรือ Microsoft Edge', desc: 'เบราว์เซอร์ที่โปรแกรมควบคุมเพื่อสร้างคลิป', icon: '🌐', image: '', kind: 'ok', sort: 3, active: true },
         { id: 'rq-mobile', title: 'ไม่รองรับ มือถือ / iPad / Tablet', desc: 'ยังไม่มีเวอร์ชันสำหรับมือถือหรือแท็บเล็ต', icon: '📵', image: '', kind: 'no', sort: 4, active: true }
       ],
+      modes: [ // โหมดการทำงาน (bot) + ประเภทเรื่อง (genre) {id,kind,title,tag,icon,image,desc,secs,maxScenes,points[],sort,active}
+        { id: 'md-auto', kind: 'bot', title: 'Auto คลิปขายของ', tag: 'ปักตะกร้าอัตโนมัติ', icon: '🛒', image: '', desc: 'ใส่สินค้าเป็นชุด โปรแกรมคิดบท สร้างภาพ ทำคลิปมีเสียงพูด แล้วปักตะกร้าสินค้าให้เองอัตโนมัติ', secs: 0, maxScenes: 0, points: ['🛒|ปักตะกร้าสินค้าอัตโนมัติ', '📦|ใส่ได้ถึง 100 ชุดสินค้าต่อรอบ', '🌙|ปล่อยรันได้ทั้งคืน ตั้งเวลาพักแบบสุ่ม', '📤|เตรียมโพสต์ TikTok · Facebook · Shopee'], sort: 1, active: true },
+        { id: 'md-flow', kind: 'bot', title: 'Flow Bot', tag: 'Google Flow', icon: '🌊', image: '', desc: 'สร้างภาพและคลิปด้วย Google Flow แล้วต่อฉากเป็นคลิปเดียว เลือกเอนจินได้ตามต้องการ', secs: 8, maxScenes: 8, points: ['🔊|ทุกฉากมีเสียงพูดในคลิป', '⚙️|เลือก Studio (เสถียร) หรือ Turbo (เร็ว)', '🔄|กู้คืนงานค้างอัตโนมัติ ไม่ต้องเริ่มใหม่'], sort: 2, active: true },
+        { id: 'md-meta', kind: 'bot', title: 'Meta Bot', tag: 'Meta AI', icon: '🤖', image: '', desc: 'ให้ Meta AI คิดบท บทพูด และมุมกล้อง เจนคลิปแนวตั้งมีเสียงในตัว แล้วต่อฉากเป็นคลิปเดียว', secs: 10, maxScenes: 8, points: ['🔊|ทุกฉากมีเสียงพูดไทยในตัว', '🎞️|ต่อฉากเป็นคลิปเดียวพร้อมโพสต์', '👥|รันหลายบัญชีพร้อมกันได้'], sort: 3, active: true },
+        { id: 'md-story', kind: 'bot', title: 'Auto Story', tag: 'หนังสั้น AI', icon: '🎬', image: '', desc: 'แต่งหนังสั้นจากหัวข้อเดียว สร้างได้หลายรูปแบบเรื่อง ตัวละครพูดได้ และแทรกสินค้าเข้าไปในเรื่องได้', secs: 8, maxScenes: 8, points: ['📖|เลือกประเภทเรื่องได้ 15 แบบ', '🛍️|แทรกสินค้าเข้าไปในเรื่องได้เนียน ๆ', '🗣️|ตัวละครพูดได้ มีเสียงในคลิป'], sort: 4, active: true },
+        ...[['cartoon', 'การ์ตูน/แอนิเมชัน', '🎬', 'สิ่งของ/อาหารมีชีวิต, Pixar, Disney'], ['moral', 'ละครคุณธรรม', '🎭', 'คนจริง, ดราม่า, มีบทเรียนชีวิต'], ['fruit', 'ละครผัก/ผลไม้หัวคน', '🥦', 'คนผลไม้ 2+ ตัว, ดราม่า, ไวรัล'], ['comedy', 'ละครตลกคุณธรรม', '😂', 'ตลกร้าย + บทเรียน'], ['travel', 'Travel Cinematic', '✈️', 'ท่องเที่ยว, Vlog, ซีนสวยๆ'], ['ghost', 'สยองขวัญ/ผี', '👻', 'เรื่องเล่าผี, ระทึก, เรื่องเล่า'], ['kids', 'นิทาน/สอนเด็ก', '🧸', 'นิทานสั้น, มีบทเรียน, สนุก'], ['review', 'รีวิวสินค้า', '📦', 'รีวิว AI Cinematic'], ['asmr', 'ASMR ทำอาหาร', '🍳', 'สิ่งทำครัว, ไม่มีเสียงพูด'], ['podcast', 'Podcast', '🎙️', 'นั่งคุย, สัมภาษณ์, สาระ'], ['romance', 'โรแมนซ์มหาเศรษฐี', '💍', 'CEO/รักต่างฐานะ (มาแรง)'], ['fantasy', 'แฟนตาซี/เหนือธรรมชาติ', '✨', 'พลังวิเศษ, โลกคู่ขนาน'], ['revenge', 'แก้แค้นสะใจ', '⚔️', 'ถูกดูถูก → พลิกกลับมาชนะ'], ['mukbang', 'กินโชว์ (Mukbang)', '🍜', 'กินอาหารจุๆ มีเสียงกิน'], ['custom', 'กำหนดเอง', '✍️', 'ใส่โครงสร้างสร้างเองทั้งหมด']].map((g, i) => ({ id: 'gn-' + g[0], kind: 'genre', title: g[1], tag: '', icon: g[2], image: '', desc: g[3], secs: 0, maxScenes: 0, points: [], sort: i + 1, active: true }))
+      ],
       orders: [],
       members: [],
       notices: [], // แจ้งเตือนถึงลูกค้า {id,memberId,type:'info'|'warning'|'violation'|'ban',title,body,createdAt,read}
@@ -73,7 +80,7 @@
     if (cache) return cache;
     try { cache = JSON.parse(localStorage.getItem(KEY)); } catch (e) { cache = null; }
     if (!cache || !cache.products) { cache = seed(); save(); }
-    ['members', 'notices', 'reqs', 'showcase', 'works', 'releases', 'tutorials', 'banners', 'blocks', 'tickets', 'brands', 'promos', 'reviews', 'faqs', 'audit'].forEach((k) => { if (!cache[k]) cache[k] = []; }); // ข้อมูลเก่าที่ยังไม่มีส่วนใหม่
+    ['members', 'notices', 'reqs', 'modes', 'showcase', 'works', 'releases', 'tutorials', 'banners', 'blocks', 'tickets', 'brands', 'promos', 'reviews', 'faqs', 'audit'].forEach((k) => { if (!cache[k]) cache[k] = []; }); // ข้อมูลเก่าที่ยังไม่มีส่วนใหม่
     return cache;
   }
   function save() {
@@ -115,7 +122,7 @@
     } else if (entity === 'releases') {
       if (!o.version || !o.version.trim()) er.push('ใส่เลขเวอร์ชัน');
       if (!o.externalUrl || !/^https:\/\//.test(o.externalUrl)) er.push('โหมดทดลอง: ใส่ลิงก์ดาวน์โหลด https://');
-    } else if (entity === 'reqs') {
+    } else if (entity === 'reqs' || entity === 'modes') {
       return DFCommon.validate(entity, o, d);
     } else if (entity === 'showcase') {
       if (!o.title || !o.title.trim()) er.push('ใส่หัวข้อ'); if (!o.image) er.push('อัปโหลดภาพหน้าจอ');

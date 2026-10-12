@@ -182,6 +182,11 @@
       if (!o.title || o.title.trim().length < 2) er.push('ใส่หัวข้อคุณสมบัติ (อย่างน้อย 2 ตัวอักษร)');
       if (!['ok', 'no', 'warn'].includes(o.kind)) er.push('เลือกประเภท (ผ่าน / ไม่รองรับ / ข้อควรระวัง)');
       if ((o.title || '').length > 80 || (o.desc || '').length > 200) er.push('หัวข้อไม่เกิน 80 ตัวอักษร · คำอธิบายไม่เกิน 200');
+    } else if (entity === 'modes') {
+      if (!o.title || o.title.trim().length < 2) er.push('ใส่ชื่อ (อย่างน้อย 2 ตัวอักษร)');
+      if (!['bot', 'genre'].includes(o.kind)) er.push('เลือกประเภท (โหมดบอท / ประเภทเรื่อง)');
+      if ((o.title || '').length > 60 || (o.desc || '').length > 220 || (o.tag || '').length > 30) er.push('ชื่อไม่เกิน 60 · ป้ายไม่เกิน 30 · คำอธิบายไม่เกิน 220 ตัวอักษร');
+      if (!(Number(o.secs) >= 0 && Number(o.secs) <= 60) || !(Number(o.maxScenes) >= 0 && Number(o.maxScenes) <= 30)) er.push('วินาทีต่อฉาก 0-60 · จำนวนฉากสูงสุด 0-30 (ใส่ 0 = ไม่แสดงตัวเลข)');
     } else if (entity === 'showcase') {
       if (!o.title || !o.title.trim()) er.push('ใส่หัวข้อ'); if (!o.image) er.push('อัปโหลดภาพหน้าจอ');
     } else if (entity === 'works') {
@@ -221,5 +226,15 @@
   setTimeout(hideSplash, 15000);
   const REQ_ST = { ok: '✓', no: '✕', warn: '!' };
   const reqCards = (L) => L.map((r) => '<div class="rq k-' + esc(r.kind) + '"><div class="rq-ic">' + (r.image ? '<img src="' + esc(r.image) + '" alt="" loading="lazy">' : '<span>' + esc(r.icon || (r.kind === 'no' ? '🚫' : r.kind === 'warn' ? '⚠️' : '✅')) + '</span>') + '</div><div class="rq-b"><b>' + esc(r.title) + '</b>' + (r.desc ? '<span>' + esc(r.desc) + '</span>' : '') + '</div><i class="rq-st" aria-hidden="true">' + (REQ_ST[r.kind] || '✓') + '</i></div>').join('');
-  w.DFCommon = { reqCards, thaiDateTime, esc, baht, uid, embed, clip, validate, price, activePromos, activeBanners, activeBlocks, BLOCKS, BLOCK_COLS, blockFields, blockHealth, cartId, FB, verCmp, couponCalc, hideSplash };
+  // การ์ดโหมดการทำงาน (bot) + ตารางประเภทเรื่อง (genre) — ใช้ร่วมหน้าร้านและพรีวิวในแอดมิน
+  const mIcon = (m, cls) => '<span class="' + cls + '">' + (m.image ? '<img src="' + esc(m.image) + '" alt="" loading="lazy">' : esc(m.icon || '🎬')) + '</span>';
+  const modeTotal = (m) => (m.secs > 0 && m.maxScenes > 0 ? m.secs * m.maxScenes : 0);
+  const modeCards = (L) => L.map((m) => {
+    const tot = modeTotal(m), n = Math.min(30, m.maxScenes || 0), pts = (m.points || []).map((p) => { const i = String(p).indexOf('|'); return i > 0 ? [p.slice(0, i), p.slice(i + 1)] : ['✔', p]; });
+    return '<article class="md" data-m="' + esc(m.id) + '">' + mIcon(m, 'md-ic') + '<div class="md-h">' + (m.tag ? '<small>' + esc(m.tag) + '</small>' : '') + '<h3>' + esc(m.title) + '</h3></div>' + (m.desc ? '<p class="md-d">' + esc(m.desc) + '</p>' : '') +
+      (tot ? '<div class="md-t"><div class="md-n"><b>' + m.secs + '</b><span>วินาที / ฉาก</span></div><i>×</i><div class="md-n"><b>' + m.maxScenes + '</b><span>ฉากสูงสุด</span></div><i>=</i><div class="md-n all"><b>~' + tot + '</b><span>วินาที / คลิป</span></div></div><div class="md-bar" aria-hidden="true">' + '<u></u>'.repeat(n) + '</div>' : '') +
+      (pts.length ? '<ul class="md-p">' + pts.map((p) => '<li><span>' + esc(p[0]) + '</span>' + esc(p[1]) + '</li>').join('') + '</ul>' : '') + '</article>';
+  }).join('');
+  const genreCards = (L) => L.map((g) => '<div class="gn">' + mIcon(g, 'gn-ic') + '<div><b>' + esc(g.title) + '</b>' + (g.desc ? '<small>' + esc(g.desc) + '</small>' : '') + '</div></div>').join('');
+  w.DFCommon = { modeCards, genreCards, modeTotal, reqCards, thaiDateTime, esc, baht, uid, embed, clip, validate, price, activePromos, activeBanners, activeBlocks, BLOCKS, BLOCK_COLS, blockFields, blockHealth, cartId, FB, verCmp, couponCalc, hideSplash };
 })(window);

@@ -10,7 +10,7 @@
 if(ok)return;window.__legacy=true;document.addEventListener('DOMContentLoaded',function(){var d=document.createElement('div');d.setAttribute('style','position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:#0b1222;color:#fff;font-family:Tahoma,sans-serif;text-align:center;padding:60px 20px');
 d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">เบราว์เซอร์นี้ไม่รองรับ</h2><p style="line-height:1.8;max-width:520px;margin:0 auto">Internet Explorer และเบราว์เซอร์รุ่นเก่าไม่รองรับระบบชำระเงินและความปลอดภัยของเว็บนี้<br>กรุณาเปิดด้วย <b>Microsoft Edge</b>, <b>Google Chrome</b>, <b>Safari</b> หรือ <b>Firefox</b> รุ่นล่าสุด<br>ใช้ได้ทั้งคอมพิวเตอร์ แท็บเล็ต และโทรศัพท์</p>';document.body.appendChild(d);});})();
 </script>
-<link rel="stylesheet" href="style.css?v=20261012i">
+<link rel="stylesheet" href="style.css?v=20261012m">
 </head>
 <body>
 <div id="splash" role="status" aria-live="polite">
@@ -88,7 +88,7 @@ $('#out').onclick = async () => { if (SB) await DB.logout(); else sessionStorage
 
 document.addEventListener('click', (e) => { const g = e.target.closest('[data-gotab]'); if (g && authed()) { tab = g.dataset.gotab; render(); } });   // ปุ่มลัดข้ามแท็บ
 /* ===== เมนู ===== */
-const TABS = [['dash', '📊 ภาพรวม'], ['me', '👤 โปรไฟล์ของฉัน'], ['orders', '🧾 ออเดอร์/ชำระเงิน'], ['feedback', '💬 แจ้งปัญหา/เสนอแนะ'], ['products', '📦 สินค้า'], ['cats', '🗂️ หมวดหมู่'], ['members', '👥 สมาชิก'], ['affiliate', '🪪 ตัวแทนขาย'], ['showcase', '🖥️ ภาพหน้าตาโปรแกรม'], ['releases', '💿 ดาวน์โหลดโปรแกรม'], ['works', '🎬 ผลงานลูกค้า'], ['tutorials', '📚 คู่มือ/วิดีโอ'], ['banners', '🖼️ แบนเนอร์โฆษณา'], ['blocks', '🧱 บล็อกหน้าแรก'], ['reqs', '✅ คุณสมบัติ/เช็กก่อนซื้อ'], ['promos', '🔥 โปรโมชัน'], ['brands', '🏷️ แบรนด์สินค้า'], ['coupons', '🎟️ คูปอง'], ['content', '📝 รีวิว/FAQ'], ['settings', '⚙️ ตั้งค่าหน้าแรก'], ['health', '🩺 ตรวจสอบระบบ'], ['data', '💾 สำรอง/ประวัติ']];
+const TABS = [['dash', '📊 ภาพรวม'], ['me', '👤 โปรไฟล์ของฉัน'], ['orders', '🧾 ออเดอร์/ชำระเงิน'], ['feedback', '💬 แจ้งปัญหา/เสนอแนะ'], ['products', '📦 สินค้า'], ['cats', '🗂️ หมวดหมู่'], ['members', '👥 สมาชิก'], ['affiliate', '🪪 ตัวแทนขาย'], ['showcase', '🖥️ ภาพหน้าตาโปรแกรม'], ['releases', '💿 ดาวน์โหลดโปรแกรม'], ['works', '🎬 ผลงานลูกค้า'], ['tutorials', '📚 คู่มือ/วิดีโอ'], ['banners', '🖼️ แบนเนอร์โฆษณา'], ['blocks', '🧱 บล็อกหน้าแรก'], ['modes', '🚀 โหมด/ประเภทเรื่อง'], ['reqs', '✅ คุณสมบัติ/เช็กก่อนซื้อ'], ['promos', '🔥 โปรโมชัน'], ['brands', '🏷️ แบรนด์สินค้า'], ['coupons', '🎟️ คูปอง'], ['content', '📝 รีวิว/FAQ'], ['settings', '⚙️ ตั้งค่าหน้าแรก'], ['health', '🩺 ตรวจสอบระบบ'], ['data', '💾 สำรอง/ประวัติ']];
 function render() {
   const pend = DB.list('orders').filter((o) => o.status === 'review').length;
   $('#menu').innerHTML = TABS.map(([k, n]) => `<a class="${tab === k ? 'on' : ''}" data-t="${k}">${n}${k === 'orders' && pend ? ` <span class="tag err">${pend}</span>` : ''}${k === 'feedback' && fbUnread() ? ` <span class="tag err">${fbUnread()}</span>` : ''}</a>`).join('');
@@ -330,6 +330,21 @@ const V = {
     }
     return '<h1>🪪 ตัวแทนขายโปรแกรม</h1><p style="color:var(--mut)">สมาชิกทุกคนมีลิงก์แนะนำ รับค่าคอมคงที่ตามแพ็กเกจที่ผู้สมัครผ่านลิงก์ซื้อ — ค่าคอมเกิดอัตโนมัติเมื่ออนุมัติสลิป พักตามกำหนด แล้วสมาชิกขอถอน</p><div class="tabs2" style="flex-wrap:wrap">' + TABSX.map(([k, n]) => '<button data-at="' + k + '" class="' + (sub === k ? 'on' : '') + '">' + n + '</button>').join('') + '</div>' + body;
   },
+  modes() {
+    const L = DB.list('modes').slice().sort((a, b) => (a.sort || 0) - (b.sort || 0)), s = DB.settings(), bots = L.filter((m) => m.kind !== 'genre'), gens = L.filter((m) => m.kind === 'genre');
+    const card = (m, inner) => `<div style="${m.active ? '' : 'opacity:.55'}">${inner}<div style="display:flex;gap:6px;align-items:center;margin-top:8px"><span class="tag ${m.active ? 'ok' : ''}">${m.active ? 'แสดง' : 'ซ่อน'}</span><small style="color:var(--mut)">ลำดับ ${m.sort || 0}</small><span style="flex:1"></span><button class="btn sm ghost" data-edit="${m.id}">แก้ไข</button><button class="btn sm danger" data-del="${m.id}">ลบ</button></div></div>`;
+    return `<h1>🚀 โหมดการทำงาน / ประเภทเรื่อง</h1><p style="color:var(--mut)">การ์ดโหมด (Auto · Flow · Meta · Story) และตารางประเภทเรื่องของ Auto Story บนหน้าแรกของร้าน — เพิ่ม แก้ไข ลบ เรียงลำดับ ซ่อน/แสดง ใส่ไอคอน (อีโมจิ) หรืออัปโหลดภาพเองได้ · วินาทีต่อฉาก × จำนวนฉากสูงสุด = ความยาวต่อคลิป คำนวณให้อัตโนมัติ</p>
+    <form id="fModeHead" class="fgrid" style="max-width:860px;margin:12px 0">
+      <div class="f full"><label>แถบตัวเลขในส่วนบนสุด (บรรทัดละ 1 ช่อง: อีโมจิ|ตัวเลขใหญ่|คำอธิบายเล็ก · เว้นว่าง = ใช้ค่ามาตรฐาน)</label><textarea name="heroStats" rows="4" placeholder="🎬|8–10 วิ|ต่อฉาก มีเสียงพูดในคลิป">${E(s.heroStats || '')}</textarea></div>
+      <div class="f"><label>หัวข้อส่วนโหมด</label><input name="modeTitle" maxlength="60" placeholder="เลือกโหมดที่ใช่กับงานของคุณ" value="${E(s.modeTitle || '')}"></div><div class="f"><label>คำโปรยใต้หัวข้อโหมด</label><input name="modeSub" maxlength="120" placeholder="ทุกโหมดมีเสียงพูดในคลิป ต่อฉากเป็นคลิปเดียวพร้อมโพสต์" value="${E(s.modeSub || '')}"></div>
+      <div class="f"><label>หัวข้อส่วนประเภทเรื่อง</label><input name="genreTitle" maxlength="60" placeholder="Auto Story สร้างได้หลายรูปแบบเรื่อง" value="${E(s.genreTitle || '')}"></div><div class="f"><label>คำโปรยใต้หัวข้อประเภทเรื่อง</label><input name="genreSub" maxlength="120" placeholder="เลือกแนวเรื่อง แล้วแทรกสินค้าเข้าไปในเรื่องได้" value="${E(s.genreSub || '')}"></div>
+      <div class="f full"><button class="btn sm" type="submit">💾 บันทึกข้อความส่วนนี้</button> <small style="color:var(--mut)">เว้นว่าง = ใช้ข้อความมาตรฐาน</small></div></form>
+    <button class="btn" id="add">＋ เพิ่มโหมด</button> <button class="btn ghost" id="addG">＋ เพิ่มประเภทเรื่อง</button>
+    <h3 style="margin:18px 0 8px">โหมดการทำงาน · แสดงอยู่ ${bots.filter((m) => m.active).length} จาก ${bots.length}</h3>
+    <div class="mdgrid">${bots.map((m) => card(m, DFCommon.modeCards([m]))).join('') || '<p style="color:var(--mut)">ยังไม่มีโหมด — หน้าร้านจะซ่อนส่วนนี้</p>'}</div>
+    <h3 style="margin:22px 0 8px">ประเภทเรื่อง Auto Story · แสดงอยู่ ${gens.filter((m) => m.active).length} จาก ${gens.length}</h3>
+    <div class="gngrid">${gens.map((m) => card(m, DFCommon.genreCards([m]))).join('') || '<p style="color:var(--mut)">ยังไม่มีประเภทเรื่อง — หน้าร้านจะซ่อนตารางนี้</p>'}</div>`;
+  },
   reqs() {
     const L = DB.list('reqs').slice().sort((a, b) => (a.sort || 0) - (b.sort || 0)), s = DB.settings(), on = L.filter((r) => r.active).length;
     return `<h1>✅ คุณสมบัติที่ต้องมี / เช็กก่อนซื้อ</h1><p style="color:var(--mut)">การ์ดในส่วน "คุณสมบัติที่ต้องมี" หน้าแรกของร้าน — เพิ่ม แก้ไข ลบ เรียงลำดับ ซ่อน/แสดง และใส่ไอคอน (อีโมจิ) หรือแนบภาพเองได้ · ตอนนี้แสดงอยู่ ${on} จาก ${L.length} รายการ</p>
@@ -535,6 +550,25 @@ const A = {
         del('members', m.id, m.email, { title: 'ลบสมาชิกนี้ถาวร?', sub: m.email, body: 'บัญชีและข้อมูลส่วนตัวของสมาชิกจะถูกลบทันที — ย้อนกลับไม่ได้ (ลบได้เฉพาะสมาชิกที่ยังไม่มีออเดอร์)', rows: memRows(m),
           fields: [{ k: 'em', label: 'พิมพ์อีเมลของสมาชิกเพื่อยืนยันการลบ', placeholder: m.email, hint: 'พิมพ์ให้ตรงกับ ' + m.email }], validate: (x) => (x.em.trim().toLowerCase() === String(m.email).toLowerCase() ? '' : 'อีเมลที่พิมพ์ไม่ตรงกับสมาชิกคนนี้ — ตรวจสอบอีกครั้ง'),
           done: { title: 'ลบสมาชิกเรียบร้อยแล้ว', body: 'บัญชีและข้อมูลส่วนตัวของสมาชิกถูกลบถาวรแล้ว — ย้อนกลับไม่ได้' } }); } };
+  },
+  modes() {
+    const F = [{ k: 'kind', label: 'ประเภท', type: 'select', opts: [['bot', '🚀 โหมดการทำงาน (การ์ดใหญ่)'], ['genre', '📖 ประเภทเรื่อง Auto Story (ช่องเล็ก)']] },
+      { k: 'title', label: 'ชื่อ (เช่น Meta Bot · ละครคุณธรรม)', full: true }, { k: 'tag', label: 'ป้ายเล็กเหนือชื่อ (เฉพาะโหมด เช่น Meta AI)' }, { k: 'icon', label: 'ไอคอนอีโมจิ (ใช้เมื่อไม่แนบภาพ)' },
+      { k: 'desc', label: 'คำอธิบาย (โหมด: ประโยคสั้นๆ · ประเภทเรื่อง: คีย์เวิร์ดคั่นด้วย ,)', type: 'textarea', full: true },
+      { k: 'secs', label: 'วินาทีต่อฉาก (เฉพาะโหมด · 0 = ไม่แสดงตัวเลข)', type: 'number' }, { k: 'maxScenes', label: 'จำนวนฉากสูงสุด (เฉพาะโหมด)', type: 'number' },
+      { k: 'points', label: 'จุดเด่นของโหมด (บรรทัดละ 1 ข้อ: อีโมจิ|ข้อความ)', type: 'textarea', list: true, full: true },
+      { k: 'image', label: 'หรืออัปโหลดภาพไอคอน/ภาพประกอบ (สี่เหลี่ยมจัตุรัสสวยสุด) — ถ้าแนบ จะใช้ภาพแทนอีโมจิ', type: 'image', max: 512, full: true },
+      { k: 'sort', label: 'ลำดับ (น้อยขึ้นก่อน)', type: 'number' }, { k: 'active', label: 'แสดงในหน้าแรก', type: 'check' }];
+    const nw = (kind) => ({ id: DB.uid(kind === 'genre' ? 'gn-' : 'md-'), kind, title: '', tag: '', icon: '', image: '', desc: '', secs: kind === 'genre' ? 0 : 8, maxScenes: kind === 'genre' ? 0 : 8, points: [], sort: DB.list('modes').filter((m) => (m.kind === 'genre') === (kind === 'genre')).length + 1, active: true });
+    $('#fModeHead').onsubmit = async (e) => { e.preventDefault(); const f = e.target, r = await DB.saveSettings({ heroStats: f.heroStats.value.trim(), modeTitle: f.modeTitle.value.trim(), modeSub: f.modeSub.value.trim(), genreTitle: f.genreTitle.value.trim(), genreSub: f.genreSub.value.trim() }); if (r && r.ok === false) return alert(r.errors.join(', ')); toast('บันทึกข้อความแล้ว'); render(); };
+    $('#add').onclick = () => editor('เพิ่มโหมด', F, nw('bot'), (o) => DB.upsert('modes', o));
+    $('#addG').onclick = () => editor('เพิ่มประเภทเรื่อง', F, nw('genre'), (o) => DB.upsert('modes', o));
+    $('#main').onclick = (e) => { const b = e.target.closest('button'); if (!b) return;
+      if (b.dataset.edit) return editor('แก้ไข', F, DB.find('modes', b.dataset.edit), (o) => DB.upsert('modes', o));
+      if (!b.dataset.del) return; const r = DB.find('modes', b.dataset.del), g = r.kind === 'genre';
+      del('modes', r.id, r.title, { title: g ? 'ลบประเภทเรื่องนี้ถาวร?' : 'ลบโหมดนี้ถาวร?', sub: r.id, body: 'การ์ดนี้จะหายจากหน้าแรกของร้านทันที — ย้อนกลับไม่ได้',
+        rows: [['ชื่อ', r.title], ['คำอธิบาย', r.desc || '—'], ['ประเภท', g ? 'ประเภทเรื่อง' : 'โหมดการทำงาน'], ['สถานะ', r.active ? 'แสดงอยู่ในหน้าแรก' : 'ซ่อน']],
+        warn: r.active ? '💡 ถ้าแค่ต้องการซ่อนชั่วคราว กด "แก้ไข" แล้วเอาติ๊ก "แสดงในหน้าแรก" ออกแทนการลบ' : '', check: 'ฉันตรวจสอบแล้ว ต้องการลบ "' + r.title + '" ถาวร' }); };
   },
   reqs() {
     const F = [{ k: 'title', label: 'หัวข้อคุณสมบัติ (เช่น ใช้บน Windows)', full: true }, { k: 'desc', label: 'คำอธิบายสั้น (ไม่บังคับ)', type: 'textarea', full: true },
