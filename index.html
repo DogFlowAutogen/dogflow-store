@@ -21,7 +21,7 @@
 if(ok)return;window.__legacy=true;document.addEventListener('DOMContentLoaded',function(){var d=document.createElement('div');d.setAttribute('style','position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:#0b1222;color:#fff;font-family:Tahoma,sans-serif;text-align:center;padding:60px 20px');
 d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">เบราว์เซอร์นี้ไม่รองรับ</h2><p style="line-height:1.8;max-width:520px;margin:0 auto">Internet Explorer และเบราว์เซอร์รุ่นเก่าไม่รองรับระบบชำระเงินและความปลอดภัยของเว็บนี้<br>กรุณาเปิดด้วย <b>Microsoft Edge</b>, <b>Google Chrome</b>, <b>Safari</b> หรือ <b>Firefox</b> รุ่นล่าสุด<br>ใช้ได้ทั้งคอมพิวเตอร์ แท็บเล็ต และโทรศัพท์</p>';document.body.appendChild(d);});})();
 </script>
-<link rel="stylesheet" href="style.css?v=20261012m">
+<link rel="stylesheet" href="style.css?v=20261012s">
 </head>
 <body>
 <div id="splash" role="status" aria-live="polite">
@@ -72,6 +72,9 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
 
 <section class="sec" id="modes" hidden><div class="wrap"><span class="eyebrow">โหมดการทำงาน</span><h2 id="mdT">เลือกโหมดที่ใช่กับงานของคุณ</h2><p class="sub" id="mdS"></p><div class="mdgrid" id="mdList"></div>
   <div id="gnWrap" hidden><h3 class="gn-h" id="gnT">Auto Story สร้างได้หลายรูปแบบเรื่อง</h3><p class="sub" id="gnS"></p><div class="gngrid" id="gnList"></div></div></div></section>
+
+<section class="sec" id="bgsec" hidden><div class="wrap"><span class="eyebrow">ทำงานเบื้องหลัง</span><h2 id="bgT">สั่งงานแล้ว ไปทำอย่างอื่นได้เลย</h2><p class="sub" id="bgS"></p>
+  <div class="bgnote"><i aria-hidden="true">⚙️</i><div><b id="bgNoteH"></b><span id="bgNoteT"></span></div></div><div class="ftgrid" id="bgList"></div></div></section>
 
 <section class="sec" id="why"><div class="wrap"><span class="eyebrow">จุดเด่น</span><h2>ทำไมต้อง DogFlow Auto Gen</h2><p class="sub">ทุกขั้นตอนของคลิปขายของ ตั้งแต่คิดบทจนปักตะกร้าและโพสต์ อยู่ในโปรแกรมเดียว</p>
   <div class="feat">
@@ -294,7 +297,7 @@ function renderWorks() {
   if (workFilter && !ps.some((p) => p.platform === workFilter)) workFilter = '';
   $('#workTabs').innerHTML = ps.length > 1 ? '<button class="chip' + (workFilter ? '' : ' on') + '" data-wf="">ทั้งหมด</button>' + ps.map((p) => '<button class="chip' + (workFilter === p.platform ? ' on' : '') + '" data-wf="' + E(p.platform) + '">' + p.icon + ' ' + E(p.label) + '</button>').join('') : '';
   $('#workList').innerHTML = L.filter((w) => !workFilter || info(w).platform === workFilter).map((w) => { const c = info(w), th = w.thumb || c.thumb;
-    return '<article class="wk" data-work="' + E(w.id) + '" tabindex="0" role="button" aria-label="เล่นคลิป ' + E(w.title || w.creator || '') + '"><div class="wkp">' + (th ? '<img src="' + E(th) + '" alt="" loading="lazy" referrerpolicy="no-referrer">' : '') + '<span class="wki">' + c.icon + '</span><span class="wkb">' + c.icon + ' ' + E(c.label) + '</span><span class="wkpl">▶</span>' + (w.views != null ? '<span class="wkv" data-v="works:' + E(w.id) + '" title="ยอดเข้าชม">👁 ' + fmtViews(w.views) + '</span>' : '') + '</div><div class="wkt">' + (w.title ? '<b>' + E(w.title) + '</b>' : '') + (w.creator ? '<small' + (w.title ? '' : ' class="only"') + '>โดย ' + E(w.creator) + '</small>' : '') + (w.bot ? '<small class="wkbot" title="สร้างด้วยบอท">🤖 ' + E(w.bot) + '</small>' : '') + '</div></article>'; }).join('');   // ไม่มีชื่อคลิป = แสดงเฉพาะ "โดย @เครดิต"
+    return '<article class="wk" data-work="' + E(w.id) + '" tabindex="0" role="button" aria-label="เล่นคลิป ' + E(w.title || w.creator || '') + '"><div class="wkp">' + (th ? '<img src="' + E(th) + '" alt="" loading="lazy" referrerpolicy="no-referrer">' : '') + '<span class="wki">' + c.icon + '</span><span class="wkb">' + c.icon + ' ' + E(c.label) + '</span><span class="wkpl">▶</span>' + (w.views != null ? '<span class="wkv" data-v="works:' + E(w.id) + '" title="ยอดเข้าชม">👁 ' + fmtViews(w.views) + '</span>' : '') + '</div><div class="wkt">' + (w.title ? '<b>' + E(w.title) + '</b>' : '') + (w.creator ? '<small' + (w.title ? '' : ' class="only"') + '>โดย ' + E(w.creator) + '</small>' : '') + (w.bot ? '<small class="wkbot" title="สร้างด้วย Bot">🤖 ' + E(w.bot) + '</small>' : '') + '</div></article>'; }).join('');   // ไม่มีชื่อคลิป = แสดงเฉพาะ "โดย @เครดิต"
 }
 function fmtViews(n) { n = Number(n) || 0; return n >= 1e6 ? (n / 1e6).toFixed(1).replace(/\.0$/, '') + 'M' : n >= 1e3 ? (n / 1e3).toFixed(1).replace(/\.0$/, '') + 'K' : String(n); }
 // นับยอดวิวเมื่อกดเล่น — เบราว์เซอร์เดิมนับซ้ำคลิปเดิมได้อีกครั้งหลัง 6 ชม. (กันกดรัวปั่นยอด)
@@ -383,8 +386,10 @@ function renderHeroStats(s) {
   $('#heroStats').innerHTML = src.map((l) => { const p = l.split('|'); if (p.length < 2) return ''; const ic = p.length >= 3 ? p[0] : '✨', big = p.length >= 3 ? p[1] : p[0], sm = p.length >= 3 ? p.slice(2).join('|') : p.slice(1).join('|'); return '<div class="st"><i class="st-ic" aria-hidden="true">' + E(ic.trim()) + '</i><div><b>' + E(big.trim()) + '</b><span>' + E(sm.trim()) + '</span></div></div>'; }).join('');
 }
 function renderModes() { // โหมดการทำงาน + ประเภทเรื่อง — แอดมินจัดการที่ 🚀 โหมด/ประเภทเรื่อง
-  const L = DB.list('modes').filter((m) => m.active).sort((a, b) => (a.sort || 0) - (b.sort || 0)), bots = L.filter((m) => m.kind !== 'genre'), gens = L.filter((m) => m.kind === 'genre'), s = DB.settings();
-  $('#modes').hidden = !L.length;
+  const L = DB.list('modes').filter((m) => m.active).sort((a, b) => (a.sort || 0) - (b.sort || 0)), bots = L.filter((m) => m.kind !== 'genre' && m.kind !== 'feature'), gens = L.filter((m) => m.kind === 'genre'), fts = L.filter((m) => m.kind === 'feature'), s = DB.settings();
+  $('#bgsec').hidden = !fts.length; $('#bgT').textContent = s.bgTitle || 'สั่งงานแล้ว ไปทำอย่างอื่นได้เลย'; $('#bgS').textContent = s.bgSub || 'เปิดงานทิ้งไว้ แล้วใช้คอมพิวเตอร์ทำอย่างอื่นต่อได้ โปรแกรมทำงานเบื้องหลังให้ต่อเนื่อง'; $('#bgList').innerHTML = DFCommon.featCards(fts);
+  $('#bgNoteH').textContent = s.bgNoteHead || 'ไม่ใช่ Extension ไม่ใช่แอป (Application) แต่เป็น Browser Automation'; $('#bgNoteT').textContent = s.bgNote || 'ระบบ Automation ที่ทรงพลัง — DogFlow Auto Gen เปิดและควบคุมเบราว์เซอร์จริง (Edge / Chrome) ให้ทำงานแทนคุณโดยตรง ไม่ต้องติดตั้งส่วนขยายในเบราว์เซอร์ จึงย่อหน้าต่างหรือเปิดโปรแกรมอื่นทับได้ และไม่แย่งเมาส์ของคุณ';
+  $('#modes').hidden = !bots.length && !gens.length;
   $('#mdT').textContent = s.modeTitle || 'เลือกโหมดที่ใช่กับงานของคุณ'; $('#mdS').textContent = s.modeSub || 'ทุกโหมดมีเสียงพูดในคลิป ต่อฉากเป็นคลิปเดียว พร้อมโพสต์ลงแพลตฟอร์มได้เลย'; $('#mdList').innerHTML = DFCommon.modeCards(bots);
   $('#gnWrap').hidden = !gens.length; $('#gnT').textContent = s.genreTitle || 'Auto Story สร้างได้หลายรูปแบบเรื่อง'; $('#gnS').textContent = s.genreSub || 'เลือกแนวเรื่องที่ใช่ แล้วแทรกสินค้าเข้าไปในเรื่องได้เนียน ๆ'; $('#gnList').innerHTML = DFCommon.genreCards(gens);
 }
