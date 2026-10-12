@@ -467,5 +467,5 @@ small{color:var(--muted);font-size:12px}
 .bk-hero.hasimg .btn.ghost{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.45);color:#fff;backdrop-filter:blur(6px)}
 @media(max-width:760px){.bk-hero.hasimg{padding:36px 16px;background-position:center}}
 
-/* ผลงานลูกค้า: ป้ายบอกว่าคลิปสร้างจากบอทไหน */
-.wkbot{display:inline-block;margin-top:6px;padding:3px 10px;border-radius:999px;font-size:11.5px;font-weight:700;color:var(--accent);background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 35%,transparent)}
+/* ผลงานลูกค้า: บรรทัด "Bot : ชื่อบอท" ใต้เครดิตเจ้าของ */
+.wkt small.wkbot{font-weight:700;color:var(--accent);margin-top:1px}

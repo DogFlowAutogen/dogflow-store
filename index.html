@@ -18,7 +18,7 @@
 if(ok)return;window.__legacy=true;document.addEventListener('DOMContentLoaded',function(){var d=document.createElement('div');d.setAttribute('style','position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:#0b1222;color:#fff;font-family:Tahoma,sans-serif;text-align:center;padding:60px 20px');
 d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">เบราว์เซอร์นี้ไม่รองรับ</h2><p style="line-height:1.8;max-width:520px;margin:0 auto">Internet Explorer และเบราว์เซอร์รุ่นเก่าไม่รองรับระบบชำระเงินและความปลอดภัยของเว็บนี้<br>กรุณาเปิดด้วย <b>Microsoft Edge</b>, <b>Google Chrome</b>, <b>Safari</b> หรือ <b>Firefox</b> รุ่นล่าสุด<br>ใช้ได้ทั้งคอมพิวเตอร์ แท็บเล็ต และโทรศัพท์</p>';document.body.appendChild(d);});})();
 </script>
-<link rel="stylesheet" href="style.css?v=20261012f">
+<link rel="stylesheet" href="style.css?v=20261012g">
 </head>
 <body>
 <div id="splash" role="status" aria-live="polite">
@@ -153,7 +153,7 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
 <div class="modal" id="mOrders"><div class="mbox" style="width:min(640px,100%)">
   <h3>📦 ออเดอร์ของฉัน</h3><div id="myOrders"></div><button class="btn ghost sm" style="margin-top:12px" data-close>ปิด</button>
 </div></div>
-<div class="modal" id="mWork"><div class="mbox wbox" style="width:min(460px,100%);text-align:center"><h3 id="wT"></h3><div id="wBox" style="margin:8px auto;display:flex;flex-direction:column;align-items:center;gap:10px"></div><p id="wC" style="color:var(--mut);margin:0 0 4px"></p><p id="wCr" style="color:var(--mut);font-size:13px;margin:0 0 6px"></p><div class="shr" id="wShr"></div><button class="btn ghost sm" data-close>ปิด</button></div></div>
+<div class="modal" id="mWork"><div class="mbox wbox" style="width:min(460px,100%);text-align:center"><h3 id="wT"></h3><div id="wBox" style="margin:8px auto;display:flex;flex-direction:column;align-items:center;gap:10px"></div><p id="wC" style="color:var(--mut);margin:0 0 4px"></p><p id="wCr" style="color:var(--mut);font-size:13px;margin:0 0 6px;white-space:pre-line"></p><div class="shr" id="wShr"></div><button class="btn ghost sm" data-close>ปิด</button></div></div>
 <div class="modal" id="mVideo"><div class="mbox wbox" style="width:min(860px,100%)"><h3 id="vT"></h3><div id="vBox" style="margin:8px auto;display:flex;flex-direction:column;align-items:center;gap:8px"></div><p id="vD" style="color:var(--mut)"></p><div class="shr" id="vShr"></div><button class="btn ghost sm" data-close>ปิด</button></div></div>
 <div class="modal" id="mRules"><div class="mbox"><h3>📜 เงื่อนไขและกฎการใช้งาน</h3><div id="rulesTxt" style="white-space:pre-line;color:var(--mut);font-size:14px;margin:12px 0"></div><button class="btn sm" data-close>รับทราบ</button></div></div>
 <div class="modal" id="mShot"><div class="mbox" style="width:min(1100px,100%);padding:14px"><img id="shotBig" alt="" style="width:100%;border-radius:12px"><p id="shotCap" style="color:var(--mut);margin:10px 4px"></p><button class="btn ghost sm" data-close>ปิด</button></div></div>
@@ -161,9 +161,9 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
 
 <script src="config.js"></script>
 <script src="vendor/supabase.js"></script>
-<script src="store.common.js"></script>
-<script src="store.local.js"></script>
-<script src="store.supabase.js"></script>
+<script src="store.common.js?v=20261012b"></script>
+<script src="store.local.js?v=20261012b"></script>
+<script src="store.supabase.js?v=20261012b"></script>
 <script>
 const $ = (s) => document.querySelector(s), E = DB.esc, B = DB.baht;
 /* ===== รหัสแนะนำจากตัวแทนขาย: ?ref=CODE → เก็บ 30 วัน → แนบตอนสมัครสมาชิก (ผูกถาวรครั้งแรกที่สมัครเท่านั้น) ===== */
@@ -286,7 +286,7 @@ function renderWorks() {
   if (workFilter && !ps.some((p) => p.platform === workFilter)) workFilter = '';
   $('#workTabs').innerHTML = ps.length > 1 ? '<button class="chip' + (workFilter ? '' : ' on') + '" data-wf="">ทั้งหมด</button>' + ps.map((p) => '<button class="chip' + (workFilter === p.platform ? ' on' : '') + '" data-wf="' + E(p.platform) + '">' + p.icon + ' ' + E(p.label) + '</button>').join('') : '';
   $('#workList').innerHTML = L.filter((w) => !workFilter || info(w).platform === workFilter).map((w) => { const c = info(w), th = w.thumb || c.thumb;
-    return '<article class="wk" data-work="' + E(w.id) + '" tabindex="0" role="button" aria-label="เล่นคลิป ' + E(w.title || w.creator || '') + '"><div class="wkp">' + (th ? '<img src="' + E(th) + '" alt="" loading="lazy" referrerpolicy="no-referrer">' : '') + '<span class="wki">' + c.icon + '</span><span class="wkb">' + c.icon + ' ' + E(c.label) + '</span><span class="wkpl">▶</span>' + (w.views != null ? '<span class="wkv" data-v="works:' + E(w.id) + '" title="ยอดเข้าชม">👁 ' + fmtViews(w.views) + '</span>' : '') + '</div><div class="wkt">' + (w.title ? '<b>' + E(w.title) + '</b>' : '') + (w.creator ? '<small' + (w.title ? '' : ' class="only"') + '>โดย ' + E(w.creator) + '</small>' : '') + (w.bot ? '<span class="wkbot">🤖 สร้างด้วย ' + E(w.bot) + '</span>' : '') + '</div></article>'; }).join('');   // ไม่มีชื่อคลิป = แสดงเฉพาะ "โดย @เครดิต"
+    return '<article class="wk" data-work="' + E(w.id) + '" tabindex="0" role="button" aria-label="เล่นคลิป ' + E(w.title || w.creator || '') + '"><div class="wkp">' + (th ? '<img src="' + E(th) + '" alt="" loading="lazy" referrerpolicy="no-referrer">' : '') + '<span class="wki">' + c.icon + '</span><span class="wkb">' + c.icon + ' ' + E(c.label) + '</span><span class="wkpl">▶</span>' + (w.views != null ? '<span class="wkv" data-v="works:' + E(w.id) + '" title="ยอดเข้าชม">👁 ' + fmtViews(w.views) + '</span>' : '') + '</div><div class="wkt">' + (w.title ? '<b>' + E(w.title) + '</b>' : '') + (w.creator ? '<small' + (w.title ? '' : ' class="only"') + '>โดย ' + E(w.creator) + '</small>' : '') + (w.bot ? '<small class="wkbot">Bot : ' + E(w.bot) + '</small>' : '') + '</div></article>'; }).join('');   // ไม่มีชื่อคลิป = แสดงเฉพาะ "โดย @เครดิต"
 }
 function fmtViews(n) { n = Number(n) || 0; return n >= 1e6 ? (n / 1e6).toFixed(1).replace(/\.0$/, '') + 'M' : n >= 1e3 ? (n / 1e3).toFixed(1).replace(/\.0$/, '') + 'K' : String(n); }
 // นับยอดวิวเมื่อกดเล่น — เบราว์เซอร์เดิมนับซ้ำคลิปเดิมได้อีกครั้งหลัง 6 ชม. (กันกดรัวปั่นยอด)
@@ -297,7 +297,7 @@ async function countView(entity, id) {
 }
 function playWork(id) {
   const w = DB.find('works', id); if (!w) return; countView('works', id); const c = DFCommon.clip(w.url), box = $('#wBox'); if (!c) return;
-  $('#wT').textContent = w.title || ''; $('#wT').hidden = !w.title; $('#wC').textContent = w.caption || ''; $('#wCr').textContent = w.creator ? (w.title ? 'เครดิต: ' : 'โดย ') + w.creator + ' · ลิขสิทธิ์เป็นของเจ้าของผลงาน' : '';   // ไม่มีชื่อคลิป = ไม่แสดงหัวข้อ เหลือเฉพาะ "โดย เครดิต" box.innerHTML = '';
+  $('#wT').textContent = w.title || ''; $('#wT').hidden = !w.title; $('#wC').textContent = w.caption || ''; $('#wCr').textContent = (w.creator ? (w.title ? 'เครดิต: ' : 'โดย ') + w.creator + ' · ลิขสิทธิ์เป็นของเจ้าของผลงาน' : '') + (w.bot ? (w.creator ? '\n' : '') + 'Bot : ' + w.bot : '');   // ไม่มีชื่อคลิป = ไม่แสดงหัวข้อ เหลือเฉพาะ "โดย เครดิต" box.innerHTML = '';
   // ขนาดตัวเล่นผูกกับความสูงหน้าจอ (--wh ใน .wbox) → กรอบพอดีจอเสมอ ไม่มีแถบเลื่อน · แนวตั้งกำหนดจากความสูง แนวนอนกำหนดจากความกว้าง
   const vert = c.ratio === '9/16', size = (vertical, ar) => (vertical ? 'height:var(--wh);width:auto;max-width:100%;' : 'width:min(100%,calc(var(--wh) * 16 / 9));height:auto;') + 'aspect-ratio:' + ar + ';';
   if (c.type === 'iframe') { const f = document.createElement('iframe'); f.src = c.src; f.title = w.title || w.creator || 'คลิป'; f.allow = 'autoplay; fullscreen; picture-in-picture; encrypted-media'; f.allowFullscreen = true; f.referrerPolicy = 'strict-origin-when-cross-origin'; f.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-popups allow-presentation allow-popups-to-escape-sandbox');

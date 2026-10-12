@@ -50,9 +50,9 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
 
 <script src="config.js"></script>
 <script src="vendor/supabase.js"></script>
-<script src="store.common.js"></script>
-<script src="store.local.js"></script>
-<script src="store.supabase.js"></script>
+<script src="store.common.js?v=20261012b"></script>
+<script src="store.local.js?v=20261012b"></script>
+<script src="store.supabase.js?v=20261012b"></script>
 <script src="avatar.js"></script>
 <script>
 const $ = (s) => document.querySelector(s), E = DB.esc, B = DB.baht;
@@ -593,7 +593,7 @@ const A = {
   },
   works() {
     const F = [{ k: 'url', label: 'ลิงก์คลิป — แปะลิงก์ที่กดแชร์จากแอปได้เลย (รวมลิงก์ย่อ vm.tiktok.com) · TikTok / YouTube / Instagram / Facebook หรือไฟล์ .mp4', full: true }, { k: 'file', label: SB ? 'หรืออัปโหลดไฟล์วิดีโอ (.mp4 / .webm / .mov ไม่เกิน 50MB) — ใช้แทนลิงก์ · ภาพปกสร้างจากเฟรมแรกให้อัตโนมัติถ้าไม่ได้ใส่เอง · แก้ไขโดยไม่เลือกไฟล์ = ใช้ไฟล์เดิม' : 'อัปโหลดไฟล์ไม่ได้ในโหมดทดลอง — ใช้ลิงก์', type: 'file', accept: 'video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov', full: true }, { k: 'title', label: 'ชื่อคลิป/ผลงาน (ไม่บังคับ — ลิงก์: เว้นว่าง = ดึงจากแพลตฟอร์มให้ · ไฟล์ที่อัปโหลด: เว้นว่าง = ไม่แสดงชื่อ แสดงเฉพาะ "โดย เครดิต")', full: true }, { k: 'creator', label: 'เครดิตเจ้าของ (@ชื่อบัญชี)' }, { k: 'sort', label: 'ลำดับ', type: 'number' },
-      { k: 'bot', label: '🤖 คลิปนี้สร้างจากบอท/ส่วนงานไหนของ DogFlow', type: 'select', opts: [['', '— ไม่ระบุ —'], ['Flow Bot', '🎬 Flow Bot'], ['Meta Bot', '🟣 Meta Bot'], ['Auto Story', '📖 Story (Auto Story)'], ['__custom', '✏️ กำหนดเอง (พิมพ์ชื่อเอง)']] }, { k: 'botCustom', label: 'ถ้าเลือก "กำหนดเอง" พิมพ์ชื่อบอท/ส่วนงานที่นี่ (ไม่เกิน 40 ตัวอักษร)' }, { k: 'caption', label: 'คำอธิบายสั้น (ไม่บังคับ)', full: true }, { k: 'thumb', prev: 'width:90px;height:160px;object-fit:cover', label: 'ภาพปก 9:16 (ไม่บังคับ — YouTube ใช้ภาพปกอัตโนมัติ · แพลตฟอร์มอื่นถ้าไม่ใส่จะเป็นพื้นสีพร้อมไอคอน)', type: 'image', max: 720, full: true }, { k: 'consent', label: 'ยืนยันว่าได้รับอนุญาตจากเจ้าของคลิปให้นำมาแสดงบนเว็บนี้แล้ว (จำเป็นก่อนเปิดแสดง)', type: 'check', full: true }, { k: 'active', label: 'แสดงในหน้าแรก', type: 'check', full: true }];
+      { k: 'bot', label: '🤖 สร้างจากบอทไหน', type: 'select', opts: [['', '— ไม่ระบุ —'], ['Flow Bot', '🎬 Flow Bot'], ['Meta Bot', '🟣 Meta Bot'], ['Auto Story', '📖 Story (Auto Story)'], ['__custom', '✏️ กำหนดเอง (พิมพ์ชื่อเอง)']] }, { k: 'botCustom', label: 'ชื่อที่กำหนดเอง (ไม่เกิน 40 ตัว)' }, { k: 'caption', label: 'คำอธิบายสั้น (ไม่บังคับ)', full: true }, { k: 'thumb', prev: 'width:90px;height:160px;object-fit:cover', label: 'ภาพปก 9:16 (ไม่บังคับ — YouTube ใช้ภาพปกอัตโนมัติ · แพลตฟอร์มอื่นถ้าไม่ใส่จะเป็นพื้นสีพร้อมไอคอน)', type: 'image', max: 720, full: true }, { k: 'consent', label: 'ยืนยันว่าได้รับอนุญาตจากเจ้าของคลิปให้นำมาแสดงบนเว็บนี้แล้ว (จำเป็นก่อนเปิดแสดง)', type: 'check', full: true }, { k: 'active', label: 'แสดงในหน้าแรก', type: 'check', full: true }];
     // บันทึก: ลิงก์ย่อ/ลิงก์ที่ยังไม่ครบ → ให้เซิร์ฟเวอร์ขยายเป็นลิงก์เต็ม + เติมชื่อ/เครดิต/ภาพปกที่เว้นว่างไว้ + ตรวจว่าฝังได้ · ตรวจไม่ได้แต่ลิงก์เล่นได้ปกติ = บันทึกต่อได้ (กรอกเอง)
     const videoPoster = dfVideoPoster;   // ภาพปกจากเฟรมแรกของวิดีโอ (ฟังก์ชันกลางด้านบนของสคริปต์)
     const BOTS = ['Flow Bot', 'Meta Bot', 'Auto Story'];   // ตัวเลือกสำเร็จรูป · ค่าอื่นที่ไม่อยู่ในรายการ = "กำหนดเอง"
