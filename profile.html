@@ -173,7 +173,9 @@ const FBX = DFCommon.FB, fbTagP = (k) => { const x = FBX.status[k] || [k, 'pendi
 const fbAgoP = (t) => { const s = Math.max(0, (Date.now() - new Date(t)) / 1000); return s < 60 ? 'เมื่อสักครู่' : s < 3600 ? Math.floor(s / 60) + ' นาทีที่แล้ว' : s < 86400 ? Math.floor(s / 3600) + ' ชม.ที่แล้ว' : Math.floor(s / 86400) + ' วันที่แล้ว'; };
 function paintFb() {
   const box = $('#fb'), can = DB.mode === 'supabase' && !!DB.fbCreate; box.hidden = !can; if (!can) return;
-  const T = DB.list('tickets'), un = T.filter((t) => t.userUnread).length;
+  // [2026-10-13] แสดงเฉพาะเรื่องของบัญชีนี้ — RLS ให้แอดมินอ่านทุกเรื่อง (ไว้ใช้หน้าแอดมิน) แต่หน้าโปรไฟล์เป็นมุมมองสมาชิก:
+  // เรื่องของคนอื่น/เรื่องจากโปรแกรมที่ยังไม่ผูกสมาชิก ตอบจากตรงนี้ไม่ได้ (fb_member_reply ต้อง member_id = ตัวเอง → "ไม่พบเรื่องนี้") ให้แอดมินตอบที่หน้าแอดมิน
+  const myId = (DB.me() || {}).id, T = DB.list('tickets').filter((t) => !myId || t.memberId === myId), un = T.filter((t) => t.userUnread).length;
   $('#fbUnr').hidden = !un; $('#fbUnr').textContent = un + ' ตอบใหม่';
   $('#fbSum').textContent = T.length ? 'ทั้งหมด ' + T.length + ' เรื่อง · กำลังดำเนินการ ' + T.filter((t) => ['new', 'open', 'waiting_user'].includes(t.status)).length + ' · แก้ไขแล้ว ' + T.filter((t) => ['resolved', 'closed'].includes(t.status)).length : '';
   $('#fbList').innerHTML = T.map((t) => '<div class="hl fb-row" data-fbtk="' + E(t.id) + '" style="cursor:pointer;align-items:center"><span style="flex:1"><b>' + E(t.title) + '</b>' + (t.userUnread ? ' <span class="tag err">ตอบใหม่</span>' : '') + '<br><small style="color:var(--mut)">' + E(t.code) + ' · ' + E(FBX.cat[t.category]) + ' · ' + (t.source === 'app' ? '🖥️ จากโปรแกรม' : '🌐 จากเว็บ') + ' · ' + fbAgoP(t.lastActivityAt) + '</small></span>' + fbTagP(t.status) + '</div>').join('') || '<div class="aff-empty"><div style="font-size:32px">💬</div><b>ยังไม่มีเรื่องที่ส่ง</b>แจ้งปัญหา/เสนอแนะจากโปรแกรม DogFlow (ตั้งค่า → แจ้งปัญหา / เสนอแนะ) หรือกด “ส่งเรื่องใหม่” ด้านบน</div>';
