@@ -18,7 +18,7 @@
 if(ok)return;window.__legacy=true;document.addEventListener('DOMContentLoaded',function(){var d=document.createElement('div');d.setAttribute('style','position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:#0b1222;color:#fff;font-family:Tahoma,sans-serif;text-align:center;padding:60px 20px');
 d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">เบราว์เซอร์นี้ไม่รองรับ</h2><p style="line-height:1.8;max-width:520px;margin:0 auto">Internet Explorer และเบราว์เซอร์รุ่นเก่าไม่รองรับระบบชำระเงินและความปลอดภัยของเว็บนี้<br>กรุณาเปิดด้วย <b>Microsoft Edge</b>, <b>Google Chrome</b>, <b>Safari</b> หรือ <b>Firefox</b> รุ่นล่าสุด<br>ใช้ได้ทั้งคอมพิวเตอร์ แท็บเล็ต และโทรศัพท์</p>';document.body.appendChild(d);});})();
 </script>
-<link rel="stylesheet" href="style.css?v=20261012b">
+<link rel="stylesheet" href="style.css?v=20261012d">
 </head>
 <body>
 <div id="splash" role="status" aria-live="polite">
@@ -75,6 +75,8 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
     <div><i>04</i><h4>โพสต์ให้อัตโนมัติ</h4><p>เชื่อม TikTok · Facebook · Shopee พร้อมรันหลายบัญชีในเวลาเดียวกัน</p></div>
     <div><i>05</i><h4>เลือก AI ได้อิสระ</h4><p>รองรับ Gemini · OpenAI · Claude · KIE · Qwen · DeepSeek · Grok และโหมดไม่ใช้ API</p></div>
     <div><i>06</i><h4>License ผูกบัญชีของคุณ</h4><p>คีย์ส่งเข้าโปรไฟล์อัตโนมัติหลังยืนยันการชำระเงิน ดูอายุและเครื่องที่ใช้ได้ในโปรแกรม</p></div>
+    <div><i>07</i><h4>ปล่อยรันได้ทั้งคืน</h4><p>ใส่ได้ถึง 100 ชุดสินค้าต่อรอบ ตั้งเวลาพักระหว่างงานแบบสุ่ม แล้วปล่อยให้โปรแกรมทำต่อเองจนครบ</p></div>
+    <div><i>08</i><h4>พูดไทยในคลิป</h4><p>เลือกภาษาไทยได้ทั้งบทพูดและเสียงในคลิป เหมาะกับขายของและทำคอนเทนต์ให้คนไทยดู</p></div>
   </div></div></section>
 
 <section class="sec" id="preview" hidden><div class="wrap"><span class="eyebrow">ตัวอย่างการใช้งานจริง</span><h2>หน้าตาโปรแกรม</h2><p class="sub">ภาพหน้าจอจากโปรแกรมเวอร์ชันล่าสุด</p><div class="shots" id="shots"></div></div></section>
@@ -223,7 +225,7 @@ const BLK = {
   hero: (b) => '<article class="blk bk-hero">' + Array.from(b.deco || '').filter((c) => c.trim()).slice(0, 6).map((c, i) => '<i class="d' + i + '" aria-hidden="true">' + E(c) + '</i>').join('') + '<h2>' + E(b.head) + (b.accent ? '<strong>' + E(b.accent) + '</strong>' : '') + '</h2>'
     + '<div class="bk-chips c">' + ln(b.chips).map((p, i) => '<span class="t' + (i % 3) + '">' + pair(p) + '</span>').join('') + '</div>' + (b.sub ? '<p class="bk-sub">' + E(b.sub) + '</p>' : '') + '<div class="bk-cta c">' + ctaHtml(b) + '</div></article>',
   steps: (b) => '<article class="blk bk-steps"><div class="bs-top"><span class="bs-ic">' + E(b.icon || '🤖') + '</span><div>' + (b.tag ? '<span class="bk-pill">' + E(b.tag) + '</span>' : '') + '<h2>' + headHtml(b) + '</h2></div>' + (b.sub ? '<p class="bs-sub">' + E(b.sub) + '</p>' : '') + '</div>'
-    + '<div class="bs-steps">' + ln(b.steps).map((p, i) => '<div><i>' + (i + 1) + '</i><span>' + (p.length > 1 ? E(p[0]) : '') + '</span><b>' + E(p.length > 1 ? p[1] : p[0]) + '</b></div>').join('') + '</div>'
+    + '<div class="bs-steps">' + ln(b.steps).map((p, i) => { const ic = p.length > 1 ? p[0] : '', isImg = /^(https:\/\/|\/|assets\/)/.test(ic); return '<div class="st' + (i % 4) + '"><i>' + (i + 1) + '</i><span class="bs-st-ic">' + (isImg ? '<img src="' + E(ic) + '" alt="" loading="lazy">' : '<em>' + E(ic) + '</em>') + '</span><b>' + E(p.length > 1 ? p[1] : p[0]) + '</b>' + (p[2] ? '<small>' + E(p[2]) + '</small>' : '') + '</div>'; }).join('') + '</div>'
     + (b.chips && b.chips.length ? '<div class="bs-ai"><small>' + E(b.chipsLabel || '') + '</small>' + ln(b.chips).map((p) => '<span>' + E(p[0]) + '</span>').join('') + '</div>' : '')
     + '<div class="bs-foot"><div class="bs-meta">' + ln(b.meta).map((p) => '<span>' + pair(p.map((x) => x.replace(/\{version\}/g, realVer()))) + '</span>').join('') + '</div><div class="bk-cta">' + ctaHtml(b) + '</div></div></article>',
   buy: (b) => '<article class="blk bk-buy' + (b.image ? '' : ' noimg') + '">' + (b.image ? '<div class="bk-img"><img src="' + E(b.image) + '" alt="' + E(b.head) + '" loading="lazy"></div>' : '') + '<div class="bk-body"><h2>' + E(b.head) + '</h2>' + (b.sub ? '<p class="bk-sub">' + E(b.sub) + '</p>' : '')
