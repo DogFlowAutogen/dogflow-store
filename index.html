@@ -215,7 +215,7 @@ function tick() { // นับถอยหลังโปรโมชัน
 const safeLink = (u) => (/^(https?:\/\/|#|\/)/.test(u || '') ? u : '#shop');
 const ln = (a) => (Array.isArray(a) ? a : []).map((x) => String(x).split('|').map((y) => y.trim())).filter((p) => p[0]);
 const lnk = (t, u) => { const id = DFCommon.cartId(u); return '<a class="btn ' + t.cls + '" href="' + (id ? '#shop' : E(safeLink(u))) + '"' + (id ? ' data-cart="' + E(id) + '"' : /^https?:/.test(u || '') ? ' target="_blank" rel="noopener"' : '') + '>' + (id ? '🛒 ' : '') + E(t.text) + t.arrow + '</a>'; };
-document.addEventListener('click', (e) => { const a = e.target.closest('[data-cart]'); if (!a) return; const p = DB.find('products', a.dataset.cart); if (p && p.active) { e.preventDefault(); addCart(p.id, a).then(() => $('#cartBtn').click()); } else toast('สินค้านี้ยังไม่เปิดขาย'); });
+document.addEventListener('click', (e) => { const a = e.target.closest('[data-cart]'); if (!a) return; const p = DB.find('products', a.dataset.cart); if (p && p.active) { e.preventDefault(); addCart(p.id, a); /* [2026-10-13] ไม่เปิดลิ้นชักตะกร้าเอง — ผู้ใช้กดไอคอน 🛒 เองเมื่อพร้อม */ } else toast('สินค้านี้ยังไม่เปิดขาย'); });
 // ค่าจริงของบล็อก: ราคา/สต็อกจากสินค้าที่ผูก (รวมโปรโมชันที่กำลังใช้) · เวลาโปรจากแคมเปญจริง — ถ้าอ้างอิงขาด จะไม่แสดงตัวเลขค้าง
 const realVer = () => { const r = DB.latestRelease && DB.latestRelease('windows'); return r ? (/^\d/.test(r.version) ? 'v' + r.version : r.version) : '—'; };
 const realProd = (id) => { const p = id && DB.find('products', id); return p && p.active ? p : null; };
