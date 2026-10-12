@@ -455,3 +455,17 @@ small{color:var(--muted);font-size:12px}
 .bs-st-ic em{font-style:normal;font-size:40px;line-height:1;filter:drop-shadow(0 3px 4px rgba(0,0,0,.35))}.bs-st-ic img{width:100%;height:100%;object-fit:cover;display:block}
 .bs-steps b{font-size:16.5px;line-height:1.3;font-weight:700}.bs-steps small{display:block;font-size:13px;line-height:1.45;color:var(--muted)}
 @media(min-width:900px){.bs-steps>div:not(:last-child)::after{content:"";position:absolute;right:-17px;top:50%;width:14px;height:14px;border-top:3px solid var(--k);border-right:3px solid var(--k);transform:translateY(-50%) rotate(45deg);opacity:.75;pointer-events:none}}
+
+/* ===== แบนเนอร์กลางหน้า (hero) แบบมีภาพพื้นหลัง: โทนเข้ม ข้อความขาว ป้ายกระจก ===== */
+.bk-hero.hasimg{background-color:#0b0c24;background-size:cover;background-position:center;color:#fff;border-color:rgba(255,255,255,.14);padding:56px 22px;box-shadow:0 26px 60px -26px rgba(20,10,60,.7)}
+.bk-hero.hasimg::before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 52% 80% at 50% 50%,rgba(8,9,30,.78),transparent 100%)}
+.bk-hero.hasimg>*{position:relative}.bk-hero.hasimg i{display:none}
+.bk-hero.hasimg h2{color:#fff;text-shadow:0 4px 24px rgba(0,0,0,.55)}
+.bk-hero.hasimg h2 strong{background:linear-gradient(90deg,#ffe14a,#ff8a5c 50%,#ff6fb5);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 4px 20px rgba(255,120,100,.45))}
+.bk-hero.hasimg .bk-chips span{background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.4);color:#fff;backdrop-filter:blur(6px)}
+.bk-hero.hasimg .bk-sub{color:#d6dcf5;text-shadow:0 2px 12px rgba(0,0,0,.6)}
+.bk-hero.hasimg .btn.ghost{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.45);color:#fff;backdrop-filter:blur(6px)}
+@media(max-width:760px){.bk-hero.hasimg{padding:36px 16px;background-position:center}}
+
+/* ผลงานลูกค้า: ป้ายบอกว่าคลิปสร้างจากบอทไหน */
+.wkbot{display:inline-block;margin-top:6px;padding:3px 10px;border-radius:999px;font-size:11.5px;font-weight:700;color:var(--accent);background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 35%,transparent)}
