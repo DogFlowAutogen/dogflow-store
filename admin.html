@@ -88,7 +88,7 @@ $('#out').onclick = async () => { if (SB) await DB.logout(); else sessionStorage
 
 document.addEventListener('click', (e) => { const g = e.target.closest('[data-gotab]'); if (g && authed()) { tab = g.dataset.gotab; render(); } });   // ปุ่มลัดข้ามแท็บ
 /* ===== เมนู ===== */
-const TABS = [['dash', '📊 ภาพรวม'], ['me', '👤 โปรไฟล์ของฉัน'], ['orders', '🧾 ออเดอร์/ชำระเงิน'], ['feedback', '💬 แจ้งปัญหา/เสนอแนะ'], ['products', '📦 สินค้า'], ['cats', '🗂️ หมวดหมู่'], ['members', '👥 สมาชิก'], ['affiliate', '🪪 ตัวแทนขาย'], ['showcase', '🖥️ ภาพหน้าตาโปรแกรม'], ['releases', '💿 ดาวน์โหลดโปรแกรม'], ['works', '🎬 ผลงานลูกค้า'], ['tutorials', '📚 คู่มือ/วิดีโอ'], ['banners', '🖼️ แบนเนอร์โฆษณา'], ['blocks', '🧱 บล็อกหน้าแรก'], ['promos', '🔥 โปรโมชัน'], ['brands', '🏷️ แบรนด์สินค้า'], ['coupons', '🎟️ คูปอง'], ['content', '📝 รีวิว/FAQ'], ['settings', '⚙️ ตั้งค่าหน้าแรก'], ['health', '🩺 ตรวจสอบระบบ'], ['data', '💾 สำรอง/ประวัติ']];
+const TABS = [['dash', '📊 ภาพรวม'], ['me', '👤 โปรไฟล์ของฉัน'], ['orders', '🧾 ออเดอร์/ชำระเงิน'], ['feedback', '💬 แจ้งปัญหา/เสนอแนะ'], ['products', '📦 สินค้า'], ['cats', '🗂️ หมวดหมู่'], ['members', '👥 สมาชิก'], ['affiliate', '🪪 ตัวแทนขาย'], ['showcase', '🖥️ ภาพหน้าตาโปรแกรม'], ['releases', '💿 ดาวน์โหลดโปรแกรม'], ['works', '🎬 ผลงานลูกค้า'], ['tutorials', '📚 คู่มือ/วิดีโอ'], ['banners', '🖼️ แบนเนอร์โฆษณา'], ['blocks', '🧱 บล็อกหน้าแรก'], ['reqs', '✅ คุณสมบัติ/เช็กก่อนซื้อ'], ['promos', '🔥 โปรโมชัน'], ['brands', '🏷️ แบรนด์สินค้า'], ['coupons', '🎟️ คูปอง'], ['content', '📝 รีวิว/FAQ'], ['settings', '⚙️ ตั้งค่าหน้าแรก'], ['health', '🩺 ตรวจสอบระบบ'], ['data', '💾 สำรอง/ประวัติ']];
 function render() {
   const pend = DB.list('orders').filter((o) => o.status === 'review').length;
   $('#menu').innerHTML = TABS.map(([k, n]) => `<a class="${tab === k ? 'on' : ''}" data-t="${k}">${n}${k === 'orders' && pend ? ` <span class="tag err">${pend}</span>` : ''}${k === 'feedback' && fbUnread() ? ` <span class="tag err">${fbUnread()}</span>` : ''}</a>`).join('');
@@ -330,6 +330,13 @@ const V = {
     }
     return '<h1>🪪 ตัวแทนขายโปรแกรม</h1><p style="color:var(--mut)">สมาชิกทุกคนมีลิงก์แนะนำ รับค่าคอมคงที่ตามแพ็กเกจที่ผู้สมัครผ่านลิงก์ซื้อ — ค่าคอมเกิดอัตโนมัติเมื่ออนุมัติสลิป พักตามกำหนด แล้วสมาชิกขอถอน</p><div class="tabs2" style="flex-wrap:wrap">' + TABSX.map(([k, n]) => '<button data-at="' + k + '" class="' + (sub === k ? 'on' : '') + '">' + n + '</button>').join('') + '</div>' + body;
   },
+  reqs() {
+    const L = DB.list('reqs').slice().sort((a, b) => (a.sort || 0) - (b.sort || 0)), s = DB.settings(), on = L.filter((r) => r.active).length;
+    return `<h1>✅ คุณสมบัติที่ต้องมี / เช็กก่อนซื้อ</h1><p style="color:var(--mut)">การ์ดในส่วน "คุณสมบัติที่ต้องมี" หน้าแรกของร้าน — เพิ่ม แก้ไข ลบ เรียงลำดับ ซ่อน/แสดง และใส่ไอคอน (อีโมจิ) หรือแนบภาพเองได้ · ตอนนี้แสดงอยู่ ${on} จาก ${L.length} รายการ</p>
+    <form id="fReqHead" class="fgrid" style="max-width:760px;margin:12px 0"><div class="f"><label>หัวข้อส่วนนี้ (หน้าร้านแสดงเป็นหัวข้อใหญ่)</label><input name="reqTitle" maxlength="60" placeholder="คุณสมบัติที่ต้องมี" value="${E(s.reqTitle || '')}"></div><div class="f"><label>คำโปรยใต้หัวข้อ</label><input name="reqSub" maxlength="100" placeholder="เช็กก่อนซื้อ" value="${E(s.reqSub || '')}"></div><div class="f full"><button class="btn sm" type="submit">💾 บันทึกหัวข้อ</button> <small style="color:var(--mut)">เว้นว่าง = ใช้ข้อความมาตรฐาน</small></div></form>
+    <button class="btn" id="add">＋ เพิ่มคุณสมบัติ</button>
+    <div class="rq3" style="margin-top:16px">${L.map((r) => `<div style="${r.active ? '' : 'opacity:.55'}">${DFCommon.reqCards([r])}<div style="display:flex;gap:6px;align-items:center;margin-top:8px"><span class="tag ${r.active ? 'ok' : ''}">${r.active ? 'แสดง' : 'ซ่อน'}</span><small style="color:var(--mut)">ลำดับ ${r.sort || 0}</small><span style="flex:1"></span><button class="btn sm ghost" data-edit="${r.id}">แก้ไข</button><button class="btn sm danger" data-del="${r.id}">ลบ</button></div></div>`).join('') || '<p style="color:var(--mut)">ยังไม่มีรายการ — หน้าร้านจะซ่อนส่วนนี้ทั้งหมด</p>'}</div>`;
+  },
   showcase() {
     return `<h1>🖥️ ภาพหน้าตาโปรแกรม (ภาพโฆษณา)</h1><p style="color:var(--mut)">อัปโหลดภาพหน้าจอโปรแกรมเพื่อแสดงในหน้าแรก — ⚠ ก่อนอัปโหลดตรวจว่าภาพไม่มีคีย์ License / ชื่อเครื่อง / API key / ข้อมูลลูกค้า</p><button class="btn" id="add">＋ เพิ่มภาพ</button>
     <div class="grid" style="margin-top:14px">${DB.list('showcase').slice().sort((a, b) => (a.sort || 0) - (b.sort || 0)).map((s) => `<div class="pc"><span class="badge" style="${s.active ? '' : 'background:#555;color:#fff'}">${s.active ? 'แสดง' : 'ซ่อน'}</span><div class="pic" style="aspect-ratio:16/9"><img src="${E(s.image)}" alt=""></div><div class="bd"><b>${E(s.title)}</b><small style="color:var(--mut)">${E(s.caption || '')}</small><div style="display:flex;gap:6px"><button class="btn sm ghost" data-edit="${s.id}">แก้ไข</button><button class="btn sm danger" data-del="${s.id}">ลบ</button></div></div></div>`).join('') || '<p style="color:var(--mut)">ยังไม่มีภาพ</p>'}</div>`;
@@ -528,6 +535,20 @@ const A = {
         del('members', m.id, m.email, { title: 'ลบสมาชิกนี้ถาวร?', sub: m.email, body: 'บัญชีและข้อมูลส่วนตัวของสมาชิกจะถูกลบทันที — ย้อนกลับไม่ได้ (ลบได้เฉพาะสมาชิกที่ยังไม่มีออเดอร์)', rows: memRows(m),
           fields: [{ k: 'em', label: 'พิมพ์อีเมลของสมาชิกเพื่อยืนยันการลบ', placeholder: m.email, hint: 'พิมพ์ให้ตรงกับ ' + m.email }], validate: (x) => (x.em.trim().toLowerCase() === String(m.email).toLowerCase() ? '' : 'อีเมลที่พิมพ์ไม่ตรงกับสมาชิกคนนี้ — ตรวจสอบอีกครั้ง'),
           done: { title: 'ลบสมาชิกเรียบร้อยแล้ว', body: 'บัญชีและข้อมูลส่วนตัวของสมาชิกถูกลบถาวรแล้ว — ย้อนกลับไม่ได้' } }); } };
+  },
+  reqs() {
+    const F = [{ k: 'title', label: 'หัวข้อคุณสมบัติ (เช่น ใช้บน Windows)', full: true }, { k: 'desc', label: 'คำอธิบายสั้น (ไม่บังคับ)', type: 'textarea', full: true },
+      { k: 'kind', label: 'ประเภท', type: 'select', opts: [['ok', '✅ ต้องมี / รองรับ (สีเขียว)'], ['warn', '⚠️ ข้อควรระวัง (สีเหลือง)'], ['no', '🚫 ไม่รองรับ (สีแดง)']] },
+      { k: 'icon', label: 'ไอคอนอีโมจิ (เช่น 💎 🖥️ 🌐) — ใช้เมื่อไม่แนบภาพ' }, { k: 'image', label: 'หรือแนบภาพไอคอน/ภาพประกอบ (สี่เหลี่ยมจัตุรัสสวยสุด) — ถ้าแนบ จะใช้ภาพแทนอีโมจิ', type: 'image', max: 256, full: true },
+      { k: 'sort', label: 'ลำดับ (น้อยขึ้นก่อน)', type: 'number' }, { k: 'active', label: 'แสดงในหน้าแรก', type: 'check' }];
+    $('#fReqHead').onsubmit = async (e) => { e.preventDefault(); const f = e.target, r = await DB.saveSettings({ reqTitle: f.reqTitle.value.trim(), reqSub: f.reqSub.value.trim() }); if (r && r.ok === false) return alert(r.errors.join(', ')); toast('บันทึกหัวข้อแล้ว'); render(); };
+    $('#add').onclick = () => editor('เพิ่มคุณสมบัติ', F, { id: DB.uid('rq-'), title: '', desc: '', kind: 'ok', icon: '', image: '', sort: DB.list('reqs').length + 1, active: true }, (o) => DB.upsert('reqs', o));
+    $('#main').onclick = (e) => { const b = e.target.closest('button'); if (!b) return;
+      if (b.dataset.edit) return editor('แก้ไขคุณสมบัติ', F, DB.find('reqs', b.dataset.edit), (o) => DB.upsert('reqs', o));
+      if (!b.dataset.del) return; const r = DB.find('reqs', b.dataset.del);
+      del('reqs', r.id, r.title, { title: 'ลบคุณสมบัตินี้ถาวร?', sub: r.id, body: 'การ์ดนี้จะหายจากส่วน "คุณสมบัติที่ต้องมี" ในหน้าแรกของร้านทันที — ย้อนกลับไม่ได้',
+        rows: [['หัวข้อ', r.title], ['คำอธิบาย', r.desc || '—'], ['ประเภท', r.kind === 'no' ? 'ไม่รองรับ' : r.kind === 'warn' ? 'ข้อควรระวัง' : 'ต้องมี/รองรับ'], ['สถานะ', r.active ? 'แสดงอยู่ในหน้าแรก' : 'ซ่อน']],
+        warn: r.active ? '💡 ถ้าแค่ต้องการซ่อนชั่วคราว กด "แก้ไข" แล้วเอาติ๊ก "แสดงในหน้าแรก" ออกแทนการลบ' : '', check: 'ฉันตรวจสอบแล้ว ต้องการลบ "' + r.title + '" ถาวร' }); };
   },
   showcase() {
     const F = [{ k: 'title', label: 'หัวข้อ', full: true }, { k: 'caption', label: 'คำอธิบาย', type: 'textarea', full: true }, { k: 'image', label: 'ภาพหน้าจอ (16:9 แนะนำ)', type: 'image', max: 1600, full: true }, { k: 'sort', label: 'ลำดับ', type: 'number' }, { k: 'active', label: 'แสดงในหน้าแรก', type: 'check' }];

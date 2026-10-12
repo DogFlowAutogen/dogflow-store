@@ -45,6 +45,12 @@
         { id: 'f2', q: 'ได้ License key ยังไง?', a: 'สมัครสมาชิก → สั่งซื้อ → โอนและแนบสลิป → แอดมินยืนยัน → คีย์ส่งเข้าหน้าโปรไฟล์ของคุณอัตโนมัติ' },
         { id: 'f3', q: 'ตลอดชีพคือเท่าไหร่?', a: 'จ่ายครั้งเดียว ใช้ได้ตลอด รวมอัปเดตฟีเจอร์ใหม่ ตามช่วงโปรโมชันที่แสดงหน้าเว็บ' }
       ],
+      reqs: [ // คุณสมบัติที่ต้องมี/เช็กก่อนซื้อ {id,title,desc,icon,image,kind:'ok'|'no'|'warn',sort,active}
+        { id: 'rq-gemini', title: 'ต้องมี Gemini Ultra หรือ Pro', desc: 'บัญชี Google ที่สมัครแพ็กเกจ Gemini Ultra หรือ Pro สำหรับสร้างภาพและวิดีโอ', icon: '💎', image: '', kind: 'ok', sort: 1, active: true },
+        { id: 'rq-windows', title: 'ใช้บน Windows (Notebook / PC)', desc: 'โปรแกรมติดตั้งบนคอมพิวเตอร์ Windows เท่านั้น', icon: '🖥️', image: '', kind: 'ok', sort: 2, active: true },
+        { id: 'rq-browser', title: 'ใช้ผ่าน Google Chrome หรือ Microsoft Edge', desc: 'เบราว์เซอร์ที่โปรแกรมควบคุมเพื่อสร้างคลิป', icon: '🌐', image: '', kind: 'ok', sort: 3, active: true },
+        { id: 'rq-mobile', title: 'ไม่รองรับ มือถือ / iPad / Tablet', desc: 'ยังไม่มีเวอร์ชันสำหรับมือถือหรือแท็บเล็ต', icon: '📵', image: '', kind: 'no', sort: 4, active: true }
+      ],
       orders: [],
       members: [],
       notices: [], // แจ้งเตือนถึงลูกค้า {id,memberId,type:'info'|'warning'|'violation'|'ban',title,body,createdAt,read}
@@ -67,7 +73,7 @@
     if (cache) return cache;
     try { cache = JSON.parse(localStorage.getItem(KEY)); } catch (e) { cache = null; }
     if (!cache || !cache.products) { cache = seed(); save(); }
-    ['members', 'notices', 'showcase', 'works', 'releases', 'tutorials', 'banners', 'blocks', 'tickets', 'brands', 'promos', 'reviews', 'faqs', 'audit'].forEach((k) => { if (!cache[k]) cache[k] = []; }); // ข้อมูลเก่าที่ยังไม่มีส่วนใหม่
+    ['members', 'notices', 'reqs', 'showcase', 'works', 'releases', 'tutorials', 'banners', 'blocks', 'tickets', 'brands', 'promos', 'reviews', 'faqs', 'audit'].forEach((k) => { if (!cache[k]) cache[k] = []; }); // ข้อมูลเก่าที่ยังไม่มีส่วนใหม่
     return cache;
   }
   function save() {
@@ -109,6 +115,8 @@
     } else if (entity === 'releases') {
       if (!o.version || !o.version.trim()) er.push('ใส่เลขเวอร์ชัน');
       if (!o.externalUrl || !/^https:\/\//.test(o.externalUrl)) er.push('โหมดทดลอง: ใส่ลิงก์ดาวน์โหลด https://');
+    } else if (entity === 'reqs') {
+      return DFCommon.validate(entity, o, d);
     } else if (entity === 'showcase') {
       if (!o.title || !o.title.trim()) er.push('ใส่หัวข้อ'); if (!o.image) er.push('อัปโหลดภาพหน้าจอ');
     } else if (entity === 'works') {

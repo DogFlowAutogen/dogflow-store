@@ -18,7 +18,7 @@
 if(ok)return;window.__legacy=true;document.addEventListener('DOMContentLoaded',function(){var d=document.createElement('div');d.setAttribute('style','position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:#0b1222;color:#fff;font-family:Tahoma,sans-serif;text-align:center;padding:60px 20px');
 d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">เบราว์เซอร์นี้ไม่รองรับ</h2><p style="line-height:1.8;max-width:520px;margin:0 auto">Internet Explorer และเบราว์เซอร์รุ่นเก่าไม่รองรับระบบชำระเงินและความปลอดภัยของเว็บนี้<br>กรุณาเปิดด้วย <b>Microsoft Edge</b>, <b>Google Chrome</b>, <b>Safari</b> หรือ <b>Firefox</b> รุ่นล่าสุด<br>ใช้ได้ทั้งคอมพิวเตอร์ แท็บเล็ต และโทรศัพท์</p>';document.body.appendChild(d);});})();
 </script>
-<link rel="stylesheet" href="style.css?v=20261011e">
+<link rel="stylesheet" href="style.css?v=20261012b">
 </head>
 <body>
 <div id="splash" role="status" aria-live="polite">
@@ -79,8 +79,7 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
 
 <section class="sec" id="preview" hidden><div class="wrap"><span class="eyebrow">ตัวอย่างการใช้งานจริง</span><h2>หน้าตาโปรแกรม</h2><p class="sub">ภาพหน้าจอจากโปรแกรมเวอร์ชันล่าสุด</p><div class="shots" id="shots"></div></div></section>
 
-<section class="sec"><div class="wrap"><h2>คุณสมบัติที่ต้องมี</h2><p class="sub">เช็กก่อนซื้อ</p>
-  <div class="req"><div class="ok">● ต้องมี Gemini Ultra หรือ Pro</div><div class="ok">● ใช้บน Windows (Notebook / PC)</div><div class="ok">● ใช้ผ่าน Google Chrome หรือ Microsoft Edge</div><div class="no">● ไม่รองรับ มือถือ / iPad / Tablet</div></div></div></section>
+<section class="sec rqsec" id="reqsec" hidden><div class="wrap"><span class="eyebrow">CHECKLIST</span><h2 id="reqT">คุณสมบัติที่ต้องมี</h2><p class="sub" id="reqS">เช็กก่อนซื้อ</p><div class="rq3" id="reqs"></div></div></section>
 
 <section class="sec" id="get"><div class="wrap"><span class="eyebrow">เริ่มใช้งาน</span><h2>ดาวน์โหลดและเปิดใช้งานใน 4 ขั้นตอน</h2><p class="sub">ไฟล์ติดตั้งสำหรับสมาชิกที่มี License เท่านั้น — เก็บในระบบส่วนตัว ออกลิงก์ดาวน์โหลดชั่วคราว</p>
   <div class="feat steps">
@@ -367,6 +366,11 @@ function renderShots() {
   $('#shots').innerHTML = L.map((s) => `<figure data-shot="${E(s.id)}"><div class="shw"><img src="${E(s.image)}" alt="${E(s.title)}" loading="lazy">${s.views != null ? `<span class="wkv" data-v="showcase:${E(s.id)}" title="ยอดเข้าชม">👁 ${fmtViews(s.views)}</span>` : ''}</div><figcaption><b>${E(s.title)}</b><span>${E(s.caption || '')}</span></figcaption></figure>`).join('');
 }
 $('#shots').onclick = (e) => { const f = e.target.closest('[data-shot]'); if (!f) return; const s = DB.find('showcase', f.dataset.shot); $('#shotBig').src = s.image; $('#shotCap').textContent = s.title + ' — ' + (s.caption || ''); openM('#mShot'); countView('showcase', s.id); };
+function renderReqs() { // คุณสมบัติที่ต้องมี — แอดมินแก้ได้ที่ แอดมิน → ✅ คุณสมบัติ/เช็กก่อนซื้อ
+  const L = DB.list('reqs').filter((r) => r.active).sort((a, b) => (a.sort || 0) - (b.sort || 0)), s = DB.settings(); $('#reqsec').hidden = !L.length;
+  $('#reqT').textContent = s.reqTitle || 'คุณสมบัติที่ต้องมี'; $('#reqS').textContent = s.reqSub || 'เช็กก่อนซื้อ';
+  $('#reqs').innerHTML = DFCommon.reqCards(L);
+}
 function renderBrands() {
   const L = DB.list('brands'); $('#brsec').hidden = !L.length;
   $('#brands').innerHTML = L.map((b) => `<div class="bl" title="${E(b.name)}"><img src="${E(b.logo)}" alt="${E(b.name)}" loading="lazy"></div>`).join('');
@@ -484,11 +488,11 @@ $('#myOrders').onclick = (e) => { const b = e.target.closest('[data-pay]'); if (
 /* ===== เริ่มต้น ===== */
 const fatal = (e) => { document.body.insertAdjacentHTML('afterbegin', '<div style="background:#7f1d1d;color:#fff;padding:14px;text-align:center;font-weight:600">เชื่อมต่อฐานข้อมูลไม่สำเร็จ — ' + String((e && e.message) || e).replace(/[<>&]/g, '') + ' · กรุณารีเฟรชหรือลองใหม่ภายหลัง</div>'); console.error(e); };
 function boot() {
-renderStatic(); renderBlocks(); renderAds(); renderBrands(); renderShots(); renderWorks(); renderTuts(); renderShop(); renderCart(); renderLd(); tick();
+renderStatic(); renderBlocks(); renderAds(); renderReqs(); renderBrands(); renderShots(); renderWorks(); renderTuts(); renderShop(); renderCart(); renderLd(); tick();
 openDeep();
 if (/^#pay=DF\d+$/.test(location.hash) && DB.me()) { const o = DB.find('orders', location.hash.slice(5)); if (o && o.memberId === DB.me().id && ['pending', 'rejected'].includes(o.status)) openPay(o.id); } // มาจากหน้าโปรไฟล์
 setInterval(() => { tick(); tickBlocks(); }, 1000);
-window.addEventListener('db:change', () => { renderStatic(); renderBlocks(); renderAds(); renderBrands(); renderShots(); renderWorks(); renderTuts(); renderShop(); renderCart(); renderLd(); });
+window.addEventListener('db:change', () => { renderStatic(); renderBlocks(); renderAds(); renderReqs(); renderBrands(); renderShots(); renderWorks(); renderTuts(); renderShop(); renderCart(); renderLd(); });
 }
 DB.init().then(boot).then(DFCommon.hideSplash, (e) => { DFCommon.hideSplash(); fatal(e); });
 </script>

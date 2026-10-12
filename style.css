@@ -406,3 +406,35 @@ small{color:var(--muted);font-size:12px}
 .foot-links{margin-bottom:6px}.foot-links a{color:inherit;text-decoration:underline}
 .pc .pic{position:relative}
 .shw{position:relative;line-height:0}
+
+/* โปสเตอร์ในบล็อกแพ็กเกจ: เต็มกรอบ ชิดขอบการ์ด คงสัดส่วนภาพจริง (ไม่ครอป ไม่ยืด) */
+.bk-buy:not(.noimg){grid-template-columns:minmax(260px,.95fr) 1.4fr;align-items:center}
+.bk-buy .bk-img{padding:0;align-self:stretch;display:block;background:#0a0b1e}
+.bk-buy .bk-img img{display:block;width:100%;height:auto;max-height:none;object-fit:contain;border:0;border-radius:0}
+@media(max-width:760px){.bk-buy:not(.noimg){grid-template-columns:1fr}}
+
+/* ===== คุณสมบัติที่ต้องมี / เช็กก่อนซื้อ (แอดมินจัดการได้) ===== */
+.rqsec .sub{margin-bottom:6px}
+.rq3{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:18px;margin-top:22px;perspective:1100px}
+.rq{--k:#19c37d;--k2:#7dffc1;position:relative;display:flex;align-items:center;gap:16px;padding:18px 18px 18px 16px;border-radius:22px;overflow:hidden;
+  background:linear-gradient(145deg,rgba(255,255,255,.10),rgba(255,255,255,.02)) padding-box,linear-gradient(145deg,var(--k),transparent 55%) border-box;border:1.5px solid transparent;
+  background-color:var(--surface);box-shadow:0 1px 0 rgba(255,255,255,.18) inset,0 -18px 30px -22px var(--k) inset,0 22px 40px -22px rgba(0,0,0,.55),0 8px 0 -4px rgba(0,0,0,.18);
+  transform:rotateX(0) translateZ(0);transition:transform .25s ease,box-shadow .25s ease}
+.rq::before{content:"";position:absolute;right:-50px;top:-60px;width:170px;height:170px;border-radius:50%;background:radial-gradient(circle,var(--k),transparent 68%);opacity:.28;pointer-events:none}
+.rq:hover{transform:translateY(-5px) rotateX(3deg);box-shadow:0 1px 0 rgba(255,255,255,.22) inset,0 -18px 30px -22px var(--k) inset,0 32px 50px -22px rgba(0,0,0,.6),0 0 34px -8px var(--k)}
+.rq.k-no{--k:#ff4d6a;--k2:#ffa0b0}.rq.k-warn{--k:#ffb020;--k2:#ffe08a}
+.rq-ic{flex:none;width:70px;height:70px;border-radius:20px;display:grid;place-items:center;overflow:hidden;font-size:36px;position:relative;
+  background:linear-gradient(145deg,var(--k2),var(--k));box-shadow:0 10px 22px -8px var(--k),0 2px 0 rgba(255,255,255,.55) inset,0 -4px 8px rgba(0,0,0,.18) inset}
+.rq-ic img{width:100%;height:100%;object-fit:cover;display:block}
+.rq-ic span{filter:drop-shadow(0 3px 4px rgba(0,0,0,.35));line-height:1}
+.rq-b{min-width:0;flex:1}.rq-b b{display:block;font-size:16.5px;line-height:1.3;font-weight:700}
+.rq-b span{display:block;margin-top:4px;font-size:13.5px;line-height:1.45;color:var(--muted)}
+.rq-st{flex:none;align-self:flex-start;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-weight:800;font-size:15px;color:#fff;background:linear-gradient(145deg,var(--k2),var(--k));box-shadow:0 4px 12px -2px var(--k),0 1px 0 rgba(255,255,255,.5) inset}
+.rq.k-warn .rq-st{color:#4a3000}
+
+/* แถบแบรนด์: ไม่มี scrollbar — ขึ้นบรรทัดใหม่อัตโนมัติ จัดกลาง โลโก้คงสัดส่วน ไม่ล้นกรอบ */
+.brands{display:flex;flex-wrap:wrap;justify-content:center;gap:16px;overflow:visible;padding:22px 2px}
+.bl{flex:0 0 auto;width:96px;height:96px;padding:0;background:transparent;border:0;border-radius:24px;display:block;overflow:hidden;box-shadow:0 14px 26px -14px rgba(0,0,0,.45);transition:transform .2s ease,box-shadow .2s ease}
+.bl img{display:block;width:100%;height:100%;max-width:100%;max-height:100%;object-fit:contain}
+.bl:hover{transform:translateY(-4px) scale(1.04);box-shadow:0 22px 32px -14px rgba(0,0,0,.5)}
+@media(max-width:480px){.brands{gap:12px}.bl{width:78px;height:78px;border-radius:20px}}

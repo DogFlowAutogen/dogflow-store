@@ -177,6 +177,10 @@
       if (!(Number(o.percent) > 0 && Number(o.percent) <= 90) || !Number.isInteger(Number(o.percent))) er.push('ส่วนลด 1-90%');
       if (o.scope !== 'all' && !d.categories.some((c) => c.id === o.scope)) er.push('เลือกขอบเขตไม่ถูกต้อง');
       if (!o.startsAt || !o.endsAt) er.push('ระบุวันเริ่ม-สิ้นสุด'); else if (new Date(o.endsAt) <= new Date(o.startsAt)) er.push('วันสิ้นสุดต้องหลังวันเริ่ม');
+    } else if (entity === 'reqs') {
+      if (!o.title || o.title.trim().length < 2) er.push('ใส่หัวข้อคุณสมบัติ (อย่างน้อย 2 ตัวอักษร)');
+      if (!['ok', 'no', 'warn'].includes(o.kind)) er.push('เลือกประเภท (ผ่าน / ไม่รองรับ / ข้อควรระวัง)');
+      if ((o.title || '').length > 80 || (o.desc || '').length > 200) er.push('หัวข้อไม่เกิน 80 ตัวอักษร · คำอธิบายไม่เกิน 200');
     } else if (entity === 'showcase') {
       if (!o.title || !o.title.trim()) er.push('ใส่หัวข้อ'); if (!o.image) er.push('อัปโหลดภาพหน้าจอ');
     } else if (entity === 'works') {
@@ -213,5 +217,7 @@
     el.classList.add('done'); setTimeout(() => { el.classList.add('hide'); setTimeout(() => el.remove(), 600); }, 250);
   };
   setTimeout(hideSplash, 15000);
-  w.DFCommon = { thaiDateTime, esc, baht, uid, embed, clip, validate, price, activePromos, activeBanners, activeBlocks, BLOCKS, BLOCK_COLS, blockFields, blockHealth, cartId, FB, verCmp, couponCalc, hideSplash };
+  const REQ_ST = { ok: '✓', no: '✕', warn: '!' };
+  const reqCards = (L) => L.map((r) => '<div class="rq k-' + esc(r.kind) + '"><div class="rq-ic">' + (r.image ? '<img src="' + esc(r.image) + '" alt="" loading="lazy">' : '<span>' + esc(r.icon || (r.kind === 'no' ? '🚫' : r.kind === 'warn' ? '⚠️' : '✅')) + '</span>') + '</div><div class="rq-b"><b>' + esc(r.title) + '</b>' + (r.desc ? '<span>' + esc(r.desc) + '</span>' : '') + '</div><i class="rq-st" aria-hidden="true">' + (REQ_ST[r.kind] || '✓') + '</i></div>').join('');
+  w.DFCommon = { reqCards, thaiDateTime, esc, baht, uid, embed, clip, validate, price, activePromos, activeBanners, activeBlocks, BLOCKS, BLOCK_COLS, blockFields, blockHealth, cartId, FB, verCmp, couponCalc, hideSplash };
 })(window);
