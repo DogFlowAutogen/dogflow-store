@@ -211,6 +211,14 @@
     async dispatchNotices() { const { data, error } = await sb.functions.invoke('dispatch-notices', { body: {} }); if (error) return { ok: false, errors: [await fnErr(error)] }; return data.ok ? { ok: true, sent: data.sent, skipped: data.skipped } : { ok: false, errors: [data.error || 'ส่งอีเมลบางรายการไม่สำเร็จ'], sent: data.sent, failed: data.failed }; },
     // ขอสิทธิ์ที่เซิร์ฟเวอร์ (ตรวจคีย์/โควตา/บันทึกประวัติ) แล้วออก signed URL อายุ 2 นาที
     async downloadUrl(id) {
+      // รุ่นที่เก็บไว้ใน GitHub Release ส่วนตัว (repo เกิน 50MB เพดานฟรีของ Storage) — ให้ Edge Function ดึงไฟล์แทนแล้วส่งกลับมาเป็น blob
+      // เช็กจากแคชที่โหลดไว้แล้วก่อนเรียกเซิร์ฟเวอร์ เพื่อไม่ให้เรียกทั้ง request_download และ release-download ซ้อนกัน (จะนับโควตา/บันทึกประวัติซ้ำ)
+      const cached = S.releases.find((x) => x.id === id);
+      if (cached && /^https:\/\/api\.github\.com\/repos\/DogFlowAutogen\/dogflow-releases\/releases\/assets\//.test(cached.externalUrl || '')) {
+        const { data: blob, error } = await sb.functions.invoke('release-download', { body: { releaseId: id } });
+        if (error) return { ok: false, errors: [await fnErr(error)] };
+        return { ok: true, url: URL.createObjectURL(blob), fileName: cached.fileName, sha256: cached.sha256 };
+      }
       const { data, error } = await sb.rpc('request_download', { p_release: id }); if (error) return fail(error);
       if (data.url) return { ok: true, url: data.url, fileName: data.fileName, sha256: data.sha256 };
       const s = await sb.storage.from('releases').createSignedUrl(data.path, 120, { download: data.fileName || true }); if (s.error) return fail(s.error);
