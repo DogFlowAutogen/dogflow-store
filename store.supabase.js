@@ -60,7 +60,7 @@
 
   const mapPay = (p) => p && ({ id: p.id, ref: p.ref, amount: Number(p.amount), paidAt: p.paid_at, slipPath: p.slip_path, flags: p.flags || [], reviewNote: p.review_note, submittedAt: p.submitted_at, verifiedAt: p.verified_at });
   const mapOrder = (r, pays, keys) => ({ id: r.id, memberId: r.member_id, items: r.items, subtotal: r.subtotal, discount: r.discount, coupon: r.coupon, total: r.total, status: r.status, keyStatus: r.key_status, customer: r.customer, note: r.note, createdAt: r.created_at,
-    payment: mapPay((pays[r.id] || [])[0]), licenseKeys: (keys[r.id] || []).map((k) => ({ slot: k.slot, product: k.product_name, key: k.key, issuedAt: k.issued_at, revoked: !!k.revoked_at, revokeReason: k.revoke_reason || '' })) });
+    payment: mapPay((pays[r.id] || [])[0]), licenseKeys: (keys[r.id] || []).map((k) => ({ slot: k.slot, product: k.product_name, key: k.key, issuedAt: k.issued_at, revoked: !!k.revoked_at, revokeReason: k.revoke_reason || '', validUntil: k.valid_until || '', renewed: !!k.renewed })) });
   const groupBy = (rows, f) => rows.reduce((m, r) => ((m[r[f]] = m[r[f]] || []).push(r), m), {});
 
   /* ---------- แปลข้อความผิดพลาด ---------- */
@@ -105,6 +105,8 @@
     const tkq = await sb.from('feedback_tickets').select('*').order('created_at', { ascending: false }).limit(S.isAdmin ? 1000 : 100);   // แอดมินเห็นทั้งหมด · สมาชิกเห็นเฉพาะของตัวเอง (RLS)
     S.tickets = tkq.error ? [] : tkq.data.map(IN.tickets);
     const pays = groupBy(p.data, 'order_id'), keys = groupBy(k.data, 'order_id');
+    // [2026-10-14] ต่ออายุคีย์เดิม: ออเดอร์ที่ใช้ต่อไม่มีแถวคีย์ของตัวเอง → ยืมแถวคีย์เดิมมาแสดงในออเดอร์นั้น (ติดธง renewed ไม่ให้นับซ้ำในรายการคีย์)
+    for (const kr of k.data) for (const e of (kr.renewed_orders || [])) { const [oid, slot] = String(e).split('|'); (keys[oid] = keys[oid] || []).push(Object.assign({}, kr, { slot, renewed: true })); }
     S.orders = o.data.map((r) => mapOrder(r, pays, keys));
     S.trialKeys = k.data.filter((r) => r.kind === 'trial').map((r) => ({ id: r.id, memberId: r.member_id, key: r.key, issuedAt: r.issued_at, expiresAt: r.expires_at, trialDays: r.trial_days, revoked: !!r.revoked_at, revokeReason: r.revoke_reason || '' }));   // [2026-10-14] คีย์ทดลองไม่มีออเดอร์ จึงไม่อยู่ใน mapOrder — แยกเก็บ
     S.notices = n.data.map((r) => ({ id: r.id, memberId: r.member_id, type: r.type, title: r.title, body: r.body, read: r.read, createdAt: r.created_at }));

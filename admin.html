@@ -52,7 +52,7 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
 <script src="vendor/supabase.js"></script>
 <script src="store.common.js?v=20261012b"></script>
 <script src="store.local.js?v=20261012b"></script>
-<script src="store.supabase.js?v=20261014e"></script>
+<script src="store.supabase.js?v=20261014g"></script>
 <script src="avatar.js"></script>
 <script>
 const $ = (s) => document.querySelector(s), E = DB.esc, B = DB.baht;
@@ -150,7 +150,7 @@ function confirmDlg(o) {
   });
 }
 // สรุปข้อมูลสมาชิกสำหรับหน้าต่างยืนยัน: ชื่อ/อีเมล/โทร/สมัครเมื่อ/ออเดอร์+ยอดซื้อ/คำเตือน/สถานะ/จำนวนคีย์
-const memKeys = (m) => DB.list('orders').filter((o) => o.memberId === m.id).flatMap((o) => o.licenseKeys || []).concat(DB.trialKeys ? DB.trialKeys(m.id) : []);   // รวมคีย์ทดลอง (ระงับ/คืนสิทธิ์พร้อมกัน — revoke-keys ครอบคลุมทุกคีย์ของสมาชิก)
+const memKeys = (m) => DB.list('orders').filter((o) => o.memberId === m.id).flatMap((o) => (o.licenseKeys || []).filter((k) => !k.renewed)).concat(DB.trialKeys ? DB.trialKeys(m.id) : []);   // รวมคีย์ทดลอง (ระงับ/คืนสิทธิ์พร้อมกัน — revoke-keys ครอบคลุมทุกคีย์ของสมาชิก)
 const memRows = (m) => { const os = DB.list('orders').filter((o) => o.memberId === m.id), spent = os.filter((o) => ['paid', 'done'].includes(o.status)).reduce((s, o) => s + o.total, 0);
   return [['ชื่อ', m.name], ['อีเมล', m.email], ['โทร', m.phone || '—'], ['สมัครเมื่อ', fmt(m.createdAt)], ['ออเดอร์ / ยอดซื้อ', os.length + ' · ' + B(spent)], ['License key', memKeys(m).length + ' ดอก'], ['คำเตือน', (m.strikes || 0) + '/3 ครั้ง'], ['สถานะ', m.banned ? 'ถูกระงับ' + (m.banReason ? ' — ' + m.banReason : '') : 'ปกติ']]; };
 // info (ไม่บังคับ) = ตัวเลือกของ confirmDlg → ใช้หน้าต่างยืนยันแบบเต็ม · ไม่ส่ง = กล่องยืนยันของเบราว์เซอร์แบบเดิม
