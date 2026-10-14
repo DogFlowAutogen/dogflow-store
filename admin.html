@@ -52,7 +52,7 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
 <script src="vendor/supabase.js"></script>
 <script src="store.common.js?v=20261012b"></script>
 <script src="store.local.js?v=20261012b"></script>
-<script src="store.supabase.js?v=20261014b"></script>
+<script src="store.supabase.js?v=20261014c"></script>
 <script src="avatar.js"></script>
 <script>
 const $ = (s) => document.querySelector(s), E = DB.esc, B = DB.baht;
@@ -542,7 +542,13 @@ const A = {
         const v = await confirmDlg({ title: 'ออกคีย์ทดลองใช้ฟรี', sub: m.email, body: 'ออกคีย์ผ่าน License Server ทันที · วันทดลองเริ่มนับเมื่อสมาชิกเปิดใช้ในโปรแกรมครั้งแรก (ต้องเริ่มใช้ภายใน 14 วัน ไม่งั้นคีย์หมดสิทธิ์) · คีย์ขึ้นในหน้าโปรไฟล์ของสมาชิก และเขาดาวน์โหลดโปรแกรมได้ทันที · สมาชิกต้องยืนยันอีเมลแล้วและไม่ถูกระงับ · เครื่องที่เคยทดลองแล้วทดลองซ้ำไม่ได้ · ซื้อแพ็กเกจแล้วคีย์เดิมถูกอัปเกรดให้อัตโนมัติ', rows: memRows(m),
           fields: [{ k: 'days', label: 'จำนวนวันทดลอง', type: 'number', value: '1', hint: '1-30 วัน (แนะนำ 1 วัน)' }, { k: 'devices', label: 'จำนวนเครื่อง', type: 'number', value: '1', hint: '1-3 เครื่อง (แนะนำ 1)' }, { k: 'note', label: 'หมายเหตุ (ไม่บังคับ — บันทึกในประวัติคีย์)', placeholder: 'เช่น ลูกค้าจาก LINE' }],
           validate: (x) => (!(Number.isInteger(Number(x.days)) && Number(x.days) >= 1 && Number(x.days) <= 30) ? 'จำนวนวันต้องเป็นเลขเต็ม 1-30' : !(Number.isInteger(Number(x.devices)) && Number(x.devices) >= 1 && Number(x.devices) <= 3) ? 'จำนวนเครื่องต้องเป็นเลขเต็ม 1-3' : ''), okText: 'ออกคีย์ทดลอง', cancelText: 'ยกเลิก' });
-        if (!v) return; b.disabled = true; const r = await DB.issueTrial(m.id, Number(v.days), Number(v.devices), v.note); b.disabled = false;
+        if (!v) return; b.disabled = true; let r = await DB.issueTrial(m.id, Number(v.days), Number(v.devices), v.note);
+        if (r.dup) {   // พบบัญชีเบอร์/อีเมลเดียวกัน (หลัง normalize) ที่เคยได้คีย์ทดลองแล้ว → ให้แอดมินตัดสินใจ
+          const go = await confirmDlg({ danger: true, title: 'พบบัญชีที่น่าจะเป็นคนเดียวกัน', sub: m.email, body: r.errors[0] + '\n\nการออกคีย์ทดลองซ้ำให้คนเดิมทำให้ใช้เกินสิทธิ์ได้ — ยืนยันออกคีย์ต่อหรือไม่?', rows: memRows(m), okText: 'ยืนยันออกคีย์ต่อ', cancelText: 'ไม่ออก' });
+          if (!go) { b.disabled = false; return; }
+          r = await DB.issueTrial(m.id, Number(v.days), Number(v.devices), v.note, true);
+        }
+        b.disabled = false;
         if (!r.ok) return confirmDlg({ danger: true, hideCancel: true, okText: 'รับทราบ', title: 'ออกคีย์ทดลองไม่สำเร็จ', sub: m.email, body: r.errors.join('\n') });
         render(); return confirmDlg({ success: true, hideCancel: true, okText: 'ปิด', title: 'ออกคีย์ทดลองเรียบร้อยแล้ว', sub: m.email, body: 'แจ้งสมาชิกในโปรไฟล์แล้ว · คีย์: ' + r.key, rows: [['วันทดลอง', r.days + ' วัน (เริ่มนับเมื่อเปิดใช้ครั้งแรก)'], ['จำนวนเครื่อง', String(r.devices)], ['ต้องเริ่มใช้ภายใน', fmt(r.expiresAt)]] }); }
       if (b.dataset.warn) editor('⚠ แจ้งเตือนลูกค้า: ' + DB.find('members', b.dataset.warn).name, [{ k: 'type', label: 'ระดับ', type: 'select', opts: [['info', 'ℹ️ แจ้งทราบ'], ['warning', '⚠ เตือน'], ['violation', '⛔ ผิดกฎ']] }, { k: 'strike', label: 'นับเป็นการผิดกฎ 1 ครั้ง (ครบ 3 = ระงับอัตโนมัติ)', type: 'check' }, { k: 'title', label: 'หัวข้อ', full: true }, { k: 'body', label: 'รายละเอียด (ลูกค้าเห็นในโปรไฟล์)', type: 'textarea', full: true }], { type: 'warning', strike: false, title: '', body: '' }, (o) => { if (!o.title || !o.body) return { ok: false, errors: ['กรอกหัวข้อและรายละเอียด'] }; return DB.warnMember(b.dataset.warn, o.title, o.body, { type: o.type, strike: o.strike }); });
