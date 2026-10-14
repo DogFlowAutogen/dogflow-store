@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="no-referrer">
+<title>ตั้งรหัสผ่านใหม่ · DogFlow Auto Gen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="style.css">
+<style>.rs{max-width:460px;margin:8vh auto;padding:0 16px}.rs .box{padding:22px}.rs h1{font-size:22px;margin:0 0 6px}.rs p{color:var(--mut);font-size:14px}.rs .ok{color:#16a34a;font-weight:600}</style>
+</head>
+<body>
+<div class="rs"><div class="box">
+  <h1>🔒 ตั้งรหัสผ่านใหม่</h1>
+  <div id="vBad" hidden><p class="errs" style="display:block" id="badMsg"></p><p>กลับไปที่หน้าร้านแล้วกด "เข้าสู่ระบบ → ลืมรหัสผ่าน?" เพื่อขอลิงก์ใหม่ (ลิงก์ใช้ได้ครั้งเดียวและมีอายุจำกัด)</p><a class="btn" href="index.html">กลับหน้าร้าน</a></div>
+  <form id="fRst" novalidate hidden>
+    <p>ตั้งรหัสผ่านใหม่สำหรับบัญชีของคุณ (อย่างน้อย 8 ตัว มีทั้งตัวอักษรและตัวเลข)</p>
+    <div class="f"><label>รหัสผ่านใหม่</label><input name="n1" type="password" autocomplete="new-password"></div>
+    <div class="f"><label>ยืนยันรหัสผ่านใหม่</label><input name="n2" type="password" autocomplete="new-password"></div>
+    <div class="errs" id="eRst"></div><button class="btn" id="bRst" style="width:100%">บันทึกรหัสผ่านใหม่</button>
+  </form>
+  <div id="vOk" hidden><p class="ok">✔ ตั้งรหัสผ่านใหม่เรียบร้อยแล้ว</p><p>ระบบออกจากระบบทุกอุปกรณ์ให้แล้ว เข้าสู่ระบบด้วยรหัสใหม่ได้เลย</p><a class="btn" href="index.html">ไปหน้าร้านเพื่อเข้าสู่ระบบ</a></div>
+</div></div>
+<script src="config.js"></script>
+<script src="vendor/supabase.js"></script>
+<script>
+// หน้าตั้งรหัสผ่านใหม่ (ลิงก์จากอีเมล "ลืมรหัสผ่าน") — ตัวร้านหลักไม่รับ session จากลิงก์ จึงทำหน้านี้แยก: อ่าน token จากส่วน # แล้วลบทิ้งจากแถบที่อยู่ทันที
+// ใช้ session ชั่วคราวในหน้านี้เท่านั้น (ไม่บันทึกลงเครื่อง) → เปลี่ยนรหัส → ออกจากระบบทุกอุปกรณ์
+(function () {
+  var $ = function (s) { return document.querySelector(s); };
+  var h = new URLSearchParams(location.hash.replace(/^#/, ''));
+  var at = h.get('access_token'), rt = h.get('refresh_token'), type = h.get('type'), herr = h.get('error_code') || h.get('error');
+  history.replaceState(null, '', location.pathname);   // เอา token ออกจากประวัติ/แถบที่อยู่
+  var show = function (id) { ['#vBad', '#fRst', '#vOk'].forEach(function (x) { $(x).hidden = x !== id; }); };
+  var tr = function (m) {
+    m = String(m || '');
+    if (/different from the old|same password/i.test(m)) return 'รหัสใหม่ต้องต่างจากรหัสเดิม';
+    if (/at least|weak|too short/i.test(m)) return 'รหัสผ่านสั้นหรือง่ายเกินไป — อย่างน้อย 8 ตัว มีทั้งตัวอักษรและตัวเลข';
+    if (/expired|invalid|not found|session/i.test(m)) return 'ลิงก์หมดอายุหรือถูกใช้ไปแล้ว';
+    if (/rate limit|too many/i.test(m)) return 'ทำรายการถี่เกินไป กรุณารอสักครู่';
+    return m || 'ไม่สำเร็จ ลองใหม่อีกครั้ง';
+  };
+  if (herr === 'otp_expired' || herr === 'access_denied') { $('#badMsg').textContent = 'ลิงก์หมดอายุหรือถูกใช้ไปแล้ว'; return show('#vBad'); }
+  if (!at || !rt || type !== 'recovery') { $('#badMsg').textContent = 'ลิงก์ไม่ถูกต้อง'; return show('#vBad'); }
+  show('#fRst');
+  $('#fRst').onsubmit = async function (e) {
+    e.preventDefault();
+    var n1 = e.target.n1.value, n2 = e.target.n2.value, er = $('#eRst'), b = $('#bRst');
+    var msg = n1.length < 8 ? 'รหัสผ่านต้องยาวอย่างน้อย 8 ตัว' : (!/[A-Za-z]/.test(n1) || !/\d/.test(n1)) ? 'ต้องมีทั้งตัวอักษรและตัวเลข' : n1 !== n2 ? 'รหัสผ่านสองช่องไม่ตรงกัน' : '';
+    if (msg) { er.textContent = '• ' + msg; return; }
+    er.textContent = ''; b.disabled = true;
+    try {
+      var C = window.DOGFLOW_CONFIG || {}, sb = window.supabase.createClient(C.supabaseUrl, C.supabaseAnonKey, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
+      var s = await sb.auth.setSession({ access_token: at, refresh_token: rt }); if (s.error) throw s.error;
+      var u = await sb.auth.updateUser({ password: n1 }); if (u.error) throw u.error;
+      try { await sb.auth.signOut(); } catch (x) { /* ไม่ทำให้การเปลี่ยนรหัสล้ม */ }
+      show('#vOk');
+    } catch (x) { er.textContent = '• ' + tr(x && x.message); b.disabled = false; }
+  };
+})();
+</script>
+</body>
+</html>

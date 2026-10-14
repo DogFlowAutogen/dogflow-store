@@ -274,6 +274,14 @@
       await loadMine(); if (!S.me) return { ok: false, errors: ['บัญชีนี้ถูกระงับ — ติดต่อแอดมินทาง LINE'] };
       emit(); return { ok: true, member: S.me };
     },
+    // ลืมรหัสผ่าน: ส่งลิงก์ตั้งรหัสใหม่ไปอีเมล (ไปหน้า reset.html) — ตอบข้อความเดียวกันไม่ว่าอีเมลนั้นมีบัญชีหรือไม่ (กันเดาว่าใครเป็นสมาชิก) · ติดเพดานความถี่ → บอกให้รอ
+    async forgotPassword(email) {
+      email = String(email || '').trim();
+      if (!/^\S+@\S+\.\S+$/.test(email)) return { ok: false, errors: ['อีเมลไม่ถูกต้อง'] };
+      const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: new URL('reset.html', location.href).href });
+      if (error && /rate limit|too many|seconds/i.test(error.message || '')) return { ok: false, errors: ['ขอบ่อยเกินไป กรุณารอ 1 นาทีแล้วลองใหม่'] };
+      return { ok: true };
+    },
     async logout() { await sb.auth.signOut(); unsubscribe(); await loadMine(); emit(); },
     async updateProfile(f) {
       const er = DB.validate('members', { name: f.name, phone: f.phone }); if (er.length) return { ok: false, errors: er };
