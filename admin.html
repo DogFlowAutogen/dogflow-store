@@ -11,7 +11,7 @@ if(ok)return;window.__legacy=true;document.addEventListener('DOMContentLoaded',f
 d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">เบราว์เซอร์นี้ไม่รองรับ</h2><p style="line-height:1.8;max-width:520px;margin:0 auto">Internet Explorer และเบราว์เซอร์รุ่นเก่าไม่รองรับระบบชำระเงินและความปลอดภัยของเว็บนี้<br>กรุณาเปิดด้วย <b>Microsoft Edge</b>, <b>Google Chrome</b>, <b>Safari</b> หรือ <b>Firefox</b> รุ่นล่าสุด<br>ใช้ได้ทั้งคอมพิวเตอร์ แท็บเล็ต และโทรศัพท์</p>';document.body.appendChild(d);});})();
 </script>
 <link rel="stylesheet" href="style.css?v=20261014a">
-<link rel="stylesheet" href="admin-charts.css?v=20261014c">
+<link rel="stylesheet" href="admin-charts.css?v=20261014e">
 </head>
 <body>
 <div id="splash" role="status" aria-live="polite">
@@ -35,6 +35,7 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
 </div>
 
 <div class="modal" id="mEdit"><div class="mbox" style="width:min(640px,100%)"><h3 id="eT"></h3><form id="eF" novalidate></form></div></div>
+<div class="modal" id="mBc"><div class="mbox bc-box" id="bcBox" style="width:min(660px,100%)"></div></div>
 <div class="modal" id="mSlip"><div class="mbox" style="width:min(560px,100%)" id="slipBox"></div></div>
 <div class="modal" id="mTk"><div class="mbox tk-box" id="tkBox"></div></div>
 <div class="dlg" id="dlg" hidden role="dialog" aria-modal="true" aria-labelledby="dlgTitle"><form class="dlg-card" id="dlgForm" novalidate>
@@ -50,12 +51,12 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
 <div class="toast" id="toast"></div>
 
 <script src="config.js"></script>
-<script src="admin-charts.js?v=20261014a"></script><script src="admin-overview.js?v=20261014b"></script>
+<script src="admin-charts.js?v=20261014a"></script><script src="admin-overview.js?v=20261014b"></script><script src="admin-broadcast.js?v=20261014a"></script>
 <script src="pw-eye.js?v=20261014a" defer></script>
 <script src="vendor/supabase.js"></script>
 <script src="store.common.js?v=20261012b"></script>
 <script src="store.local.js?v=20261012b"></script>
-<script src="store.supabase.js?v=20261014m"></script>
+<script src="store.supabase.js?v=20261014n"></script>
 <script src="avatar.js"></script>
 <script>
 const $ = (s) => document.querySelector(s), E = DB.esc, B = DB.baht;
@@ -94,12 +95,26 @@ document.addEventListener('click', (e) => { const g = e.target.closest('[data-go
 /* ===== เมนู ===== */
 const TABS = [['dash', '📊 ภาพรวม'], ['me', '👤 โปรไฟล์ของฉัน'], ['orders', '🧾 ออเดอร์/ชำระเงิน'], ['trials', '🎁 ขอคีย์ฟรี'], ['feedback', '💬 แจ้งปัญหา/เสนอแนะ'], ['products', '📦 สินค้า'], ['cats', '🗂️ หมวดหมู่'], ['members', '👥 สมาชิก'], ['affiliate', '🪪 ตัวแทนขาย'], ['showcase', '🖥️ ภาพหน้าตาโปรแกรม'], ['releases', '💿 ดาวน์โหลดโปรแกรม'], ['works', '🎬 ผลงานลูกค้า'], ['tutorials', '📚 คู่มือ/วิดีโอ'], ['banners', '🖼️ แบนเนอร์โฆษณา'], ['blocks', '🧱 บล็อกหน้าแรก'], ['modes', '🚀 โหมด/ประเภทเรื่อง'], ['reqs', '✅ คุณสมบัติ/เช็กก่อนซื้อ'], ['promos', '🔥 โปรโมชัน'], ['brands', '🏷️ แบรนด์สินค้า'], ['coupons', '🎟️ คูปอง'], ['content', '📝 รีวิว/FAQ'], ['settings', '⚙️ ตั้งค่าหน้าแรก'], ['health', '🩺 ตรวจสอบระบบ'], ['data', '💾 สำรอง/ประวัติ']];
 const trialPend = () => (DB.trialQueue ? DB.trialQueue().pending.length : 0);
+// [2026-10-14] จัดกลุ่มเมนูแอดมิน (เดิมเป็นรายการยาว 24 รายการเรียงต่อกัน) — กลุ่มพับ/ขยายได้ จำสถานะไว้ · กลุ่มที่มีหน้าปัจจุบันไม่พับเอง · ป้ายตัวเลขงานค้างรวมขึ้นที่หัวกลุ่มตอนพับ (ไม่ให้งานค้างหายจากสายตา)
+const MENU_GROUPS = [['งานประจำวัน', '📌', ['dash', 'orders', 'trials', 'feedback']], ['ลูกค้าและการขาย', '🛒', ['members', 'affiliate', 'coupons', 'promos']], ['สินค้า', '📦', ['products', 'cats', 'brands', 'reqs']],
+  ['หน้าร้านและเนื้อหา', '🖼️', ['banners', 'blocks', 'showcase', 'works', 'tutorials', 'modes', 'content']], ['ระบบและตั้งค่า', '⚙️', ['releases', 'settings', 'health', 'data', 'me']]];
+const MENU_LABEL = Object.fromEntries(TABS);
+const menuCollapsed = () => { try { return new Set(JSON.parse(localStorage.getItem('df_admin_menu_off') || '[]')); } catch (e) { return new Set(); } };
+const menuSave = (set) => { try { localStorage.setItem('df_admin_menu_off', JSON.stringify([...set])); } catch (e) { /* ไม่มี storage ก็แค่ไม่จำ */ } };
 function render() {
-  const pend = DB.list('orders').filter((o) => o.status === 'review').length;
-  $('#menu').innerHTML = TABS.map(([k, n]) => `<a class="${tab === k ? 'on' : ''}" data-t="${k}">${n}${k === 'orders' && pend ? ` <span class="tag err">${pend}</span>` : ''}${k === 'trials' && trialPend() ? ` <span class="tag err">${trialPend()}</span>` : ''}${k === 'feedback' && fbUnread() ? ` <span class="tag err">${fbUnread()}</span>` : ''}</a>`).join('');
+  const pend = DB.list('orders').filter((o) => o.status === 'review').length, off = menuCollapsed();
+  const badge = (k) => (k === 'orders' ? pend : k === 'trials' ? trialPend() : k === 'feedback' ? fbUnread() : 0) || 0;
+  $('#menu').innerHTML = MENU_GROUPS.map(([name, ic, keys]) => {
+    const has = keys.includes(tab), closed = off.has(name) && !has, sum = keys.reduce((s, k) => s + badge(k), 0);
+    return `<div class="mg${closed ? ' closed' : ''}"><button type="button" class="mg-h" data-g="${name}" aria-expanded="${!closed}"><span class="mg-i">${ic}</span><span class="mg-n">${name}</span>${closed && sum ? `<span class="tag err">${sum}</span>` : ''}<svg class="mg-c" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button><div class="mg-b">${keys.map((k) => `<a class="${tab === k ? 'on' : ''}" data-t="${k}">${MENU_LABEL[k] || k}${badge(k) ? ` <span class="tag err">${badge(k)}</span>` : ''}</a>`).join('')}</div></div>`;
+  }).join('');
   $('#main').innerHTML = V[tab](); (A[tab] || (() => {}))();
 }
-$('#menu').onclick = (e) => { const a = e.target.closest('[data-t]'); if (a) { tab = a.dataset.t; render(); } };
+$('#menu').onclick = (e) => {
+  const h = e.target.closest('[data-g]'); if (h) { const g = h.dataset.g, grp = MENU_GROUPS.find((x) => x[0] === g); if (grp && grp[2].includes(tab)) return;   // กลุ่มที่มีหน้าปัจจุบันพับไม่ได้ — ไม่แตะสถานะที่จำไว้
+    const off = menuCollapsed(); off.has(g) ? off.delete(g) : off.add(g); menuSave(off); render(); return; }   // หัวกลุ่ม = พับ/ขยาย
+  const a = e.target.closest('[data-t]'); if (a) { tab = a.dataset.t; render(); }
+};
 window.addEventListener('db:change', () => { fbNotify(); if (authed()) { if (!$('#mEdit').classList.contains('on') && !$('#mSlip').classList.contains('on')) render(); } else if (!$('#app').hidden) gate(); });
 
 /* ===== ฟอร์มแก้ไขแบบทั่วไป (เพิ่ม/แก้) ===== */
@@ -153,6 +168,8 @@ function confirmDlg(o) {
   });
 }
 // สรุปข้อมูลสมาชิกสำหรับหน้าต่างยืนยัน: ชื่อ/อีเมล/โทร/สมัครเมื่อ/ออเดอร์+ยอดซื้อ/คำเตือน/สถานะ/จำนวนคีย์
+let _bc = null;   // ตัวควบคุมหน้าต่างแจ้งลูกค้าทั้งหมด (สร้างตอนกดครั้งแรก)
+document.addEventListener('click', (e) => { const b = e.target.closest('[data-bc]'); if (!b || !authed() || !SB) return; if (!_bc) _bc = AdminBroadcast.create({ DB, host: { toast }, box: $('#bcBox'), modal: $('#mBc') }); _bc.open(); });
 const ovSnap = () => ({ orders: DB.list('orders'), members: DB.list('members'), products: DB.list('products'), tickets: DB.list('tickets') || [], commissions: DB.list('commissions'), payouts: DB.list('payouts'), trialKeys: DB.trialKeys ? DB.trialKeys() : [], trialQ: DB.trialQueue ? DB.trialQueue() : { pending: [] }, trialStats: DB.trialStats ? DB.trialStats() : null, health: DB.health() });
 const memKeys = (m) => DB.list('orders').filter((o) => o.memberId === m.id).flatMap((o) => (o.licenseKeys || []).filter((k) => !k.renewed)).concat(DB.trialKeys ? DB.trialKeys(m.id) : []);   // รวมคีย์ทดลอง (ระงับ/คืนสิทธิ์พร้อมกัน — revoke-keys ครอบคลุมทุกคีย์ของสมาชิก)
 const memRows = (m) => { const os = DB.list('orders').filter((o) => o.memberId === m.id), spent = os.filter((o) => ['paid', 'done'].includes(o.status)).reduce((s, o) => s + o.total, 0);
@@ -254,7 +271,7 @@ const V = {
     const q = (window._mq || '').toLowerCase(), all = DB.list('members'), list = all.filter((m) => !q || (m.name + m.email + m.phone).toLowerCase().includes(q));
     const spent = (id) => DB.list('orders').filter((o) => o.memberId === id && ['paid', 'done'].includes(o.status)).reduce((s, o) => s + o.total, 0);
     return `<h1>👥 จัดการสมาชิก</h1><div class="kpi"><div><b>${all.length}</b><span>ทั้งหมด</span></div><div><b>${all.filter((m) => m.banned).length}</b><span>ถูกระงับ</span></div><div><b>${all.filter((m) => Date.now() - new Date(m.createdAt) < 7 * 864e5).length}</b><span>สมัครใหม่ 7 วัน</span></div></div>
-    <div class="toolbar"><button class="btn" id="add">＋ เพิ่มสมาชิก</button><input id="mq" placeholder="🔍 ค้นหาชื่อ/อีเมล/เบอร์" value="${E(window._mq || '')}" style="max-width:280px"></div>
+    <div class="toolbar"><button class="btn" id="add">＋ เพิ่มสมาชิก</button>${SB ? '<button class="btn gold" data-bc>📣 แจ้งลูกค้าทั้งหมด</button>' : ''}<input id="mq" placeholder="🔍 ค้นหาชื่อ/อีเมล/เบอร์" value="${E(window._mq || '')}" style="max-width:280px"></div>
     <div class="tw"><table><tr><th>ชื่อ</th><th>อีเมล</th><th>โทร</th><th>สมัครเมื่อ</th><th>ออเดอร์ / ยอดซื้อ</th><th>เตือน</th><th></th></tr>${list.map((m) => `<tr><td>${m.avatarPath ? `<img class="adm-av" src="${E(DB.avatarUrl(m.avatarPath))}" alt="">` : ''}${E(m.name)} ${m.banned ? '<span class="tag err" title="' + E(m.banReason || '') + '">ระงับ</span>' : ''}${m.addedByAdmin ? ' <small>(แอดมินเพิ่ม)</small>' : ''}</td><td>${E(m.email)}</td><td>${E(m.phone)}</td><td>${fmt(m.createdAt)}</td><td>${DB.list('orders').filter((o) => o.memberId === m.id).length} · ${B(spent(m.id))}</td><td>${m.strikes ? '<span class="tag ' + (m.strikes >= 2 ? 'err' : 'warn') + '">' + m.strikes + '/3</span>' : '—'}</td>
     <td>${m.avatarPath ? `<button class="btn sm ghost" data-avclr="${m.id}">🖼️ ลบรูป</button> ` : ''}<button class="btn sm ghost" data-warn="${m.id}">⚠ แจ้งเตือน</button> ${SB ? `<button class="btn sm ghost" data-trial="${m.id}">🎁 คีย์ทดลอง</button> ` : ''}<button class="btn sm ghost" data-edit="${m.id}">แก้ไข</button> <button class="btn sm ghost" data-pw="${m.id}">รหัสผ่าน</button> <button class="btn sm ghost" data-ban="${m.id}">${m.banned ? 'ปลดระงับ' : 'ระงับ'}</button> <button class="btn sm danger" data-del="${m.id}">ลบ</button></td></tr>`).join('') || '<tr><td colspan="7" style="color:var(--mut)">ไม่พบสมาชิก</td></tr>'}</table></div>`;
   },
@@ -441,6 +458,7 @@ const V = {
 const PF = () => [{ k: 'name', label: 'ชื่อสินค้า', full: true }, { k: 'sku', label: 'SKU' }, { k: 'categoryId', label: 'หมวดหมู่', type: 'select', opts: catOpts() }, { k: 'brandId', label: 'แบรนด์', type: 'select', opts: [['', '— ไม่ระบุ —'], ...DB.list('brands').map((b) => [b.id, b.name])] }, { k: 'price', label: 'ราคาปกติ', type: 'number' }, { k: 'salePrice', label: 'ราคาโปร (0 = ไม่มี)', type: 'number' }, { k: 'stock', label: 'สต็อก', type: 'number' }, { k: 'badge', label: 'ป้าย (เช่น ยอดนิยม)' }, { k: 'icon', label: 'ไอคอน emoji' }, { k: 'licenseDevices', label: '🔑 จำนวนเครื่อง License (0 = ไม่ใช่สินค้าคีย์)', type: 'number' }, { k: 'licenseDays', label: '🔑 อายุคีย์ (วัน, 0 = ตลอดชีพ)', type: 'number' }, { k: 'commission', label: '🪪 ค่าคอมตัวแทนต่อชิ้น (บาท, 0 = ไม่มี)', type: 'number' }, { k: 'image', label: 'รูปสินค้า', type: 'image' }, { k: 'desc', label: 'คำอธิบาย', type: 'textarea', full: true }, { k: 'features', label: 'จุดเด่น (บรรทัดละข้อ)', type: 'textarea', full: true, list: true }, { k: 'active', label: 'เปิดขาย', type: 'check', full: true }];
 const A = {
   dash() {   // ตัวเลือกช่วงเวลา + ส่งออก CSV ของหน้าภาพรวม
+    if (SB && $('.ov-tools')) $('.ov-tools').insertAdjacentHTML('afterbegin', '<button class="ov-btn" type="button" data-bc>📣 แจ้งลูกค้าทั้งหมด</button>');   // ปุ่มทางลัดในหัวหน้าภาพรวม
     const sel = $('#ovDays'); if (sel) sel.onchange = () => { window._ovDays = Number(sel.value) || 30; render(); };
     const b = $('#ovCsv'); if (b) b.onclick = () => { const snap = ovSnap(), m = AdminOverview.model(snap, { days: window._ovDays || 30 }), url = URL.createObjectURL(new Blob([AdminOverview.csv(snap, m)], { type: 'text/csv;charset=utf-8' })), a = document.createElement('a'); a.href = url; a.download = 'dogflow-orders-' + m.days + 'd.csv'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1500); };
   },

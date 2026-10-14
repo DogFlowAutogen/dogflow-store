@@ -217,6 +217,10 @@
     // [2026-10-14] คีย์ทดลองใช้ฟรี: สมาชิกเห็นของตัวเอง (RLS) · แอดมินเห็นทั้งหมด · ออกคีย์ผ่าน Edge Function issue-trial (แอดมินเท่านั้น)
     trialKeys: (memberId) => (S.trialKeys || []).filter((k) => !memberId || k.memberId === memberId),
     async issueTrial(memberId, days, devices, note, force) { const { data, error } = await sb.functions.invoke('issue-trial', { body: { memberId, days, devices, note, force: !!force } }); if (error) return { ok: false, errors: [await fnErr(error)] }; if (data.dup) return { ok: false, dup: true, matches: data.matches || [], errors: [data.error] }; await loadDynamic(); emit(); return data.ok ? { ok: true, key: data.key, days: data.days, devices: data.devices, expiresAt: data.expiresAt } : { ok: false, errors: [data.error || 'ออกคีย์ทดลองไม่สำเร็จ'] }; },
+    // [2026-10-14] แจ้งลูกค้าทั้งหมด (แอดมิน): นับผู้รับ / ส่ง (กันส่งซ้ำด้วย idem + ตรวจจำนวนที่ยืนยัน) / ประวัติ — ตรรกะทั้งหมดอยู่ที่ฐานข้อมูล (broadcasts.sql)
+    async broadcastPreview(aud) { const { data, error } = await sb.rpc('admin_broadcast_preview', { p_audience: aud }); if (error) return fail(error); return { ok: true, count: data.count, sample: data.sample || [] }; },
+    async broadcastSend(o) { const { data, error } = await sb.rpc('admin_broadcast', { p_idem: o.idem, p_title: o.title, p_body: o.body, p_type: o.type, p_audience: o.audience, p_expect: o.expect }); if (error) return fail(error); return { ok: true, recipients: data.recipients, duplicate: !!data.duplicate }; },
+    async broadcastHistory() { const { data, error } = await sb.from('broadcasts').select('id,created_at,title,audience,recipients,type').order('created_at', { ascending: false }).limit(8); return error ? [] : data; },
     trialStatus: () => S.trial || null,
     trialStats: () => (S.trialStats ? Object.assign({}, S.trialStats, { converted: S.trialConv || 0 }) : null),
     trialQueue: () => S.trialQ || { pending: [], recent: [] },
