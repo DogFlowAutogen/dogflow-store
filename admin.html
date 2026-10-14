@@ -11,6 +11,7 @@ if(ok)return;window.__legacy=true;document.addEventListener('DOMContentLoaded',f
 d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">เบราว์เซอร์นี้ไม่รองรับ</h2><p style="line-height:1.8;max-width:520px;margin:0 auto">Internet Explorer และเบราว์เซอร์รุ่นเก่าไม่รองรับระบบชำระเงินและความปลอดภัยของเว็บนี้<br>กรุณาเปิดด้วย <b>Microsoft Edge</b>, <b>Google Chrome</b>, <b>Safari</b> หรือ <b>Firefox</b> รุ่นล่าสุด<br>ใช้ได้ทั้งคอมพิวเตอร์ แท็บเล็ต และโทรศัพท์</p>';document.body.appendChild(d);});})();
 </script>
 <link rel="stylesheet" href="style.css?v=20261014a">
+<link rel="stylesheet" href="admin-charts.css?v=20261014c">
 </head>
 <body>
 <div id="splash" role="status" aria-live="polite">
@@ -49,11 +50,12 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
 <div class="toast" id="toast"></div>
 
 <script src="config.js"></script>
+<script src="admin-charts.js?v=20261014a"></script><script src="admin-overview.js?v=20261014b"></script>
 <script src="pw-eye.js?v=20261014a" defer></script>
 <script src="vendor/supabase.js"></script>
 <script src="store.common.js?v=20261012b"></script>
 <script src="store.local.js?v=20261012b"></script>
-<script src="store.supabase.js?v=20261014l"></script>
+<script src="store.supabase.js?v=20261014m"></script>
 <script src="avatar.js"></script>
 <script>
 const $ = (s) => document.querySelector(s), E = DB.esc, B = DB.baht;
@@ -151,6 +153,7 @@ function confirmDlg(o) {
   });
 }
 // สรุปข้อมูลสมาชิกสำหรับหน้าต่างยืนยัน: ชื่อ/อีเมล/โทร/สมัครเมื่อ/ออเดอร์+ยอดซื้อ/คำเตือน/สถานะ/จำนวนคีย์
+const ovSnap = () => ({ orders: DB.list('orders'), members: DB.list('members'), products: DB.list('products'), tickets: DB.list('tickets') || [], commissions: DB.list('commissions'), payouts: DB.list('payouts'), trialKeys: DB.trialKeys ? DB.trialKeys() : [], trialQ: DB.trialQueue ? DB.trialQueue() : { pending: [] }, trialStats: DB.trialStats ? DB.trialStats() : null, health: DB.health() });
 const memKeys = (m) => DB.list('orders').filter((o) => o.memberId === m.id).flatMap((o) => (o.licenseKeys || []).filter((k) => !k.renewed)).concat(DB.trialKeys ? DB.trialKeys(m.id) : []);   // รวมคีย์ทดลอง (ระงับ/คืนสิทธิ์พร้อมกัน — revoke-keys ครอบคลุมทุกคีย์ของสมาชิก)
 const memRows = (m) => { const os = DB.list('orders').filter((o) => o.memberId === m.id), spent = os.filter((o) => ['paid', 'done'].includes(o.status)).reduce((s, o) => s + o.total, 0);
   return [['ชื่อ', m.name], ['อีเมล', m.email], ['โทร', m.phone || '—'], ['สมัครเมื่อ', fmt(m.createdAt)], ['ออเดอร์ / ยอดซื้อ', os.length + ' · ' + B(spent)], ['License key', memKeys(m).length + ' ดอก'], ['คำเตือน', (m.strikes || 0) + '/3 ครั้ง'], ['สถานะ', m.banned ? 'ถูกระงับ' + (m.banReason ? ' — ' + m.banReason : '') : 'ปกติ']]; };
@@ -227,14 +230,8 @@ $('#mTk').addEventListener('submit', async (e) => { if (e.target.id !== 'tkForm'
 
 /* ===== วิว ===== */
 const V = {
-  dash() {
-    const o = DB.list('orders'), ok = o.filter((x) => x.status === 'paid' || x.status === 'done'), rev = ok.reduce((s, x) => s + x.total, 0), p = DB.list('products');
-    const top = {}; ok.forEach((x) => x.items.forEach((i) => (top[i.name] = (top[i.name] || 0) + i.qty)));
-    return `<h1>📊 ภาพรวม</h1><div class="kpi"><div><b>${B(rev)}</b><span>รายได้ (ชำระแล้ว)</span></div><div><b>${o.length}</b><span>ออเดอร์ทั้งหมด</span></div>
-    <div><b>${o.filter((x) => x.status === 'review').length}</b><span>รอตรวจสลิป</span></div><div><b>${DB.list('members').length}</b><span>สมาชิก</span></div>
-    <div><b>${p.filter((x) => x.active && x.stock <= 5).length}</b><span>สต็อกใกล้หมด</span></div></div>
-    <h3>🏆 ขายดี</h3>${Object.entries(top).sort((a, b) => b[1] - a[1]).map(([n, q]) => `<div class="hl"><b style="flex:1">${E(n)}</b><span>${q} ชิ้น</span></div>`).join('') || '<p style="color:var(--mut)">ยังไม่มียอดขาย</p>'}
-    <h3>🩺 ปัญหาที่ต้องดู</h3>${DB.health().slice(0, 5).map((h) => `<div class="hl"><span class="tag ${h.lv === 'ok' ? 'okk' : h.lv}">${h.lv}</span><span>${E(h.msg)}</span></div>`).join('')}`;
+  dash() {   // [2026-10-14] หน้าภาพรวมแบบกราฟ/แผนภูมิ (admin-overview.js + admin-charts.js) — เลือกแบบ B Clean Analytics
+    return AdminOverview.render(AdminOverview.model(ovSnap(), { days: window._ovDays || 30 }));
   },
   orders() {
     const st = { pending: ['รอชำระ', 'pending'], review: ['รอตรวจสลิป', 'paid'], paid: ['ชำระแล้ว', 'done'], rejected: ['สลิปไม่ผ่าน', 'cancelled'], cancelled: ['ยกเลิก', 'cancelled'], done: ['เสร็จสิ้น', 'done'] };
@@ -443,6 +440,10 @@ const V = {
 /* ===== ตัวจัดการปุ่มในแต่ละแท็บ ===== */
 const PF = () => [{ k: 'name', label: 'ชื่อสินค้า', full: true }, { k: 'sku', label: 'SKU' }, { k: 'categoryId', label: 'หมวดหมู่', type: 'select', opts: catOpts() }, { k: 'brandId', label: 'แบรนด์', type: 'select', opts: [['', '— ไม่ระบุ —'], ...DB.list('brands').map((b) => [b.id, b.name])] }, { k: 'price', label: 'ราคาปกติ', type: 'number' }, { k: 'salePrice', label: 'ราคาโปร (0 = ไม่มี)', type: 'number' }, { k: 'stock', label: 'สต็อก', type: 'number' }, { k: 'badge', label: 'ป้าย (เช่น ยอดนิยม)' }, { k: 'icon', label: 'ไอคอน emoji' }, { k: 'licenseDevices', label: '🔑 จำนวนเครื่อง License (0 = ไม่ใช่สินค้าคีย์)', type: 'number' }, { k: 'licenseDays', label: '🔑 อายุคีย์ (วัน, 0 = ตลอดชีพ)', type: 'number' }, { k: 'commission', label: '🪪 ค่าคอมตัวแทนต่อชิ้น (บาท, 0 = ไม่มี)', type: 'number' }, { k: 'image', label: 'รูปสินค้า', type: 'image' }, { k: 'desc', label: 'คำอธิบาย', type: 'textarea', full: true }, { k: 'features', label: 'จุดเด่น (บรรทัดละข้อ)', type: 'textarea', full: true, list: true }, { k: 'active', label: 'เปิดขาย', type: 'check', full: true }];
 const A = {
+  dash() {   // ตัวเลือกช่วงเวลา + ส่งออก CSV ของหน้าภาพรวม
+    const sel = $('#ovDays'); if (sel) sel.onchange = () => { window._ovDays = Number(sel.value) || 30; render(); };
+    const b = $('#ovCsv'); if (b) b.onclick = () => { const snap = ovSnap(), m = AdminOverview.model(snap, { days: window._ovDays || 30 }), url = URL.createObjectURL(new Blob([AdminOverview.csv(snap, m)], { type: 'text/csv;charset=utf-8' })), a = document.createElement('a'); a.href = url; a.download = 'dogflow-orders-' + m.days + 'd.csv'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1500); };
+  },
   me() {
     if (!SB || !DB.me()) return; const er = (id, a) => { $(id).innerHTML = a.map((x) => '• ' + E(x)).join('<br>'); };
     $('#mePick').onclick = () => { er('#eMeAv', []); $('#meFile').click(); };

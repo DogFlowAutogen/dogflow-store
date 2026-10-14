@@ -108,6 +108,7 @@
     // [2026-10-14] ต่ออายุคีย์เดิม: ออเดอร์ที่ใช้ต่อไม่มีแถวคีย์ของตัวเอง → ยืมแถวคีย์เดิมมาแสดงในออเดอร์นั้น (ติดธง renewed ไม่ให้นับซ้ำในรายการคีย์)
     for (const kr of k.data) for (const e of (kr.renewed_orders || [])) { const [oid, slot] = String(e).split('|'); (keys[oid] = keys[oid] || []).push(Object.assign({}, kr, { slot, renewed: true })); }
     S.orders = o.data.map((r) => mapOrder(r, pays, keys));
+    S.trialConv = k.data.filter((r) => r.trial_days != null && r.kind === 'paid').length;   // คีย์ทดลองที่ลูกค้าซื้อแพ็กเกจต่อ (อัปเกรดเป็น paid แล้ว) — ใช้ในกรวยหน้า ภาพรวม
     S.trialKeys = k.data.filter((r) => r.kind === 'trial').map((r) => ({ id: r.id, memberId: r.member_id, key: r.key, issuedAt: r.issued_at, expiresAt: r.expires_at, trialDays: r.trial_days, revoked: !!r.revoked_at, revokeReason: r.revoke_reason || '' }));   // [2026-10-14] คีย์ทดลองไม่มีออเดอร์ จึงไม่อยู่ใน mapOrder — แยกเก็บ
     S.notices = n.data.map((r) => ({ id: r.id, memberId: r.member_id, type: r.type, title: r.title, body: r.body, read: r.read, createdAt: r.created_at }));
     if (S.isAdmin) { S.commissions = cm.data.map(IN.commissions); S.payouts = po.data.map(IN.payouts); S.members = m.data.map(IN.members); S.coupons = cp.data.map(IN.coupons); S.audit = au.data.map((r) => ({ ts: r.ts, action: r.action, entity: r.entity, detail: (r.detail && (r.detail.name || r.detail.id)) || '' })); }
@@ -115,7 +116,7 @@
   // ตัวแทนขาย: สรุปทั้งหมดของสมาชิกคนนี้มาจาก RPC เดียว (ปิดบังข้อมูลผู้สมัคร คำนวณยอดที่ฐานข้อมูล) — ล้มเหลวไม่กระทบส่วนอื่น
   async function loadAff() { if (!S.user) { S.aff = null; return; } const r = await sb.rpc('aff_overview'); S.aff = r.error ? null : r.data; }
   // [2026-10-14] สถานะสิทธิ์ทดลองใช้ฟรีของสมาชิก (แหล่งความจริงเดียวที่ฐานข้อมูล) + คิวคำขอของแอดมิน — ล้มเหลวไม่กระทบส่วนอื่น
-  async function loadTrial() { if (!S.user) { S.trial = null; S.trialQ = null; return; } const r = await sb.rpc('trial_status'); S.trial = r.error ? null : r.data; if (S.isAdmin) { const q = await sb.rpc('admin_trial_queue'); S.trialQ = q.error ? null : q.data; } else S.trialQ = null; }
+  async function loadTrial() { if (!S.user) { S.trial = null; S.trialQ = null; return; } const r = await sb.rpc('trial_status'); S.trial = r.error ? null : r.data; if (S.isAdmin) { const q = await sb.rpc('admin_trial_queue'); S.trialQ = q.error ? null : q.data; const st = await sb.from('trial_requests').select('status').limit(5000); S.trialStats = st.error ? null : { requested: st.data.length, approved: st.data.filter((x) => x.status === 'approved').length, rejected: st.data.filter((x) => x.status === 'rejected').length, cancelled: st.data.filter((x) => x.status === 'cancelled').length, pending: st.data.filter((x) => x.status === 'pending').length }; } else { S.trialQ = null; S.trialStats = null; } }
   let live = null, timer = null;
   function subscribe() {
     if (live || !S.user) return;
@@ -129,7 +130,7 @@
   async function loadReleases() { const r = await sb.from('releases').select('*').order('created_at', { ascending: false }); if (r.error) throw r.error; S.releases = r.data.map(IN.releases); }   // RLS: คืนเฉพาะผู้มีคีย์ที่ใช้งานได้ / แอดมิน
   async function loadMine() {
     const { data: s } = await sb.auth.getSession(); S.user = (s.session && s.session.user) || null;
-    S.me = null; S.isAdmin = false; S.orders = []; S.notices = []; S.members = []; S.coupons = []; S.audit = []; S.commissions = []; S.payouts = []; S.tickets = []; S.aff = null; S.trial = null; S.trialQ = null;
+    S.me = null; S.isAdmin = false; S.orders = []; S.notices = []; S.members = []; S.coupons = []; S.audit = []; S.commissions = []; S.payouts = []; S.tickets = []; S.aff = null; S.trial = null; S.trialQ = null; S.trialStats = null; S.trialConv = 0;
     S.releases = [];
     if (!S.user) { unsubscribe(); return; }
     const { data: p } = await sb.from('profiles').select('*').eq('id', S.user.id).maybeSingle();
@@ -217,6 +218,7 @@
     trialKeys: (memberId) => (S.trialKeys || []).filter((k) => !memberId || k.memberId === memberId),
     async issueTrial(memberId, days, devices, note, force) { const { data, error } = await sb.functions.invoke('issue-trial', { body: { memberId, days, devices, note, force: !!force } }); if (error) return { ok: false, errors: [await fnErr(error)] }; if (data.dup) return { ok: false, dup: true, matches: data.matches || [], errors: [data.error] }; await loadDynamic(); emit(); return data.ok ? { ok: true, key: data.key, days: data.days, devices: data.devices, expiresAt: data.expiresAt } : { ok: false, errors: [data.error || 'ออกคีย์ทดลองไม่สำเร็จ'] }; },
     trialStatus: () => S.trial || null,
+    trialStats: () => (S.trialStats ? Object.assign({}, S.trialStats, { converted: S.trialConv || 0 }) : null),
     trialQueue: () => S.trialQ || { pending: [], recent: [] },
     async requestTrial(note, consent) {   // สมาชิกกดขอ → RPC (กันกดซ้ำที่ฐานข้อมูล) แล้วยิงแจ้ง LINE แอดมินทันที (ล้มเหลวไม่เป็นไร ตัวกวาดทุกนาทีเก็บตกให้)
       const { data, error } = await sb.rpc('request_trial', { p_note: note || '', p_consent: !!consent }); if (error) return fail(error);
