@@ -74,7 +74,7 @@
     if (/Failed to fetch|NetworkError|Load failed/i.test(m)) return 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ — ตรวจอินเทอร์เน็ตแล้วลองใหม่';
     if (/Invalid login credentials/i.test(m)) return 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';
     if (/User already registered|already been registered/i.test(m)) return 'อีเมลนี้สมัครแล้ว — เข้าสู่ระบบแทน';
-    if (/Email not confirmed/i.test(m)) return 'ยังไม่ได้ยืนยันอีเมล — ตรวจกล่องจดหมายแล้วกดลิงก์ยืนยัน';
+    if (/Email not confirmed/i.test(m)) return 'ยังไม่ได้ยืนยันอีเมล — ตรวจกล่องจดหมายแล้วกดลิงก์ยืนยัน (ถ้าไม่พบ ให้ดูในกล่องสแปม/ขยะ)';
     if (/banned|User is banned/i.test(m)) return 'บัญชีนี้ถูกระงับ — ติดต่อแอดมิน';
     if (/rate limit|too many/i.test(m)) return 'ทำรายการถี่เกินไป กรุณารอสักครู่';
     return m;
