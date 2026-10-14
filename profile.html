@@ -92,7 +92,7 @@ let trialSig = '', trialBusy = false;
 function paintTrial() {
   const box = $('#trial'), st = DB.trialStatus && DB.trialStatus(); if (!st || !window.TrialCard) { box.hidden = true; return; }
   const vnum = (v) => String(v).split('.').reduce((n, x) => n * 1000 + (parseInt(x, 10) || 0), 0);   // ปุ่มของคนทดลองต้องเป็นตัวติดตั้ง (.exe) รุ่นเลขสูงสุดเท่านั้น — ไม่เอาแพ็กเกจอัปเดต (.zip) และไม่เรียงตามวันที่อัป
-  const rel = DB.list('releases').filter((r) => r.active && /.exe$/i.test(r.fileName || '')).sort((a, b) => vnum(b.version) - vnum(a.version))[0], dl = rel && DB.canDownload && DB.canDownload() ? { id: rel.id, version: rel.version } : null;
+  const rel = DB.list('releases').filter((r) => r.active && /\.exe$/i.test(r.fileName || '')).sort((a, b) => vnum(b.version) - vnum(a.version))[0], dl = rel && DB.canDownload && DB.canDownload() ? { id: rel.id, version: rel.version } : null;
   const sig = JSON.stringify([st.state, st.reason, st.request && st.request.id, st.request && st.request.status, st.key && st.key.key, dl && dl.id, trialBusy]);
   box.hidden = false; if (sig === trialSig) return; trialSig = sig; box.innerHTML = TrialCard.render(st, { dl, busy: trialBusy });
 }
