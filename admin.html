@@ -11,7 +11,7 @@ if(ok)return;window.__legacy=true;document.addEventListener('DOMContentLoaded',f
 d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">เบราว์เซอร์นี้ไม่รองรับ</h2><p style="line-height:1.8;max-width:520px;margin:0 auto">Internet Explorer และเบราว์เซอร์รุ่นเก่าไม่รองรับระบบชำระเงินและความปลอดภัยของเว็บนี้<br>กรุณาเปิดด้วย <b>Microsoft Edge</b>, <b>Google Chrome</b>, <b>Safari</b> หรือ <b>Firefox</b> รุ่นล่าสุด<br>ใช้ได้ทั้งคอมพิวเตอร์ แท็บเล็ต และโทรศัพท์</p>';document.body.appendChild(d);});})();
 </script>
 <link rel="stylesheet" href="style.css?v=20261014a">
-<link rel="stylesheet" href="admin-charts.css?v=20261014e">
+<link rel="stylesheet" href="admin-charts.css?v=20261014f">
 </head>
 <body>
 <div id="splash" role="status" aria-live="polite">
@@ -267,13 +267,24 @@ const V = {
     <td><button class="btn sm ghost" data-edit="${p.id}">แก้ไข</button> <button class="btn sm danger" data-del="${p.id}">ลบ</button></td></tr>`).join('')}</table></div>`;
   },
   cats() { return `<h1>🗂️ หมวดหมู่</h1><button class="btn" id="add">＋ เพิ่มหมวด</button><div class="tw" style="margin-top:14px"><table><tr><th>ไอคอน</th><th>ชื่อ</th><th>สินค้า</th><th></th></tr>${DB.list('categories').map((c) => `<tr><td>${E(c.icon)}</td><td>${E(c.name)}</td><td>${DB.list('products').filter((p) => p.categoryId === c.id).length}</td><td><button class="btn sm ghost" data-edit="${c.id}">แก้ไข</button> <button class="btn sm danger" data-del="${c.id}">ลบ</button></td></tr>`).join('')}</table></div>`; },
-  members() {
-    const q = (window._mq || '').toLowerCase(), all = DB.list('members'), list = all.filter((m) => !q || (m.name + m.email + m.phone).toLowerCase().includes(q));
-    const spent = (id) => DB.list('orders').filter((o) => o.memberId === id && ['paid', 'done'].includes(o.status)).reduce((s, o) => s + o.total, 0);
+  members() {   // [2026-10-14] แบบ B: ตารางกะทัดรัด 5 คอลัมน์ + แถวขยาย (เดิม 7 คอลัมน์ + ปุ่ม 7 ปุ่มกว้างเกินจอจนมีแถบเลื่อนด้านข้าง)
+    const q = (window._mq || '').toLowerCase(), f = window._mf || 'all', open = window._mOpen || '', all = DB.list('members'), orders = DB.list('orders');
+    const info = {}; orders.forEach((o) => { const i = info[o.memberId] || (info[o.memberId] = { n: 0, spent: 0 }); i.n++; if (['paid', 'done'].includes(o.status)) i.spent += o.total; });
+    const st = (m) => Object.assign({ n: 0, spent: 0 }, info[m.id], { keys: memKeys(m).length, isNew: Date.now() - new Date(m.createdAt) < 7 * 864e5 });
+    const FIL = [['all', 'ทั้งหมด', () => true], ['new', 'สมัครใหม่ 7 วัน', (m, i) => i.isNew], ['paid', 'ลูกค้าที่ซื้อแล้ว', (m, i) => i.n > 0], ['nokey', 'ยังไม่มีคีย์', (m, i) => !i.keys], ['warn', 'ถูกเตือน', (m) => m.strikes > 0], ['ban', 'ถูกระงับ', (m) => !!m.banned]];
+    const fn = (FIL.find((x) => x[0] === f) || FIL[0])[2], list = all.filter((m) => fn(m, st(m)) && (!q || (m.name + m.email + m.phone).toLowerCase().includes(q)));
+    const hue = (id) => { let h = 0; for (const c of String(id)) h = (h * 31 + c.charCodeAt(0)) % 360; return h; }, ago = (v) => { const d = Math.floor((Date.now() - new Date(v)) / 864e5); return d < 1 ? 'วันนี้' : d < 30 ? d + ' วันที่แล้ว' : Math.floor(d / 30) + ' เดือนที่แล้ว'; };
+    const av = (m) => m.avatarPath ? `<img class="mt-av" src="${E(DB.avatarUrl(m.avatarPath))}" alt="">` : `<span class="mt-av" style="--h:${hue(m.id)}">${E((String(m.name || '?').trim()[0] || '?').toUpperCase())}</span>`;
+    const row = (m) => { const i = st(m), o = open === m.id;
+      return `<tr class="mt-r${o ? ' open' : ''}${m.banned ? ' ban' : ''}" data-mrow="${E(m.id)}"><td><div class="mt-who"><span class="mt-car">▸</span>${av(m)}<div class="mt-min"><div class="mt-name">${E(m.name)} ${m.banned ? '<span class="tag err" title="' + E(m.banReason || '') + '">ระงับ</span>' : ''}${m.addedByAdmin ? ' <span class="tag">แอดมินเพิ่ม</span>' : ''}</div><div class="mt-sub" title="${E(m.email)}">${E(m.email)}</div></div></div></td>
+      <td class="c2"><div>${E(m.phone)}</div><div class="mt-sub">สมัคร ${ago(m.createdAt)}</div></td><td class="c3"><b>${i.n}</b> ออเดอร์<div class="mt-sub">${B(i.spent)}</div></td><td class="c4">${m.strikes ? '<span class="tag ' + (m.strikes >= 2 ? 'err' : 'warn') + '">' + m.strikes + '/3</span>' : '<span class="mt-sub">—</span>'}</td>
+      <td><div class="mt-acts"><button class="btn sm ghost" data-warn="${E(m.id)}">⚠ แจ้งเตือน</button><button class="btn sm ghost keep" data-edit="${E(m.id)}">แก้ไข</button></div></td></tr>
+      ${o ? `<tr class="mt-d"><td colspan="5"><div class="mt-dg"><div><h5>ติดต่อ</h5><p>✉ ${E(m.email)}</p><p>📞 ${E(m.phone)}</p><p>สมัคร ${fmt(m.createdAt)} (${ago(m.createdAt)})</p></div><div><h5>การซื้อ</h5><p>${i.n} ออเดอร์ · ${B(i.spent)}</p><p>คีย์ที่มี ${i.keys || 'ยังไม่มี'}</p></div><div><h5>วินัย</h5>${m.banned ? '<p style="color:var(--bad)">⛔ ระงับอยู่' + (m.banReason ? ' — ' + E(m.banReason) : '') + '</p>' : m.strikes ? '<p>ถูกเตือน ' + m.strikes + '/3 ครั้ง</p>' : '<p>ไม่เคยถูกเตือน</p>'}</div></div>
+      <div class="mt-da">${SB ? `<button class="btn sm ghost" data-trial="${E(m.id)}">🎁 คีย์ทดลอง</button>` : ''}<button class="btn sm ghost" data-pw="${E(m.id)}">🔑 รหัสผ่าน</button>${m.avatarPath ? `<button class="btn sm ghost" data-avclr="${E(m.id)}">🖼️ ลบรูป</button>` : ''}<button class="btn sm ghost" data-ban="${E(m.id)}">${m.banned ? 'ปลดระงับ' : '⛔ ระงับ'}</button><button class="btn sm danger" data-del="${E(m.id)}">🗑 ลบ</button></div></td></tr>` : ''}`; };
     return `<h1>👥 จัดการสมาชิก</h1><div class="kpi"><div><b>${all.length}</b><span>ทั้งหมด</span></div><div><b>${all.filter((m) => m.banned).length}</b><span>ถูกระงับ</span></div><div><b>${all.filter((m) => Date.now() - new Date(m.createdAt) < 7 * 864e5).length}</b><span>สมัครใหม่ 7 วัน</span></div></div>
-    <div class="toolbar"><button class="btn" id="add">＋ เพิ่มสมาชิก</button>${SB ? '<button class="btn gold" data-bc>📣 แจ้งลูกค้าทั้งหมด</button>' : ''}<input id="mq" placeholder="🔍 ค้นหาชื่อ/อีเมล/เบอร์" value="${E(window._mq || '')}" style="max-width:280px"></div>
-    <div class="tw"><table><tr><th>ชื่อ</th><th>อีเมล</th><th>โทร</th><th>สมัครเมื่อ</th><th>ออเดอร์ / ยอดซื้อ</th><th>เตือน</th><th></th></tr>${list.map((m) => `<tr><td>${m.avatarPath ? `<img class="adm-av" src="${E(DB.avatarUrl(m.avatarPath))}" alt="">` : ''}${E(m.name)} ${m.banned ? '<span class="tag err" title="' + E(m.banReason || '') + '">ระงับ</span>' : ''}${m.addedByAdmin ? ' <small>(แอดมินเพิ่ม)</small>' : ''}</td><td>${E(m.email)}</td><td>${E(m.phone)}</td><td>${fmt(m.createdAt)}</td><td>${DB.list('orders').filter((o) => o.memberId === m.id).length} · ${B(spent(m.id))}</td><td>${m.strikes ? '<span class="tag ' + (m.strikes >= 2 ? 'err' : 'warn') + '">' + m.strikes + '/3</span>' : '—'}</td>
-    <td>${m.avatarPath ? `<button class="btn sm ghost" data-avclr="${m.id}">🖼️ ลบรูป</button> ` : ''}<button class="btn sm ghost" data-warn="${m.id}">⚠ แจ้งเตือน</button> ${SB ? `<button class="btn sm ghost" data-trial="${m.id}">🎁 คีย์ทดลอง</button> ` : ''}<button class="btn sm ghost" data-edit="${m.id}">แก้ไข</button> <button class="btn sm ghost" data-pw="${m.id}">รหัสผ่าน</button> <button class="btn sm ghost" data-ban="${m.id}">${m.banned ? 'ปลดระงับ' : 'ระงับ'}</button> <button class="btn sm danger" data-del="${m.id}">ลบ</button></td></tr>`).join('') || '<tr><td colspan="7" style="color:var(--mut)">ไม่พบสมาชิก</td></tr>'}</table></div>`;
+    <div class="toolbar" style="justify-content:flex-start"><button class="btn" id="add">＋ เพิ่มสมาชิก</button>${SB ? '<button class="btn gold" data-bc>📣 แจ้งลูกค้าทั้งหมด</button>' : ''}<input id="mq" placeholder="🔍 ค้นหาชื่อ/อีเมล/เบอร์" value="${E(window._mq || '')}" style="max-width:280px"></div>
+    <div class="mt-chips">${FIL.map(([k, n, g]) => `<button type="button" data-mf="${k}" class="${f === k ? 'on' : ''}">${n}<b>${all.filter((m) => g(m, st(m))).length}</b></button>`).join('')}</div>
+    ${list.length ? `<table class="mt"><colgroup><col class="c1"><col class="c2"><col class="c3"><col class="c4"><col class="c5"></colgroup><tr><th>สมาชิก</th><th class="c2">เบอร์ · สมัคร</th><th class="c3">ออเดอร์ · ยอดซื้อ</th><th class="c4">เตือน</th><th></th></tr>${list.map(row).join('')}</table>` : '<p class="mt-empty">ไม่พบสมาชิก</p>'}`;
   },
   me() {
     const m = DB.me();
@@ -588,7 +599,10 @@ const A = {
     $('#mq').oninput = (e) => { window._mq = e.target.value; const p = e.target.selectionStart; render(); const n = $('#mq'); n.focus(); n.setSelectionRange(p, p); };
     $('#add').onclick = () => { // เพิ่มสมาชิก: ต้องแฮชรหัสผ่านแบบ async จึงคืน ok ทันทีแล้วแจ้งผลทีหลัง
       editor('เพิ่มสมาชิก', [...MF, { k: 'password', label: 'รหัสผ่านเริ่มต้น (≥ 8 ตัว)', type: 'password', full: true }], { name: '', email: '', phone: '', password: '' }, (o) => DB.adminAddMember(o)); };
-    $('#main').onclick = async (e) => { const b = e.target.closest('button'); if (!b) return;
+    $('#main').onclick = async (e) => {
+      const rw = e.target.closest('[data-mrow]'); if (rw && !e.target.closest('button,a,input')) { window._mOpen = window._mOpen === rw.dataset.mrow ? '' : rw.dataset.mrow; render(); return; }   // คลิกแถว = ขยาย/ย่อรายละเอียด
+      const b = e.target.closest('button'); if (!b) return;
+      if (b.dataset.mf) { window._mf = b.dataset.mf; render(); return; }   // ชิปตัวกรอง
       if (b.dataset.edit) editor('แก้ไขสมาชิก', SB ? MF.filter((x) => x.k !== 'email') : MF, DB.find('members', b.dataset.edit), (o) => { o.email = o.email.toLowerCase(); o.phone = o.phone.replace(/[-\s]/g, ''); return DB.upsert('members', o); });
       if (b.dataset.avclr) { const m = DB.find('members', b.dataset.avclr), ok = await confirmDlg({ danger: true, title: 'ลบรูปโปรไฟล์ของสมาชิกนี้?', sub: m.email, body: 'ใช้เมื่อรูปไม่เหมาะสม/ละเมิดกฎ — ไฟล์รูปจะถูกลบถาวร สมาชิกอัปโหลดรูปใหม่ได้ภายหลัง', rows: [['สมาชิก', m.name], ['อีเมล', m.email]], okText: 'ยืนยันลบรูป', cancelText: 'ไม่ลบ' });
         if (ok) { const r = await DB.adminClearAvatar(m.id); if (!r.ok) alert(r.errors.join('\n')); else { render(); await confirmDlg({ success: true, hideCancel: true, okText: 'ปิด', title: 'ลบรูปโปรไฟล์เรียบร้อยแล้ว', sub: m.email, body: 'ไฟล์รูปถูกลบถาวร สมาชิกอัปโหลดรูปใหม่ได้ภายหลัง', rows: [['สมาชิก', m.name], ['อีเมล', m.email]] }); } } return; }
