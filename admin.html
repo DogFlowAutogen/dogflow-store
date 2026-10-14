@@ -52,7 +52,7 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
 <script src="vendor/supabase.js"></script>
 <script src="store.common.js?v=20261012b"></script>
 <script src="store.local.js?v=20261012b"></script>
-<script src="store.supabase.js?v=20261014d"></script>
+<script src="store.supabase.js?v=20261014e"></script>
 <script src="avatar.js"></script>
 <script>
 const $ = (s) => document.querySelector(s), E = DB.esc, B = DB.baht;
@@ -67,6 +67,7 @@ const dfVideoPoster = (file) => new Promise((res) => {
 });
 const fmt = (t) => new Date(t).toLocaleString('th-TH');
 let tab = 'dash';
+{ const m = /^#trial=([0-9a-f-]{36})$/.exec(location.hash); if (m) { tab = 'trials'; window._trialHl = m[1]; } }   // ลิงก์จาก LINE แอดมิน → เปิดแท็บคำขอและเลื่อนไปที่คำขอนั้นหลังล็อกอิน
 
 /* ===== ล็อกอินแอดมิน ===== */
 const SB = DB.mode === 'supabase';
@@ -88,10 +89,11 @@ $('#out').onclick = async () => { if (SB) await DB.logout(); else sessionStorage
 
 document.addEventListener('click', (e) => { const g = e.target.closest('[data-gotab]'); if (g && authed()) { tab = g.dataset.gotab; render(); } });   // ปุ่มลัดข้ามแท็บ
 /* ===== เมนู ===== */
-const TABS = [['dash', '📊 ภาพรวม'], ['me', '👤 โปรไฟล์ของฉัน'], ['orders', '🧾 ออเดอร์/ชำระเงิน'], ['feedback', '💬 แจ้งปัญหา/เสนอแนะ'], ['products', '📦 สินค้า'], ['cats', '🗂️ หมวดหมู่'], ['members', '👥 สมาชิก'], ['affiliate', '🪪 ตัวแทนขาย'], ['showcase', '🖥️ ภาพหน้าตาโปรแกรม'], ['releases', '💿 ดาวน์โหลดโปรแกรม'], ['works', '🎬 ผลงานลูกค้า'], ['tutorials', '📚 คู่มือ/วิดีโอ'], ['banners', '🖼️ แบนเนอร์โฆษณา'], ['blocks', '🧱 บล็อกหน้าแรก'], ['modes', '🚀 โหมด/ประเภทเรื่อง'], ['reqs', '✅ คุณสมบัติ/เช็กก่อนซื้อ'], ['promos', '🔥 โปรโมชัน'], ['brands', '🏷️ แบรนด์สินค้า'], ['coupons', '🎟️ คูปอง'], ['content', '📝 รีวิว/FAQ'], ['settings', '⚙️ ตั้งค่าหน้าแรก'], ['health', '🩺 ตรวจสอบระบบ'], ['data', '💾 สำรอง/ประวัติ']];
+const TABS = [['dash', '📊 ภาพรวม'], ['me', '👤 โปรไฟล์ของฉัน'], ['orders', '🧾 ออเดอร์/ชำระเงิน'], ['trials', '🎁 ขอคีย์ฟรี'], ['feedback', '💬 แจ้งปัญหา/เสนอแนะ'], ['products', '📦 สินค้า'], ['cats', '🗂️ หมวดหมู่'], ['members', '👥 สมาชิก'], ['affiliate', '🪪 ตัวแทนขาย'], ['showcase', '🖥️ ภาพหน้าตาโปรแกรม'], ['releases', '💿 ดาวน์โหลดโปรแกรม'], ['works', '🎬 ผลงานลูกค้า'], ['tutorials', '📚 คู่มือ/วิดีโอ'], ['banners', '🖼️ แบนเนอร์โฆษณา'], ['blocks', '🧱 บล็อกหน้าแรก'], ['modes', '🚀 โหมด/ประเภทเรื่อง'], ['reqs', '✅ คุณสมบัติ/เช็กก่อนซื้อ'], ['promos', '🔥 โปรโมชัน'], ['brands', '🏷️ แบรนด์สินค้า'], ['coupons', '🎟️ คูปอง'], ['content', '📝 รีวิว/FAQ'], ['settings', '⚙️ ตั้งค่าหน้าแรก'], ['health', '🩺 ตรวจสอบระบบ'], ['data', '💾 สำรอง/ประวัติ']];
+const trialPend = () => (DB.trialQueue ? DB.trialQueue().pending.length : 0);
 function render() {
   const pend = DB.list('orders').filter((o) => o.status === 'review').length;
-  $('#menu').innerHTML = TABS.map(([k, n]) => `<a class="${tab === k ? 'on' : ''}" data-t="${k}">${n}${k === 'orders' && pend ? ` <span class="tag err">${pend}</span>` : ''}${k === 'feedback' && fbUnread() ? ` <span class="tag err">${fbUnread()}</span>` : ''}</a>`).join('');
+  $('#menu').innerHTML = TABS.map(([k, n]) => `<a class="${tab === k ? 'on' : ''}" data-t="${k}">${n}${k === 'orders' && pend ? ` <span class="tag err">${pend}</span>` : ''}${k === 'trials' && trialPend() ? ` <span class="tag err">${trialPend()}</span>` : ''}${k === 'feedback' && fbUnread() ? ` <span class="tag err">${fbUnread()}</span>` : ''}</a>`).join('');
   $('#main').innerHTML = V[tab](); (A[tab] || (() => {}))();
 }
 $('#menu').onclick = (e) => { const a = e.target.closest('[data-t]'); if (a) { tab = a.dataset.t; render(); } };
@@ -136,7 +138,7 @@ function confirmDlg(o) {
     const fl = o.fields || [], fw = $('#dlgFields'), er = $('#dlgErr'); er.hidden = true; fw.hidden = !fl.length;
     fw.innerHTML = fl.map((x) => x.type === 'check'
       ? '<label class="dlg-ck"><input type="checkbox" name="' + E(x.k) + '"' + (x.value ? ' checked' : '') + '><span>' + E(x.label) + '</span></label>'
-      : '<label class="dlg-f"><span>' + E(x.label) + '</span>' + (x.type === 'textarea' ? '<textarea name="' + E(x.k) + '" rows="' + (x.rows || 3) + '" placeholder="' + E(x.placeholder || '') + '">' + E(x.value || '') + '</textarea>'
+      : '<label class="dlg-f"><span>' + E(x.label) + '</span>' + (x.type === 'select' ? '<select name="' + E(x.k) + '" style="width:100%">' + (x.opts || []).map(([a, b]) => '<option value="' + E(a) + '"' + (String(x.value) === String(a) ? ' selected' : '') + '>' + E(b) + '</option>').join('') + '</select>' : x.type === 'textarea' ? '<textarea name="' + E(x.k) + '" rows="' + (x.rows || 3) + '" placeholder="' + E(x.placeholder || '') + '">' + E(x.value || '') + '</textarea>'
         : '<input name="' + E(x.k) + '" type="' + (x.type || 'text') + '" placeholder="' + E(x.placeholder || '') + '" value="' + E(x.value || '') + '" autocomplete="off">') + (x.hint ? '<small>' + E(x.hint) + '</small>' : '') + '</label>').join('');
     const vals = () => { const v = {}; fl.forEach((x) => { const el = f.elements[x.k]; v[x.k] = x.type === 'check' ? el.checked : el.value.trim(); }); return v; };
     const onKey = (e) => { if (e.key === 'Escape') done(false); };
@@ -268,6 +270,17 @@ const V = {
       + '<div class="errs" id="eMeAv"></div><small style="color:var(--mut)">PNG / JPG / WebP ไม่เกิน 8MB · ลากเลื่อนและซูมในกรอบได้ · ระบบย่อเป็น 256×256</small></div>'
       + '<div class="box"><h3>✏️ ข้อมูลส่วนตัว</h3><form id="fMe" novalidate><div class="f"><label>ชื่อ-นามสกุล</label><input name="name" value="' + E(m.name) + '"></div><div class="f"><label>เบอร์โทร</label><input name="phone" inputmode="tel" value="' + E(m.phone) + '"></div><div class="f"><label>อีเมล (เปลี่ยนไม่ได้)</label><input value="' + E(m.email) + '" disabled></div><div class="errs" id="eMe"></div><button class="btn">💾 บันทึก</button></form></div>'
       + '<div class="box"><h3>🔒 เปลี่ยนรหัสผ่าน</h3><form id="fMePw" novalidate><div class="f"><label>รหัสผ่านเดิม</label><input name="old" type="password" autocomplete="current-password"></div><div class="f"><label>รหัสผ่านใหม่ (≥ 8 ตัว)</label><input name="n1" type="password" autocomplete="new-password"></div><div class="f"><label>ยืนยันรหัสผ่านใหม่</label><input name="n2" type="password" autocomplete="new-password"></div><div class="errs" id="eMePw"></div><button class="btn">เปลี่ยนรหัสผ่าน</button></form></div></div>';
+  },
+  trials() {
+    if (!SB) return '<h1>🎁 คำขอคีย์ทดลองใช้ฟรี</h1><p style="color:var(--mut)">ใช้ได้เฉพาะโหมด Supabase</p>';
+    const q = DB.trialQueue(), th = (v) => (v ? DFCommon.thaiDateTime(v) : '-'), ST = { approved: '✅ อนุมัติ', rejected: '⛔ ปฏิเสธ', cancelled: '↩ ยกเลิก' }, hl = window._trialHl || '';
+    const card = (r) => `<div class="box" data-trq="${E(r.id)}" style="${hl === r.id ? 'border-color:var(--gold)' : ''}"><div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:space-between"><div><b>${E(r.name)}</b> · ${E(r.phone)}<br><span style="color:var(--mut);font-size:13px">${E(r.email)} · สมัคร ${th(r.memberSince)} · ออเดอร์ ${r.orders} · ขอเมื่อ ${th(r.requestedAt)}</span></div>
+      <div style="display:flex;gap:6px;align-items:flex-start;flex-wrap:wrap"><button class="btn sm gold" data-tok="${E(r.id)}">✅ อนุมัติ+ออกคีย์</button><button class="btn sm danger" data-trej="${E(r.id)}">⛔ ปฏิเสธ</button><button class="btn sm ghost" data-tcan="${E(r.id)}">↩ ยกเลิก</button></div></div>
+      ${r.note ? `<div style="margin-top:6px">หมายเหตุ: ${E(r.note)}</div>` : ''}${r.banned ? '<div class="tag err" style="margin-top:6px">บัญชีถูกระงับ</div>' : ''}${r.isCustomer ? '<div class="tag paid" style="margin-top:6px">เป็นลูกค้าแล้ว</div>' : ''}
+      ${(r.near || []).map((n) => `<div style="margin-top:6px;font-size:13px;color:${n.hadTrial ? 'var(--err)' : 'var(--mut)'}">${n.hadTrial ? '⚠ เคยใช้สิทธิ์แล้ว' : 'ℹ บัญชีใกล้เคียง'}: ${E(n.email)} (${E(n.reason)})</div>`).join('') || '<div style="margin-top:6px;font-size:13px;color:var(--mut)">✔ ไม่พบบัญชีซ้ำ</div>'}</div>`;
+    return `<h1>🎁 คำขอคีย์ทดลองใช้ฟรี</h1><p style="color:var(--mut)">สมาชิกกดขอในหน้าโปรไฟล์ → แจ้ง LINE แอดมิน → อนุมัติที่นี่ ระบบออกคีย์ให้ทันที สมาชิกเห็นคีย์ + ปุ่มดาวน์โหลดในโปรไฟล์อัตโนมัติ</p>
+      <h3>⏳ รอดำเนินการ (${q.pending.length})</h3>${q.pending.map(card).join('') || '<p style="color:var(--mut)">ไม่มีคำขอค้าง</p>'}
+      <h3 style="margin-top:18px">🕘 ล่าสุด</h3>${q.recent.map((r) => `<div class="hl"><span style="flex:1"><b>${E(r.name)}</b> · ${E(r.email)}<br><small style="color:var(--mut)">${ST[r.status] || r.status} ${th(r.decidedAt)}${r.decisionNote ? ' · ' + E(r.decisionNote) : ''}${r.cancelledBy ? ' (โดย ' + (r.cancelledBy === 'member' ? 'สมาชิก' : r.cancelledBy === 'system' ? 'ระบบ' : 'แอดมิน') + ')' : ''}</small></span></div>`).join('') || '<p style="color:var(--mut)">ยังไม่มีประวัติ</p>'}`;
   },
   feedback() {
     if (!SB) return '<h1>💬 แจ้งปัญหา / เสนอแนะ</h1><p style="color:var(--mut)">ใช้ได้เฉพาะโหมด Supabase (ฐานข้อมูลจริง)</p>';
@@ -474,6 +487,33 @@ const A = {
       if (np) return confirmDlg({ danger: true, title: 'ลบหมวดหมู่นี้ไม่ได้ในตอนนี้', sub: c.id, body: 'ยังมีสินค้าอยู่ในหมวดนี้ ระบบไม่อนุญาตให้ลบจนกว่าจะย้ายสินค้าไปหมวดอื่น หรือลบสินค้าเหล่านั้นก่อน', rows, okText: 'รับทราบ', cancelText: 'ปิด' });
       del('categories', c.id, c.name, { title: 'ลบหมวดหมู่นี้ถาวร?', sub: c.id, body: 'หมวดหมู่จะหายจากตัวกรองหน้าร้านทันที — ย้อนกลับไม่ได้', rows,
         warn: npm ? '⚠ มีโปรโมชันที่ใช้กับหมวดนี้ ' + npm + ' รายการ — ควรแก้หรือลบโปรโมชันเหล่านั้นด้วย ไม่งั้นจะแสดงเป็น "ไม่มีหมวด"' : '', check: 'ฉันตรวจสอบแล้ว ต้องการลบหมวด "' + c.name + '" ถาวร' }); };
+  },
+  trials() {
+    if (!SB) return;
+    if (window._trialHl) { const el = $('#main').querySelector('[data-trq="' + window._trialHl + '"]'); window._trialHl = ''; if (el) el.scrollIntoView({ block: 'center' }); }
+    $('#main').onclick = async (e) => {
+      const ok = e.target.closest('[data-tok]'), rj = e.target.closest('[data-trej]'), cn = e.target.closest('[data-tcan]'); if (!ok && !rj && !cn) return;
+      const id = (ok || rj || cn).dataset.tok || (rj || cn).dataset.trej || (cn || {}).dataset.tcan, r0 = DB.trialQueue().pending.find((x) => x.id === id); if (!r0) return render();
+      const cfg = (DB.trialStatus() || {}).config || {}, b = e.target.closest('button');
+      if (ok) {
+        const v = await confirmDlg({ title: 'อนุมัติและออกคีย์ทดลอง', sub: r0.name + ' · ' + r0.email, body: 'ออกคีย์ที่ License Server ทันที แล้วแจ้งสมาชิกในโปรไฟล์ · วันทดลองเริ่มนับเมื่อสมาชิกเปิดใช้ครั้งแรก',
+          fields: [{ k: 'days', label: 'จำนวนวันทดลอง', type: 'number', value: String(cfg.days || 1), hint: '1-30 วัน' }, { k: 'devices', label: 'จำนวนเครื่อง', type: 'number', value: String(cfg.devices || 1), hint: '1-3 เครื่อง' }],
+          validate: (x) => (!(Number.isInteger(Number(x.days)) && Number(x.days) >= 1 && Number(x.days) <= 30) ? 'จำนวนวันต้องเป็นเลขเต็ม 1-30' : !(Number.isInteger(Number(x.devices)) && Number(x.devices) >= 1 && Number(x.devices) <= 3) ? 'จำนวนเครื่องต้องเป็นเลขเต็ม 1-3' : ''), okText: 'ออกคีย์' });
+        if (!v) return; b.disabled = true; let r = await DB.approveTrial(id, Number(v.days), Number(v.devices));
+        if (r.dup) { const go = await confirmDlg({ danger: true, title: 'พบบัญชีที่น่าจะเป็นคนเดียวกัน', sub: r0.email, body: r.errors[0] + '\n\nออกคีย์ซ้ำให้คนเดิมทำให้ใช้เกินสิทธิ์ ยืนยันออกต่อไหม?', okText: 'ยืนยันออกคีย์' }); if (!go) { b.disabled = false; return; } r = await DB.approveTrial(id, Number(v.days), Number(v.devices), true); }
+        b.disabled = false; render();
+        return confirmDlg(r.ok ? { success: true, hideCancel: true, okText: 'ปิด', title: 'ออกคีย์ทดลองเรียบร้อยแล้ว', sub: r0.email, body: 'สมาชิกเห็นคีย์ในโปรไฟล์แล้ว · คีย์: ' + r.key } : { danger: true, hideCancel: true, okText: 'รับทราบ', title: 'อนุมัติไม่สำเร็จ', sub: r0.email, body: r.errors.join('\n') });
+      }
+      if (rj) {
+        const v = await confirmDlg({ danger: true, title: 'ปฏิเสธคำขอ', sub: r0.name + ' · ' + r0.email, body: 'สมาชิกจะเห็นเหตุผลในโปรไฟล์ทันที',
+          fields: [{ k: 'code', label: 'เหตุผล', type: 'select', opts: [['incomplete', 'ข้อมูลไม่ครบหรือตรวจสอบไม่ได้'], ['duplicate', 'พบบัญชีซ้ำกับผู้เคยใช้สิทธิ์'], ['not_eligible', 'ไม่เข้าเงื่อนไข'], ['too_often', 'ขอบ่อยเกินไป'], ['other', 'อื่น ๆ (พิมพ์ในช่องหมายเหตุ)']] },
+            { k: 'note', label: 'หมายเหตุถึงสมาชิก (ไม่บังคับ ยกเว้นเลือก "อื่น ๆ")', type: 'text' }, { k: 'retry', label: 'การขอใหม่', type: 'select', opts: [['default', 'ขอใหม่ได้หลัง 30 วัน'], ['now', 'แก้ไขแล้วขอใหม่ได้ทันที'], ['permanent', 'ห้ามขออีกถาวร']] }],
+          validate: (x) => (x.code === 'other' && !x.note ? 'เหตุผล "อื่น ๆ" ต้องพิมพ์ข้อความ' : ''), okText: 'ปฏิเสธ' });
+        if (!v) return; const r = await DB.reviewTrial(id, 'reject', v.code, v.note, v.retry); return r.ok ? (toast('ปฏิเสธแล้ว'), render()) : alert(r.errors.join('\n'));
+      }
+      const v = await confirmDlg({ title: 'ยกเลิกคำขอ', sub: r0.name + ' · ' + r0.email, body: 'ต่างจากปฏิเสธ: สมาชิกขอใหม่ได้ทันที', fields: [{ k: 'note', label: 'เหตุผล (ไม่บังคับ)', type: 'text' }], okText: 'ยกเลิกคำขอ' });
+      if (!v) return; const r = await DB.reviewTrial(id, 'cancel', '', v.note); r.ok ? (toast('ยกเลิกแล้ว'), render()) : alert(r.errors.join('\n'));
+    };
   },
   feedback() {
     if (!SB) return;

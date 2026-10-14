@@ -112,12 +112,14 @@
   }
   // ตัวแทนขาย: สรุปทั้งหมดของสมาชิกคนนี้มาจาก RPC เดียว (ปิดบังข้อมูลผู้สมัคร คำนวณยอดที่ฐานข้อมูล) — ล้มเหลวไม่กระทบส่วนอื่น
   async function loadAff() { if (!S.user) { S.aff = null; return; } const r = await sb.rpc('aff_overview'); S.aff = r.error ? null : r.data; }
+  // [2026-10-14] สถานะสิทธิ์ทดลองใช้ฟรีของสมาชิก (แหล่งความจริงเดียวที่ฐานข้อมูล) + คิวคำขอของแอดมิน — ล้มเหลวไม่กระทบส่วนอื่น
+  async function loadTrial() { if (!S.user) { S.trial = null; S.trialQ = null; return; } const r = await sb.rpc('trial_status'); S.trial = r.error ? null : r.data; if (S.isAdmin) { const q = await sb.rpc('admin_trial_queue'); S.trialQ = q.error ? null : q.data; } else S.trialQ = null; }
   let live = null, timer = null;
   function subscribe() {
     if (live || !S.user) return;
-    const refresh = () => { clearTimeout(timer); timer = setTimeout(() => Promise.all([loadDynamic(), loadAff()]).then(emit).catch(() => {}), 400); };
+    const refresh = () => { clearTimeout(timer); timer = setTimeout(() => Promise.all([loadDynamic(), loadAff(), loadTrial()]).then(emit).catch(() => {}), 400); };
     live = sb.channel('df-live');
-    ['orders', 'payments', 'license_keys', 'notices', 'commissions', 'payouts', 'feedback_tickets'].forEach((t) => live.on('postgres_changes', { event: '*', schema: 'public', table: t }, refresh));
+    ['orders', 'payments', 'license_keys', 'notices', 'commissions', 'payouts', 'feedback_tickets', 'trial_requests'].forEach((t) => live.on('postgres_changes', { event: '*', schema: 'public', table: t }, refresh));
     live.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'feedback_messages' }, () => { refresh(); w.dispatchEvent(new CustomEvent('fb:msg')); });   // ข้อความใหม่ในตั๋ว → ให้หน้าต่างสนทนาที่เปิดอยู่โหลดใหม่
     live.subscribe();
   }
@@ -125,14 +127,14 @@
   async function loadReleases() { const r = await sb.from('releases').select('*').order('created_at', { ascending: false }); if (r.error) throw r.error; S.releases = r.data.map(IN.releases); }   // RLS: คืนเฉพาะผู้มีคีย์ที่ใช้งานได้ / แอดมิน
   async function loadMine() {
     const { data: s } = await sb.auth.getSession(); S.user = (s.session && s.session.user) || null;
-    S.me = null; S.isAdmin = false; S.orders = []; S.notices = []; S.members = []; S.coupons = []; S.audit = []; S.commissions = []; S.payouts = []; S.tickets = []; S.aff = null;
+    S.me = null; S.isAdmin = false; S.orders = []; S.notices = []; S.members = []; S.coupons = []; S.audit = []; S.commissions = []; S.payouts = []; S.tickets = []; S.aff = null; S.trial = null; S.trialQ = null;
     S.releases = [];
     if (!S.user) { unsubscribe(); return; }
     const { data: p } = await sb.from('profiles').select('*').eq('id', S.user.id).maybeSingle();
     if (!p || p.banned) { await sb.auth.signOut(); S.user = null; unsubscribe(); return; }
     S.me = IN.members(p);
     const { data: a } = await sb.rpc('is_admin'); S.isAdmin = a === true;
-    await loadDynamic(); await loadReleases(); await loadAff(); subscribe();
+    await loadDynamic(); await loadReleases(); await loadAff(); await loadTrial(); subscribe();
   }
   let initP = null;
   sb.auth.onAuthStateChange((ev) => { if (ev === 'SIGNED_OUT' && S.user) loadMine().then(emit); });
@@ -212,6 +214,17 @@
     // [2026-10-14] คีย์ทดลองใช้ฟรี: สมาชิกเห็นของตัวเอง (RLS) · แอดมินเห็นทั้งหมด · ออกคีย์ผ่าน Edge Function issue-trial (แอดมินเท่านั้น)
     trialKeys: (memberId) => (S.trialKeys || []).filter((k) => !memberId || k.memberId === memberId),
     async issueTrial(memberId, days, devices, note, force) { const { data, error } = await sb.functions.invoke('issue-trial', { body: { memberId, days, devices, note, force: !!force } }); if (error) return { ok: false, errors: [await fnErr(error)] }; if (data.dup) return { ok: false, dup: true, matches: data.matches || [], errors: [data.error] }; await loadDynamic(); emit(); return data.ok ? { ok: true, key: data.key, days: data.days, devices: data.devices, expiresAt: data.expiresAt } : { ok: false, errors: [data.error || 'ออกคีย์ทดลองไม่สำเร็จ'] }; },
+    trialStatus: () => S.trial || null,
+    trialQueue: () => S.trialQ || { pending: [], recent: [] },
+    async requestTrial(note, consent) {   // สมาชิกกดขอ → RPC (กันกดซ้ำที่ฐานข้อมูล) แล้วยิงแจ้ง LINE แอดมินทันที (ล้มเหลวไม่เป็นไร ตัวกวาดทุกนาทีเก็บตกให้)
+      const { data, error } = await sb.rpc('request_trial', { p_note: note || '', p_consent: !!consent }); if (error) return fail(error);
+      S.trial = data; emit();
+      if (data && data.state === 'pending' && data.request) sb.functions.invoke('notify-line', { body: { event: 'trial', requestId: data.request.id } }).catch(() => {});
+      return { ok: true, status: data };
+    },
+    async cancelTrialRequest() { const { data, error } = await sb.rpc('cancel_trial_request'); if (error) return fail(error); S.trial = data; emit(); return { ok: true, status: data }; },
+    async reviewTrial(id, action, code, note, retry) { const { data, error } = await sb.rpc('admin_review_trial', { p_id: id, p_action: action, p_code: code || '', p_note: note || '', p_retry: retry || 'default' }); if (error) return fail(error); await loadTrial(); emit(); return { ok: true, status: data && data.status }; },
+    async approveTrial(requestId, days, devices, force) { const { data, error } = await sb.functions.invoke('issue-trial', { body: { requestId, days, devices, force: !!force } }); if (error) return { ok: false, errors: [await fnErr(error)] }; if (data.dup) return { ok: false, dup: true, matches: data.matches || [], errors: [data.error] }; await Promise.all([loadDynamic(), loadTrial()]); emit(); return data.ok ? { ok: true, key: data.key, days: data.days, devices: data.devices } : { ok: false, errors: [data.error || 'อนุมัติไม่สำเร็จ'] }; },
     async dispatchNotices() { const { data, error } = await sb.functions.invoke('dispatch-notices', { body: {} }); if (error) return { ok: false, errors: [await fnErr(error)] }; return data.ok ? { ok: true, sent: data.sent, skipped: data.skipped } : { ok: false, errors: [data.error || 'ส่งอีเมลบางรายการไม่สำเร็จ'], sent: data.sent, failed: data.failed }; },
     // ขอสิทธิ์ที่เซิร์ฟเวอร์ (ตรวจคีย์/โควตา/บันทึกประวัติ) แล้วออก signed URL อายุ 2 นาที
     async downloadUrl(id) {

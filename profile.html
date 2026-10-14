@@ -24,6 +24,7 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
   <div class="sp-bar"><span></span></div>
 </div>
 <noscript><style>#splash{display:none}</style></noscript>
+<style>/* การ์ดทดลองใช้ฟรี */.trial{border:1px solid var(--line,#2a3342);border-radius:14px;padding:14px 16px}.trial h3{margin:0 0 6px}.trial.ok{border-color:var(--gold)}.trial.wait{border-color:#3b82f6}.trial.warn{border-color:#a16207}.trial.err{border-color:var(--err)}.trial-t{font-weight:600;margin-bottom:6px}.trial p{margin:6px 0;font-size:14px;color:var(--mut)}.trial-c{display:flex;gap:8px;font-size:13.5px;margin-top:8px;align-items:flex-start}.trial-c input{width:auto;margin-top:3px}.trial-s{margin:6px 0 6px 18px;padding:0;font-size:14px}.trial-a{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap}</style>
 <header class="nav"><div class="wrap"><a class="logo" href="index.html"><span class="lm"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><ellipse cx="6.5" cy="9.5" rx="2" ry="2.7"/><ellipse cx="11" cy="5.8" rx="2" ry="2.7"/><ellipse cx="16.5" cy="6.2" rx="2" ry="2.7"/><ellipse cx="20" cy="11" rx="1.8" ry="2.4"/><path d="M12.3 11.2c-3 0-6 3.6-6 6.3 0 1.9 1.5 2.9 3.2 2.9 1.2 0 1.8-.5 2.8-.5s1.6.5 2.8.5c1.7 0 3.2-1 3.2-2.9 0-2.7-3-6.3-6-6.3z"/></svg></span><span>DogFlow Auto Gen</span></a><div class="grow"></div><a class="btn ghost sm" href="#aff">🪪 ตัวแทนขาย</a><a class="btn ghost sm" href="index.html">← กลับหน้าร้าน</a><button class="btn ghost sm" id="out">🚪 ออกจากระบบ</button></div></header>
 
 <div class="wrap" id="guest" hidden><div class="box" style="margin-top:30px;text-align:center"><h3>🔐 กรุณาเข้าสู่ระบบ</h3><p style="color:var(--mut)">เข้าสู่ระบบจากหน้าร้านก่อน แล้วกลับมาที่หน้านี้</p><a class="btn" href="index.html">ไปหน้าร้าน</a></div></div>
@@ -40,6 +41,7 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
   </aside>
   <main>
     <div class="box" id="notices"><h3>🔔 การแจ้งเตือน <span class="tag err" id="unr" hidden></span></h3><div id="nlist"></div><button class="btn ghost sm" id="readAll" style="margin-top:8px">ทำเครื่องหมายว่าอ่านทั้งหมด</button></div>
+    <div class="box" id="trial" hidden></div>
     <div class="box"><h3>🔑 License key ของฉัน</h3><p style="color:var(--mut);font-size:14px;margin-top:0">คีย์จะปรากฏที่นี่อัตโนมัติเมื่อแอดมินยืนยันการชำระเงินแล้ว — นำไปใส่ในโปรแกรมเพื่อเปิดใช้งาน</p><div id="keys"></div></div>
     <div class="box" id="downloads"><h3>💿 ดาวน์โหลดโปรแกรม</h3><div id="dlist"></div><div id="dlguide"></div></div>
     <div class="box" id="grp" hidden><h3>💬 เข้ากลุ่ม LINE ลูกค้า DogFlow</h3><p style="color:var(--mut);font-size:14px;margin:0 0 10px">สแกน QR Code ด้วยแอป LINE เพื่อเข้ากลุ่ม — สิทธิ์เฉพาะลูกค้าที่ชำระเงินและได้รับ License key แล้ว กรุณาอย่าแชร์ต่อ</p><img id="grpQr" alt="QR Code เข้ากลุ่ม LINE DogFlow" style="width:min(240px,100%);border-radius:12px;background:#fff;display:block"></div>
@@ -68,8 +70,9 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
 <script src="vendor/supabase.js"></script>
 <script src="store.common.js?v=20261012b"></script>
 <script src="store.local.js?v=20261012a"></script>
-<script src="store.supabase.js?v=20261014d"></script>
+<script src="store.supabase.js?v=20261014e"></script>
 <script src="avatar.js"></script>
+<script src="trial-card.js?v=20261014e"></script>
 <script>
 const $ = (s) => document.querySelector(s), E = DB.esc, B = DB.baht;
 const toast = (m) => { const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(t._); t._ = setTimeout(() => t.classList.remove('on'), 2400); };
@@ -84,11 +87,30 @@ async function paintGroup(ok) {
   if (!grpUrl || Date.now() - grpAt > 240000) { const t = Date.now(); const u = await DB.groupQrUrl(); if (!u) { box.hidden = true; return; } grpUrl = u; grpAt = t; $('#grpQr').src = u; }
   box.hidden = false;
 }
+// การ์ดทดลองใช้ฟรี: วาดใหม่เฉพาะเมื่อสถานะเปลี่ยน (กัน db:change ล้างช่องที่กำลังพิมพ์/ติ๊กอยู่)
+let trialSig = '', trialBusy = false;
+function paintTrial() {
+  const box = $('#trial'), st = DB.trialStatus && DB.trialStatus(); if (!st || !window.TrialCard) { box.hidden = true; return; }
+  const rel = DB.list('releases').filter((r) => r.active).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))[0], dl = rel && DB.canDownload && DB.canDownload() ? { id: rel.id, version: rel.version } : null;
+  const sig = JSON.stringify([st.state, st.reason, st.request && st.request.id, st.request && st.request.status, st.key && st.key.key, dl && dl.id, trialBusy]);
+  box.hidden = false; if (sig === trialSig) return; trialSig = sig; box.innerHTML = TrialCard.render(st, { dl, busy: trialBusy });
+}
+async function trialDo(fn) { trialBusy = true; trialSig = ''; paintTrial(); const r = await fn(); trialBusy = false; trialSig = ''; paintTrial(); return r; }
+document.addEventListener('click', async (e) => {
+  if (e.target.closest('[data-focus-prof]')) { e.preventDefault(); const f = $('#fProf'); f.scrollIntoView({ behavior: 'smooth' }); f.name.focus(); return; }
+  if (e.target.closest('#trialAsk')) {
+    const err = $('#trialErr'); if (!$('#trialConsent').checked) return showErr(err, ['ติ๊กยินยอมให้เก็บรหัสเครื่องก่อนจึงจะขอได้']);
+    const note = $('#trialNote').value, r = await trialDo(() => DB.requestTrial(note, true));
+    if (!r.ok) { const e2 = $('#trialErr'); if (e2) showErr(e2, r.errors); return; }
+    toast(r.status && r.status.state === 'pending' ? 'ส่งคำขอแล้ว ✔ ทีมงานได้รับแจ้งเตือน' : 'ขอไม่สำเร็จ — ดูเหตุผลในกล่อง'); return;
+  }
+  if (e.target.closest('#trialCancel')) { if (!confirm('ยกเลิกคำขอทดลองใช้ฟรี?')) return; const r = await trialDo(() => DB.cancelTrialRequest()); toast(r.ok ? 'ยกเลิกคำขอแล้ว' : r.errors.join(' ')); }
+});
 function render() {
   const m = DB.me(); $('#guest').hidden = !!m; $('#app').hidden = !m; $('#out').hidden = !m; if (!m) return;
   const orders = DB.list('orders').filter((o) => o.memberId === m.id), keys = orders.flatMap((o) => (o.licenseKeys || []).map((k) => Object.assign({ orderId: o.id }, k)))
     .concat((DB.trialKeys ? DB.trialKeys(m.id) : []).map((k) => ({ orderId: '', product: '🎁 ทดลองใช้ฟรี', key: k.key, issuedAt: k.issuedAt, revoked: k.revoked, trial: true, expiresAt: k.expiresAt, trialDays: k.trialDays })));   // [2026-10-14] คีย์ทดลองที่แอดมินออกให้ (ไม่มีออเดอร์)
-  paintAvatar(m); $('#nm').textContent = m.name; $('#em').textContent = m.email; $('#since').textContent = 'สมาชิกตั้งแต่ ' + new Date(m.createdAt).toLocaleDateString('th-TH');
+  paintTrial(); paintAvatar(m); $('#nm').textContent = m.name; $('#em').textContent = m.email; $('#since').textContent = 'สมาชิกตั้งแต่ ' + new Date(m.createdAt).toLocaleDateString('th-TH');
   const ns = DB.myNotices(), un = ns.filter((n) => !n.read).length, ic = { info: 'ℹ️', warning: '⚠️', violation: '⛔', ban: '🚫', update: '💿' };
   $('#unr').hidden = !un; $('#unr').textContent = un + ' ใหม่'; $('#readAll').hidden = !un;
   $('#nlist').innerHTML = ns.map((n) => `<div class="hl" style="${n.type === 'violation' || n.type === 'ban' ? 'border-color:var(--err)' : n.type === 'warning' ? 'border-color:var(--gold)' : ''};${n.read ? 'opacity:.65' : ''}"><span>${ic[n.type] || ''}</span><span style="flex:1"><b>${E(n.title)}</b>${n.read ? '' : ' <span class="tag err">ใหม่</span>'}<br><span style="color:var(--mut);font-size:14px">${E(n.body)}</span><br><small style="color:var(--mut)">${new Date(n.createdAt).toLocaleString('th-TH')}</small></span>${n.read ? '' : `<button class="btn sm ghost" data-read="${E(n.id)}">อ่านแล้ว</button>`}</div>`).join('') || '<p style="color:var(--mut)">ไม่มีการแจ้งเตือน</p>';
@@ -225,7 +247,7 @@ $('#fPw').onsubmit = async (e) => { e.preventDefault(); const f = e.target, r = 
 $('#out').onclick = async () => { await DB.logout(); location.href = 'index.html'; };
 $('#del').onclick = async () => { if (!confirm('ลบบัญชีถาวร?')) return; const r = await DB.deleteMyAccount(); r.ok ? (location.href = 'index.html') : alert(r.errors.join('\n')); };
 window.addEventListener('db:change', render); // แอดมินอนุมัติ → (Supabase Realtime / localStorage event) → คีย์เด้งเข้าอัตโนมัติ
-DB.init().then(render).then(() => { if (location.hash === '#aff') setTimeout(() => $('#aff').scrollIntoView({ behavior: 'smooth' }), 150); }).then(DFCommon.hideSplash).catch((e) => { DFCommon.hideSplash(); document.body.insertAdjacentHTML('afterbegin', '<div style="background:#7f1d1d;color:#fff;padding:14px;text-align:center">เชื่อมต่อฐานข้อมูลไม่สำเร็จ — กรุณารีเฟรช</div>'); console.error(e); });
+DB.init().then(render).then(() => { if (location.hash === '#aff' || location.hash === '#trial') setTimeout(() => $(location.hash).scrollIntoView({ behavior: 'smooth' }), 150); }).then(DFCommon.hideSplash).catch((e) => { DFCommon.hideSplash(); document.body.insertAdjacentHTML('afterbegin', '<div style="background:#7f1d1d;color:#fff;padding:14px;text-align:center">เชื่อมต่อฐานข้อมูลไม่สำเร็จ — กรุณารีเฟรช</div>'); console.error(e); });
 </script>
 </body>
 </html>
