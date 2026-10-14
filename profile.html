@@ -68,7 +68,7 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
 <script src="vendor/supabase.js"></script>
 <script src="store.common.js?v=20261012b"></script>
 <script src="store.local.js?v=20261012a"></script>
-<script src="store.supabase.js?v=20261013a"></script>
+<script src="store.supabase.js?v=20261014a"></script>
 <script src="avatar.js"></script>
 <script>
 const $ = (s) => document.querySelector(s), E = DB.esc, B = DB.baht;
@@ -86,7 +86,8 @@ async function paintGroup(ok) {
 }
 function render() {
   const m = DB.me(); $('#guest').hidden = !!m; $('#app').hidden = !m; $('#out').hidden = !m; if (!m) return;
-  const orders = DB.list('orders').filter((o) => o.memberId === m.id), keys = orders.flatMap((o) => (o.licenseKeys || []).map((k) => Object.assign({ orderId: o.id }, k)));
+  const orders = DB.list('orders').filter((o) => o.memberId === m.id), keys = orders.flatMap((o) => (o.licenseKeys || []).map((k) => Object.assign({ orderId: o.id }, k)))
+    .concat((DB.trialKeys ? DB.trialKeys(m.id) : []).map((k) => ({ orderId: '', product: '🎁 ทดลองใช้ฟรี', key: k.key, issuedAt: k.issuedAt, revoked: k.revoked, trial: true, expiresAt: k.expiresAt })));   // [2026-10-14] คีย์ทดลองที่แอดมินออกให้ (ไม่มีออเดอร์)
   paintAvatar(m); $('#nm').textContent = m.name; $('#em').textContent = m.email; $('#since').textContent = 'สมาชิกตั้งแต่ ' + new Date(m.createdAt).toLocaleDateString('th-TH');
   const ns = DB.myNotices(), un = ns.filter((n) => !n.read).length, ic = { info: 'ℹ️', warning: '⚠️', violation: '⛔', ban: '🚫', update: '💿' };
   $('#unr').hidden = !un; $('#unr').textContent = un + ' ใหม่'; $('#readAll').hidden = !un;
@@ -94,7 +95,7 @@ function render() {
   $('#kOrd').textContent = orders.length; $('#kKey').textContent = keys.length; $('#emro').value = m.email;
   const f = $('#fProf'); if (document.activeElement.form !== f) { f.name.value = m.name; f.phone.value = m.phone; } $('#emUpd').checked = m.emailUpdates !== false;
   if (lastKeys >= 0 && keys.length > lastKeys) toast('🎉 มี License key ใหม่เข้าโปรไฟล์ของคุณแล้ว'); lastKeys = keys.length;
-  $('#keys').innerHTML = keys.map((k) => `<div class="key"><div style="flex:1"><div style="font-size:13px;color:var(--mut)">${E(k.product)} · ออเดอร์ ${E(k.orderId)} · ออกเมื่อ ${new Date(k.issuedAt).toLocaleString('th-TH')}</div><code>${E(k.key)}</code></div>${k.revoked ? '<span class="tag err">ถูกระงับ</span>' : `<button class="btn sm" data-copy="${E(k.key)}">📋 คัดลอก</button>`}</div>`).join('')
+  $('#keys').innerHTML = keys.map((k) => `<div class="key"><div style="flex:1"><div style="font-size:13px;color:var(--mut)">${E(k.product)} · ${k.trial ? 'ใช้ได้ถึง ' + new Date(k.expiresAt).toLocaleString('th-TH') : 'ออเดอร์ ' + E(k.orderId)} · ออกเมื่อ ${new Date(k.issuedAt).toLocaleString('th-TH')}</div><code>${E(k.key)}</code></div>${k.revoked ? '<span class="tag err">ถูกระงับ</span>' : k.trial && new Date(k.expiresAt) < new Date() ? '<span class="tag err">หมดช่วงทดลองแล้ว</span> <a class="btn sm gold" href="index.html#shop">🛒 ซื้อแพ็กเกจ</a>' : `<button class="btn sm" data-copy="${E(k.key)}">📋 คัดลอก</button>`}</div>`).join('')
     || '<p style="color:var(--mut)">ยังไม่มีคีย์ — เมื่อชำระเงินและแอดมินตรวจสลิปผ่านแล้ว คีย์จะขึ้นที่นี่</p>';
   const rel = DB.list('releases').filter((r) => r.active).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)), can = !!(DB.canDownload && DB.canDownload()) && rel.length > 0;
   const PL = { windows: 'Windows', mac: 'macOS', linux: 'Linux', other: 'อื่น ๆ' };
@@ -106,7 +107,7 @@ function render() {
     : keys.length ? '<p style="color:var(--mut)">ยังไม่มีไฟล์ให้ดาวน์โหลดในตอนนี้ (หรือสิทธิ์/อายุคีย์หมดแล้ว) — หากมีปัญหาติดต่อแอดมิน</p>' : '<p style="color:var(--mut)">ดาวน์โหลดได้เมื่อมี License ที่ใช้งานได้ — <a href="index.html#shop" style="color:var(--cyan)">เลือกซื้อแพ็กเกจ</a></p>';
   const guide = DB.settings().installGuide; $('#dlguide').innerHTML = can && guide ? `<details open style="margin-top:10px"><summary>📖 วิธีติดตั้งและเริ่มใช้งาน</summary><div style="white-space:pre-line;color:var(--mut);font-size:14px;margin-top:6px">${E(guide)}</div></details>` : '';
   paintAff(); paintFb();
-  paintGroup(keys.some((k) => !k.revoked));
+  paintGroup(keys.some((k) => !k.revoked && !k.trial));   // กลุ่ม LINE ลูกค้า: เฉพาะผู้ซื้อ (คีย์ทดลองไม่นับ)
   $('#orders').innerHTML = orders.map((o) => `<div style="border:1px solid var(--line);border-radius:12px;padding:12px;margin:10px 0">
     <div class="row"><b>${E(o.id)}</b><span class="tag ${ST[o.status][1]}">${ST[o.status][0]}</span></div>
     <div style="font-size:13px;color:var(--mut)">${new Date(o.createdAt).toLocaleString('th-TH')} · ${o.items.map((i) => E(i.name) + '×' + i.qty).join(', ')}</div>

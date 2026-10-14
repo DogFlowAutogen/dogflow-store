@@ -52,7 +52,7 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
 <script src="vendor/supabase.js"></script>
 <script src="store.common.js?v=20261012b"></script>
 <script src="store.local.js?v=20261012b"></script>
-<script src="store.supabase.js?v=20261013a"></script>
+<script src="store.supabase.js?v=20261014a"></script>
 <script src="avatar.js"></script>
 <script>
 const $ = (s) => document.querySelector(s), E = DB.esc, B = DB.baht;
@@ -148,7 +148,7 @@ function confirmDlg(o) {
   });
 }
 // สรุปข้อมูลสมาชิกสำหรับหน้าต่างยืนยัน: ชื่อ/อีเมล/โทร/สมัครเมื่อ/ออเดอร์+ยอดซื้อ/คำเตือน/สถานะ/จำนวนคีย์
-const memKeys = (m) => DB.list('orders').filter((o) => o.memberId === m.id).flatMap((o) => o.licenseKeys || []);
+const memKeys = (m) => DB.list('orders').filter((o) => o.memberId === m.id).flatMap((o) => o.licenseKeys || []).concat(DB.trialKeys ? DB.trialKeys(m.id) : []);   // รวมคีย์ทดลอง (ระงับ/คืนสิทธิ์พร้อมกัน — revoke-keys ครอบคลุมทุกคีย์ของสมาชิก)
 const memRows = (m) => { const os = DB.list('orders').filter((o) => o.memberId === m.id), spent = os.filter((o) => ['paid', 'done'].includes(o.status)).reduce((s, o) => s + o.total, 0);
   return [['ชื่อ', m.name], ['อีเมล', m.email], ['โทร', m.phone || '—'], ['สมัครเมื่อ', fmt(m.createdAt)], ['ออเดอร์ / ยอดซื้อ', os.length + ' · ' + B(spent)], ['License key', memKeys(m).length + ' ดอก'], ['คำเตือน', (m.strikes || 0) + '/3 ครั้ง'], ['สถานะ', m.banned ? 'ถูกระงับ' + (m.banReason ? ' — ' + m.banReason : '') : 'ปกติ']]; };
 // info (ไม่บังคับ) = ตัวเลือกของ confirmDlg → ใช้หน้าต่างยืนยันแบบเต็ม · ไม่ส่ง = กล่องยืนยันของเบราว์เซอร์แบบเดิม
@@ -256,7 +256,7 @@ const V = {
     return `<h1>👥 จัดการสมาชิก</h1><div class="kpi"><div><b>${all.length}</b><span>ทั้งหมด</span></div><div><b>${all.filter((m) => m.banned).length}</b><span>ถูกระงับ</span></div><div><b>${all.filter((m) => Date.now() - new Date(m.createdAt) < 7 * 864e5).length}</b><span>สมัครใหม่ 7 วัน</span></div></div>
     <div class="toolbar"><button class="btn" id="add">＋ เพิ่มสมาชิก</button><input id="mq" placeholder="🔍 ค้นหาชื่อ/อีเมล/เบอร์" value="${E(window._mq || '')}" style="max-width:280px"></div>
     <div class="tw"><table><tr><th>ชื่อ</th><th>อีเมล</th><th>โทร</th><th>สมัครเมื่อ</th><th>ออเดอร์ / ยอดซื้อ</th><th>เตือน</th><th></th></tr>${list.map((m) => `<tr><td>${m.avatarPath ? `<img class="adm-av" src="${E(DB.avatarUrl(m.avatarPath))}" alt="">` : ''}${E(m.name)} ${m.banned ? '<span class="tag err" title="' + E(m.banReason || '') + '">ระงับ</span>' : ''}${m.addedByAdmin ? ' <small>(แอดมินเพิ่ม)</small>' : ''}</td><td>${E(m.email)}</td><td>${E(m.phone)}</td><td>${fmt(m.createdAt)}</td><td>${DB.list('orders').filter((o) => o.memberId === m.id).length} · ${B(spent(m.id))}</td><td>${m.strikes ? '<span class="tag ' + (m.strikes >= 2 ? 'err' : 'warn') + '">' + m.strikes + '/3</span>' : '—'}</td>
-    <td>${m.avatarPath ? `<button class="btn sm ghost" data-avclr="${m.id}">🖼️ ลบรูป</button> ` : ''}<button class="btn sm ghost" data-warn="${m.id}">⚠ แจ้งเตือน</button> <button class="btn sm ghost" data-edit="${m.id}">แก้ไข</button> <button class="btn sm ghost" data-pw="${m.id}">รหัสผ่าน</button> <button class="btn sm ghost" data-ban="${m.id}">${m.banned ? 'ปลดระงับ' : 'ระงับ'}</button> <button class="btn sm danger" data-del="${m.id}">ลบ</button></td></tr>`).join('') || '<tr><td colspan="7" style="color:var(--mut)">ไม่พบสมาชิก</td></tr>'}</table></div>`;
+    <td>${m.avatarPath ? `<button class="btn sm ghost" data-avclr="${m.id}">🖼️ ลบรูป</button> ` : ''}<button class="btn sm ghost" data-warn="${m.id}">⚠ แจ้งเตือน</button> ${SB ? `<button class="btn sm ghost" data-trial="${m.id}">🎁 คีย์ทดลอง</button> ` : ''}<button class="btn sm ghost" data-edit="${m.id}">แก้ไข</button> <button class="btn sm ghost" data-pw="${m.id}">รหัสผ่าน</button> <button class="btn sm ghost" data-ban="${m.id}">${m.banned ? 'ปลดระงับ' : 'ระงับ'}</button> <button class="btn sm danger" data-del="${m.id}">ลบ</button></td></tr>`).join('') || '<tr><td colspan="7" style="color:var(--mut)">ไม่พบสมาชิก</td></tr>'}</table></div>`;
   },
   me() {
     const m = DB.me();
@@ -537,6 +537,14 @@ const A = {
           fields: [{ k: 'p1', label: 'รหัสผ่านใหม่', type: 'password', hint: 'อย่างน้อย 8 ตัว มีตัวอักษรและตัวเลข' }, { k: 'p2', label: 'ยืนยันรหัสผ่านใหม่', type: 'password' }],
           validate: (x) => (x.p1.length < 8 ? 'รหัสผ่านต้องยาวอย่างน้อย 8 ตัว' : !/[A-Za-z]/.test(x.p1) || !/\d/.test(x.p1) ? 'ต้องมีทั้งตัวอักษรและตัวเลข' : x.p1 !== x.p2 ? 'รหัสผ่านสองช่องไม่ตรงกัน' : ''), okText: 'ตั้งรหัสผ่านใหม่', cancelText: 'ยกเลิก' });
         if (!v) return; const r = await DB.resetPassword(b.dataset.pw, v.p1); r.ok ? toast('เปลี่ยนรหัสผ่านแล้ว') : alert(r.errors.join('\n')); }
+      if (b.dataset.trial) { const m = DB.find('members', b.dataset.trial), had = DB.trialKeys(m.id)[0];   // [2026-10-14] ออกคีย์ทดลองใช้ฟรีให้สมาชิก (Edge issue-trial) — 1 คน 1 สิทธิ์
+        if (had) return confirmDlg({ title: 'สมาชิกนี้ได้คีย์ทดลองแล้ว', sub: m.email, body: '1 คนต่อ 1 สิทธิ์ทดลอง · คีย์ ' + had.key + ' · ' + (had.revoked ? 'ถูกระงับ' : 'ใช้ได้ถึง ' + fmt(had.expiresAt)) + ' — ถ้าจะให้ใช้ต่อ ให้สมาชิกซื้อแพ็กเกจ หรือออกคีย์ปกติในคอนโซล License', rows: memRows(m), okText: 'รับทราบ', hideCancel: true });
+        const v = await confirmDlg({ title: 'ออกคีย์ทดลองใช้ฟรี', sub: m.email, body: 'ออกคีย์ผ่าน License Server ทันที · วันหมดอายุนับตั้งแต่ตอนกดออกคีย์ (ควรกดตอนที่สมาชิกพร้อมใช้งาน) · คีย์ขึ้นในหน้าโปรไฟล์ของสมาชิก และเขาดาวน์โหลดโปรแกรมได้ทันที · สมาชิกต้องยืนยันอีเมลแล้วและไม่ถูกระงับ', rows: memRows(m),
+          fields: [{ k: 'days', label: 'จำนวนวันทดลอง', type: 'number', value: '1', hint: '1-30 วัน (แนะนำ 1 วัน)' }, { k: 'devices', label: 'จำนวนเครื่อง', type: 'number', value: '1', hint: '1-3 เครื่อง (แนะนำ 1)' }, { k: 'note', label: 'หมายเหตุ (ไม่บังคับ — บันทึกในประวัติคีย์)', placeholder: 'เช่น ลูกค้าจาก LINE' }],
+          validate: (x) => (!(Number.isInteger(Number(x.days)) && Number(x.days) >= 1 && Number(x.days) <= 30) ? 'จำนวนวันต้องเป็นเลขเต็ม 1-30' : !(Number.isInteger(Number(x.devices)) && Number(x.devices) >= 1 && Number(x.devices) <= 3) ? 'จำนวนเครื่องต้องเป็นเลขเต็ม 1-3' : ''), okText: 'ออกคีย์ทดลอง', cancelText: 'ยกเลิก' });
+        if (!v) return; b.disabled = true; const r = await DB.issueTrial(m.id, Number(v.days), Number(v.devices), v.note); b.disabled = false;
+        if (!r.ok) return confirmDlg({ danger: true, hideCancel: true, okText: 'รับทราบ', title: 'ออกคีย์ทดลองไม่สำเร็จ', sub: m.email, body: r.errors.join('\n') });
+        render(); return confirmDlg({ success: true, hideCancel: true, okText: 'ปิด', title: 'ออกคีย์ทดลองเรียบร้อยแล้ว', sub: m.email, body: 'แจ้งสมาชิกในโปรไฟล์แล้ว · คีย์: ' + r.key, rows: [['จำนวนวัน', r.days + ' วัน'], ['จำนวนเครื่อง', String(r.devices)], ['ใช้ได้ถึง', fmt(r.expiresAt)]] }); }
       if (b.dataset.warn) editor('⚠ แจ้งเตือนลูกค้า: ' + DB.find('members', b.dataset.warn).name, [{ k: 'type', label: 'ระดับ', type: 'select', opts: [['info', 'ℹ️ แจ้งทราบ'], ['warning', '⚠ เตือน'], ['violation', '⛔ ผิดกฎ']] }, { k: 'strike', label: 'นับเป็นการผิดกฎ 1 ครั้ง (ครบ 3 = ระงับอัตโนมัติ)', type: 'check' }, { k: 'title', label: 'หัวข้อ', full: true }, { k: 'body', label: 'รายละเอียด (ลูกค้าเห็นในโปรไฟล์)', type: 'textarea', full: true }], { type: 'warning', strike: false, title: '', body: '' }, (o) => { if (!o.title || !o.body) return { ok: false, errors: ['กรอกหัวข้อและรายละเอียด'] }; return DB.warnMember(b.dataset.warn, o.title, o.body, { type: o.type, strike: o.strike }); });
       if (b.dataset.ban) { const m = DB.find('members', b.dataset.ban), was = !!m.banned, nk = memKeys(m).length;
         const v = await confirmDlg(was
@@ -550,6 +558,7 @@ const A = {
         if (SB && was && v.keys) { const k = await DB.restoreKeys(m.id); alert(k.ok ? 'คืนสิทธิ์คีย์แล้ว ' + k.changed + ' ดอก' : 'คืนสิทธิ์ไม่สำเร็จ: ' + k.errors.join(' ')); }
         render(); }
       if (b.dataset.del) { const m = DB.find('members', b.dataset.del), no = DB.list('orders').filter((o) => o.memberId === m.id).length;
+        if (!no && DB.trialKeys && DB.trialKeys(m.id).length) return confirmDlg({ danger: true, title: 'ลบสมาชิกนี้ไม่ได้', sub: m.email, body: 'สมาชิกนี้เคยได้รับคีย์ทดลองแล้ว ระบบไม่อนุญาตให้ลบ เพื่อกันการสมัครซ้ำเพื่อรับสิทธิ์ทดลองอีก — ถ้าต้องการให้ใช้งานไม่ได้ ให้ใช้ปุ่ม "ระงับ" แทน', rows: memRows(m), okText: 'รับทราบ', cancelText: 'ปิด' });
         if (no) return confirmDlg({ danger: true, title: 'ลบสมาชิกนี้ไม่ได้', sub: m.email, body: 'สมาชิกนี้มีออเดอร์แล้ว ระบบไม่อนุญาตให้ลบ เพื่อรักษาประวัติการชำระเงินและคีย์ — ถ้าต้องการให้ใช้งานไม่ได้ ให้ใช้ปุ่ม "ระงับ" แทน', rows: memRows(m), okText: 'รับทราบ', cancelText: 'ปิด' });
         del('members', m.id, m.email, { title: 'ลบสมาชิกนี้ถาวร?', sub: m.email, body: 'บัญชีและข้อมูลส่วนตัวของสมาชิกจะถูกลบทันที — ย้อนกลับไม่ได้ (ลบได้เฉพาะสมาชิกที่ยังไม่มีออเดอร์)', rows: memRows(m),
           fields: [{ k: 'em', label: 'พิมพ์อีเมลของสมาชิกเพื่อยืนยันการลบ', placeholder: m.email, hint: 'พิมพ์ให้ตรงกับ ' + m.email }], validate: (x) => (x.em.trim().toLowerCase() === String(m.email).toLowerCase() ? '' : 'อีเมลที่พิมพ์ไม่ตรงกับสมาชิกคนนี้ — ตรวจสอบอีกครั้ง'),

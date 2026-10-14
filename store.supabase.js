@@ -106,6 +106,7 @@
     S.tickets = tkq.error ? [] : tkq.data.map(IN.tickets);
     const pays = groupBy(p.data, 'order_id'), keys = groupBy(k.data, 'order_id');
     S.orders = o.data.map((r) => mapOrder(r, pays, keys));
+    S.trialKeys = k.data.filter((r) => r.kind === 'trial').map((r) => ({ id: r.id, memberId: r.member_id, key: r.key, issuedAt: r.issued_at, expiresAt: r.expires_at, revoked: !!r.revoked_at, revokeReason: r.revoke_reason || '' }));   // [2026-10-14] คีย์ทดลองไม่มีออเดอร์ จึงไม่อยู่ใน mapOrder — แยกเก็บ
     S.notices = n.data.map((r) => ({ id: r.id, memberId: r.member_id, type: r.type, title: r.title, body: r.body, read: r.read, createdAt: r.created_at }));
     if (S.isAdmin) { S.commissions = cm.data.map(IN.commissions); S.payouts = po.data.map(IN.payouts); S.members = m.data.map(IN.members); S.coupons = cp.data.map(IN.coupons); S.audit = au.data.map((r) => ({ ts: r.ts, action: r.action, entity: r.entity, detail: (r.detail && (r.detail.name || r.detail.id)) || '' })); }
   }
@@ -208,6 +209,9 @@
     async resolveClip(url) { const { data, error } = await sb.functions.invoke('clip-resolve', { body: { url } }); if (error) return { ok: false, errors: [await fnErr(error)] }; return data && data.ok ? data : { ok: false, errors: [(data && data.error) || 'ตรวจลิงก์ไม่สำเร็จ'] }; },
     async revokeKeys(memberId, reason) { const { data, error } = await sb.functions.invoke('revoke-keys', { body: { memberId, reason } }); if (error) return { ok: false, errors: [await fnErr(error)] }; await loadDynamic(); emit(); return data.ok ? { ok: true, changed: data.changed } : { ok: false, errors: data.errors || [data.error] }; },
     async restoreKeys(memberId) { const { data, error } = await sb.functions.invoke('revoke-keys', { body: { memberId, restore: true } }); if (error) return { ok: false, errors: [await fnErr(error)] }; await loadDynamic(); emit(); return data.ok ? { ok: true, changed: data.changed } : { ok: false, errors: data.errors || [data.error] }; },
+    // [2026-10-14] คีย์ทดลองใช้ฟรี: สมาชิกเห็นของตัวเอง (RLS) · แอดมินเห็นทั้งหมด · ออกคีย์ผ่าน Edge Function issue-trial (แอดมินเท่านั้น)
+    trialKeys: (memberId) => (S.trialKeys || []).filter((k) => !memberId || k.memberId === memberId),
+    async issueTrial(memberId, days, devices, note) { const { data, error } = await sb.functions.invoke('issue-trial', { body: { memberId, days, devices, note } }); if (error) return { ok: false, errors: [await fnErr(error)] }; await loadDynamic(); emit(); return data.ok ? { ok: true, key: data.key, days: data.days, devices: data.devices, expiresAt: data.expiresAt } : { ok: false, errors: [data.error || 'ออกคีย์ทดลองไม่สำเร็จ'] }; },
     async dispatchNotices() { const { data, error } = await sb.functions.invoke('dispatch-notices', { body: {} }); if (error) return { ok: false, errors: [await fnErr(error)] }; return data.ok ? { ok: true, sent: data.sent, skipped: data.skipped } : { ok: false, errors: [data.error || 'ส่งอีเมลบางรายการไม่สำเร็จ'], sent: data.sent, failed: data.failed }; },
     // ขอสิทธิ์ที่เซิร์ฟเวอร์ (ตรวจคีย์/โควตา/บันทึกประวัติ) แล้วออก signed URL อายุ 2 นาที
     async downloadUrl(id) {
