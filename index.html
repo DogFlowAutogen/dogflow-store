@@ -194,7 +194,9 @@ document.addEventListener('click', (e) => { if (e.target.closest('[data-rules]')
 function renderStatic() {
   const lv = DB.latestRelease && DB.latestRelease('windows'); $('#verline').textContent = lv ? 'เวอร์ชันล่าสุด ' + (/^\d/.test(lv.version) ? 'v' : '') + lv.version + ' · อัปเดต ' + DFCommon.thaiDateTime(lv.releasedAt) : '';
   const s = DB.settings(); document.title = s.brand + ' · ร้านโปรแกรม AI';
-  $('#brand').textContent = s.brand; $('#ver').textContent = s.version + ' · ' + s.tagline;
+  // [2026-10-14] ป้ายเวอร์ชันใช้เลขจริงจากรุ่นล่าสุดที่เปิดให้ดาวน์โหลด (public_latest_release) — ไม่ใช้ช่อง "เวอร์ชัน" ที่กรอกมือ (เคยค้างที่ v1.0) · ช่องในแอดมินเป็นแค่ค่าสำรองตอนยังไม่มีรุ่น/โหลดไม่ได้
+  const shownVer = lv ? (/^\d/.test(lv.version) ? 'v' : '') + lv.version : s.version;
+  $('#brand').textContent = s.brand; $('#ver').textContent = shownVer + ' · ' + s.tagline;
   $('#hTitle').textContent = s.heroTitle; $('#hSub').textContent = s.heroSub; $('#hCta').textContent = s.heroCta + ' →';
   renderHeroStats(s);
   $('#hImg').src = s.heroImage || 'assets/app-meta-bot.png';
