@@ -34,6 +34,9 @@ code{font-family:var(--mono);font-size:.92em}
 .btn.ghost{background:var(--surface);border-color:var(--line);color:var(--fg)}
 .btn.ghost:hover:not(:disabled){filter:none;border-color:var(--accent)}
 .btn.line{background:var(--line-g);border-color:var(--line-g);color:#fff}
+/* [2026-10-16, เจ้าของสั่ง "ปุ่ม 🎁 ทดลองฟรี เปลี่ยนสีใหม่ เดิมไม่สังเกตจะไม่เห็น"] ม่วง-คราม ต่างจากส้ม(ปุ่มหลัก)/เขียว(LINE) · ตัวอักษรขาวอ่านชัดทั้งธีมสว่าง/มืด */
+.btn.trial{background:linear-gradient(135deg,#8b5cf6,#6d28d9);border-color:#7c3aed;color:#fff;box-shadow:0 4px 14px rgba(124,58,237,.35)}
+.btn.trial:hover:not(:disabled){filter:brightness(1.1);border-color:#a78bfa;box-shadow:0 6px 18px rgba(124,58,237,.5)}
 .hero .cta .btn{min-height:46px;padding:10px 24px;font-size:14.5px}   /* ปุ่มหลัก + ปุ่ม LINE ในหัวหน้าแรก สูงเท่ากัน ข้อความไม่ชิดขอบ */
 .btn.danger{background:var(--bad-soft);border-color:transparent;color:var(--bad)}
 .btn.danger:hover:not(:disabled){filter:none;border-color:var(--bad)}
