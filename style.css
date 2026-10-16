@@ -579,3 +579,11 @@ small{color:var(--muted);font-size:12px}
 .pw-eye:hover{color:var(--fg,#1f1a10);background:rgba(127,127,127,.12)}
 .pw-eye:focus-visible{outline:2px solid var(--accent,#e8a317);outline-offset:0}
 .pw-eye[aria-pressed=true]{color:var(--accent,#e8a317)}
+
+/* [2026-10-16] หน้าต่างลอย "ทดลองฟรี" */
+.tsteps{list-style:none;counter-reset:t;margin:12px 0;padding:0;display:grid;gap:8px}
+.tsteps li{counter-increment:t;position:relative;padding:8px 10px 8px 42px;border:1px solid var(--line);border-radius:12px;background:var(--bg,transparent)}
+.tsteps li::before{content:counter(t);position:absolute;left:10px;top:9px;width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#8b5cf6,#6d28d9);color:#fff;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center}
+.tsteps b{display:block;font-size:14px}.tsteps span{display:block;color:var(--mut);font-size:13px;margin-top:2px}
+.tnote{font-size:13px;color:var(--mut);border:1px dashed var(--line);border-radius:12px;padding:8px 12px}.tnote ul{margin:4px 0 0;padding-left:18px}
+.tact{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
