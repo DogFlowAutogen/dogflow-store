@@ -209,9 +209,14 @@ small{color:var(--muted);font-size:12px}
 .sp-son{position:absolute;width:132px;height:132px;border-radius:30px;border:1.5px solid var(--accent);opacity:0;animation:spSonar 2.4s ease-out infinite}
 .sp-son.s2{animation-delay:.8s}.sp-son.s3{animation-delay:1.6s}
 @keyframes spSonar{0%{transform:scale(1);opacity:.65}100%{transform:scale(1.65);opacity:0}}
-.sp-ring{position:absolute;width:200px;height:200px;z-index:1;animation:spSpin 1.7s linear infinite}
-.sp-ring circle{fill:none;stroke-width:3.5}.sp-ring .bg{stroke:var(--line);opacity:.8}.sp-ring .fg{stroke:var(--accent);stroke-linecap:round;stroke-dasharray:80 285}
-@keyframes spSpin{to{transform:rotate(360deg)}}
+/* [2026-10-19] ตัวหมุนเปลี่ยนจากวงกลมเป็นกรอบสี่เหลี่ยมมุมมนวิ่งตามรูปโลโก้ (แบบดาวหางหางจาง เหมือนหน้าโหลดของโปรแกรม): รางจางๆ + ลำแสงไล่สีหัวสว่างหางจางวิ่งตามขอบ */
+/* ตัวหมุนทำงานบนเธรดคอมโพสิตเตอร์ (transform) ไม่ใช้ @property — กันสะดุดตอนหน้าเว็บโหลดสคริปต์ · มาสก์ที่ตัวกรอบนิ่งตัดเฉพาะแนวขอบ แผ่นไล่สีหมุนอยู่ข้างใน */
+.sp-ring{position:absolute;width:200px;height:200px;z-index:1;pointer-events:none}
+.sp-ring i{position:absolute;inset:12px;border-radius:52px;display:block}
+.sp-ring .sr-track{border:3.5px solid color-mix(in srgb,var(--accent) 16%,var(--line));opacity:.9}
+.sp-ring .sr-comet{padding:3.5px;-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0)}
+.sp-ring .sr-comet b{position:absolute;left:50%;top:50%;width:260px;height:260px;margin:-130px 0 0 -130px;will-change:transform;background:conic-gradient(from 0deg,transparent 0deg,transparent 215deg,color-mix(in srgb,var(--accent) 12%,transparent) 250deg,color-mix(in srgb,var(--accent) 60%,transparent) 320deg,var(--accent) 360deg);animation:spComet 1.9s linear infinite}
+@keyframes spComet{to{transform:rotate(360deg)}}
 .sp-eyebrow{font-size:10.5px;font-weight:700;letter-spacing:.32em;color:var(--accent);text-transform:uppercase}
 .sp-title{font-size:26px;font-weight:700;margin-top:6px;text-align:center}
 .sp-chip{display:inline-flex;align-items:center;gap:9px;margin-top:10px;padding:7px 16px;border-radius:999px;background:var(--surface);border:1px solid var(--line);font-size:12.5px;font-weight:600}
@@ -223,7 +228,7 @@ small{color:var(--muted);font-size:12px}
 @keyframes spFill{0%{width:6%}40%{width:62%}100%{width:93%}}
 @media (max-height:680px){.sp-wrap{transform:scale(.72);margin:-34px 0 -30px}}
 @media (max-height:520px){.sp-wrap{transform:scale(.55);margin:-52px 0 -46px}}
-@media (prefers-reduced-motion:reduce){.sp-son{display:none}.sp-ring{animation-duration:2.4s}.sp-chip i{animation-duration:1.6s}*{scroll-behavior:auto!important}}
+@media (prefers-reduced-motion:reduce){.sp-son{display:none}.sp-ring .sr-comet b{animation-duration:2.4s}.sp-chip i{animation-duration:1.6s}*{scroll-behavior:auto!important}}
 
 /* ===== จอเล็ก: โทรศัพท์ / แท็บเล็ต ===== */
 @media(max-width:1024px){.grid{grid-template-columns:repeat(auto-fill,minmax(230px,1fr))}.nav nav{gap:12px}.search{flex-basis:200px}.hero .wrap{gap:24px}}
