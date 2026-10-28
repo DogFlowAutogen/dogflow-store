@@ -607,3 +607,5 @@ small{color:var(--muted);font-size:12px}
 .trafficcard.trend svg .f{fill:var(--accent);opacity:.12;stroke:none}
 /* [2026-10-28] ย้ายการ์ดสถิติไปท้ายหน้า (ในฟุตเตอร์) — ยกเลิกเพดานความกว้างและจัดให้เรียงตรงกึ่งกลางแถว */
 footer .trafficrow{margin:0 0 18px}footer .trafficrow .trafficcard{max-width:none;flex:0 1 260px}
+/* [2026-10-28] การ์ดสถิติกลับมาอยู่ส่วนบน (hero) — เว้นระยะจากสถิติเดิม */
+.hero .trafficrow{margin:14px 0 0;max-width:560px}
