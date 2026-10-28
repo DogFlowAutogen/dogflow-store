@@ -142,7 +142,7 @@ function render() {
     || '<p style="color:var(--mut)">ยังไม่มีคีย์ — เมื่อชำระเงินและแอดมินตรวจสลิปผ่านแล้ว คีย์จะขึ้นที่นี่</p>';
   const rel = DB.list('releases').filter((r) => r.active && /\.exe$/i.test(r.fileName || '')).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)), can = !!(DB.canDownload && DB.canDownload()) && rel.length > 0;
   const PL = { windows: 'Windows', mac: 'macOS', linux: 'Linux', other: 'อื่น ๆ' };
-  $('#dlist').innerHTML = can ? rel.map((r, i) => `<div class="rel ${i === 0 ? 'latest' : ''}"><div class="row"><b>${E(r.title || 'DogFlow Auto Gen')}</b><span class="tag ${i === 0 ? 'okk' : 'paid'}">v${E(r.version)}${i === 0 ? ' · ล่าสุด' : ''}</span></div>
+  $('#dlist').innerHTML = can ? rel.slice(0, 3).map((r, i) =>   /* [2026-10-28] แสดงแค่ 3 เวอร์ชันล่าสุด */ `<div class="rel ${i === 0 ? 'latest' : ''}"><div class="row"><b>${E(r.title || 'DogFlow Auto Gen')}</b><span class="tag ${i === 0 ? 'okk' : 'paid'}">v${E(r.version)}${i === 0 ? ' · ล่าสุด' : ''}</span></div>
       <div style="color:var(--mut);font-size:13px">${E(PL[r.platform] || r.platform)}${r.createdAt ? ' · เผยแพร่ ' + E(DFCommon.thaiDateTime(r.createdAt)) : ''}${r.mandatory ? ' · <b style="color:var(--gold)">แนะนำให้อัปเดตทันที</b>' : ''}${r.sizeBytes ? ' · ' + (r.sizeBytes / 1048576).toFixed(1) + ' MB' : ''}</div>
       ${r.notes ? `<div style="white-space:pre-line;margin:8px 0;font-size:14px">${E(r.notes)}</div>` : ''}
       ${r.sha256 ? `<div style="color:var(--mut);font-size:12px;margin:6px 0">SHA-256: <code style="word-break:break-all;user-select:all">${E(r.sha256)}</code></div>` : ''}
