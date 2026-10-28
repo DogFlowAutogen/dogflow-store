@@ -65,7 +65,7 @@
           if (ln.code) {   // [2026-10-28] แสดงขั้นตอนส่งรหัส + ปุ่มคัดลอก + ที่วาง QR (profile.html ใส่ SVG ให้ถ้ามีไลบรารี QR)
             var oa = esc(ln.oa || '');
             return wrap('wait', 'ยืนยันตัวตนผ่าน LINE — ส่งรหัสนี้ให้ร้าน',
-              '<p style="font-size:26px;font-weight:800;letter-spacing:2px;margin:6px 0">' + esc(ln.code) + '</p>' +
+              '<p style="display:flex;align-items:center;gap:10px;margin:6px 0"><span style="font-size:26px;font-weight:800;letter-spacing:2px">' + esc(ln.code) + '</span><button type="button" class="btn ghost sm" id="lineCopy" data-code="' + esc(ln.code) + '" title="คัดลอกรหัส" aria-label="คัดลอกรหัส" style="padding:6px 8px;line-height:0;width:auto"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2.5"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg></button></p>' +   /* [2026-10-28] ปุ่มคัดลอกแบบไอคอนข้างรหัส */
               '<ol style="margin:8px 0 6px;padding-left:20px;line-height:1.7">' +
               '<li>เปิดแอป LINE แล้วเข้าแชตของร้าน' + (oa ? ' (ค้นหา ID <b>' + oa + '</b> แล้วเพิ่มเพื่อน)' : '') + ' — กดปุ่มด้านล่าง' + (ln.qr ? ' หรือสแกน QR ด้วยมือถือ' : '') + '</li>' +
               '<li>ส่งรหัส <b>' + esc(ln.code) + '</b> เป็นข้อความ (ถ้าเปิดจากปุ่ม รหัสจะอยู่ในช่องพิมพ์แล้ว กดส่งได้เลย)</li>' +
@@ -74,7 +74,6 @@
               '<p style="font-size:12px;opacity:.75;margin:0">รหัสหมดอายุใน 10 นาที · ส่งในแชต 1 ต่อ 1 กับบัญชีร้านเท่านั้น (ไม่ใช่ในกลุ่ม)</p>' +
               (ln.qr ? '<div id="lineQr" style="width:190px;height:190px;margin:10px 0;background:#fff;padding:0;border-radius:10px;overflow:hidden"></div>' : ''),
               (ln.url ? '<a class="btn gold" target="_blank" rel="noopener" href="' + esc(ln.url) + '">💬 เปิดแชต LINE แล้วส่งรหัส</a> ' : '') +
-              '<button class="btn ghost sm" id="lineCopy" data-code="' + esc(ln.code) + '">คัดลอกรหัส</button> ' +
               '<button class="btn ghost sm" id="lineVerifyStart"' + (ctx.busy ? ' disabled' : '') + '>ขอรหัสใหม่</button>');
           }
           return wrap('warn', esc(b[0]), '<p>' + esc(b[1]) + '</p>' + (ln.error ? '<div class="errs">' + esc(ln.error) + '</div>' : ''),

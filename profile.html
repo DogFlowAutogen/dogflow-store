@@ -74,7 +74,7 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
 <script src="store.supabase.js?v=20261028a"></script>
 <script src="avatar.js"></script>
 <script src="vendor/qrcode.js?v=20261028a"></script>
-<script src="trial-card.js?v=20261028e"></script>
+<script src="trial-card.js?v=20261028f"></script>
 <script>
 const $ = (s) => document.querySelector(s), E = DB.esc, B = DB.baht;
 const toast = (m) => { const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(t._); t._ = setTimeout(() => t.classList.remove('on'), 2400); };
@@ -113,8 +113,9 @@ async function lineStart() {
   const tick = async () => {
     if (!linePoll) return;
     if (Date.now() > until + 5000) { lineStopPoll(); lineV = null; trialSig = ''; paintTrial(); return; }
-    const chk = $('#lineChk'), hh = () => new Date().toLocaleTimeString('th-TH');
+    const hh = () => new Date().toLocaleTimeString('th-TH');
     let c; try { c = await DB.lineVerifyCheck(); } catch (e) { c = { ok: false, errors: [String((e && e.message) || e)] }; console.error('[line-verify] check', e); }
+    const chk = $('#lineChk');   // หาใหม่หลัง await (การ์ดอาจถูกวาดใหม่ระหว่างรอ)
     if (chk) chk.textContent = c.ok ? '(เช็กล่าสุด ' + hh() + ')' : '(เช็กไม่สำเร็จ ' + hh() + ': ' + (c.errors || []).join(' ') + ')';
     if (c.ok && c.verified) {
       lineStopPoll(); lineV = null; trialSig = ''; paintTrial(); toast('ยืนยัน LINE สำเร็จ ✔ ขอทดลองใช้ฟรีได้แล้ว');
@@ -128,7 +129,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden && li
 window.addEventListener('focus', () => { if (linePoll && lineTick) lineTick(); });
 document.addEventListener('click', async (e) => {
   if (e.target.closest('#lineVerifyStart')) { e.preventDefault(); lineStart(); return; }
-  { const cp = e.target.closest('#lineCopy'); if (cp) { e.preventDefault(); try { await navigator.clipboard.writeText(cp.dataset.code); toast('คัดลอกรหัสแล้ว ✔'); } catch (x) { toast('คัดลอกไม่ได้ — พิมพ์รหัสเอง: ' + cp.dataset.code); } return; } }
+  { const cp = e.target.closest('#lineCopy'); if (cp) { e.preventDefault(); const old = cp.innerHTML; try { await navigator.clipboard.writeText(cp.dataset.code); cp.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5l5 5L20 6.5"/></svg>'; toast('คัดลอกรหัสแล้ว ✔'); setTimeout(() => { if (cp.isConnected) cp.innerHTML = old; }, 1500); } catch (x) { toast('คัดลอกไม่ได้ — พิมพ์รหัสเอง: ' + cp.dataset.code); } return; } }
   if (e.target.closest('[data-focus-prof]')) { e.preventDefault(); const f = $('#fProf'); f.scrollIntoView({ behavior: 'smooth' }); f.name.focus(); return; }
   if (e.target.closest('#trialAsk')) {
     const err = $('#trialErr'); if (!$('#trialConsent').checked) return showErr(err, ['ติ๊กยินยอมให้เก็บรหัสเครื่องก่อนจึงจะขอได้']);
