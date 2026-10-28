@@ -426,7 +426,7 @@ function renderShots() {
 }
 $('#shots').onclick = (e) => { const f = e.target.closest('[data-shot]'); if (!f) return; const s = DB.find('showcase', f.dataset.shot); $('#shotBig').src = s.image; $('#shotCap').textContent = s.title + ' — ' + (s.caption || ''); openM('#mShot'); countView('showcase', s.id); };
 // แถบตัวเลขส่วนบนสุด — แอดมินแก้ได้ที่ แอดมิน → 🚀 โหมด/ประเภทเรื่อง (บรรทัดละ 1 ช่อง: อีโมจิ|ตัวเลขใหญ่|คำอธิบายเล็ก)
-const HERO_STATS = ['🎬|8–10 วิ|ต่อฉาก มีเสียงพูดในคลิป', '🎞️|สูงสุด 8 ฉาก|รวมได้ราว 64–80 วิ ต่อคลิป', '🛒|ปักตะกร้าอัตโนมัติ|ใส่สินค้าเป็นชุด ปล่อยรันได้', '👥|หลายบัญชี|รันพร้อมกัน โพสต์ TikTok · Facebook · Shopee'];
+const HERO_STATS = ['🎬|6–10 วิ|ต่อฉาก มีเสียงพูดในคลิป', '🎞️|สูงสุด 8 ฉาก|รวมได้ราว 48–80 วิ ต่อคลิป', '🛒|ปักตะกร้าอัตโนมัติ|ใส่สินค้าเป็นชุด ปล่อยรันได้', '👥|หลายบัญชี|รันพร้อมกัน โพสต์ TikTok · Facebook · Shopee'];
 function renderHeroStats(s) {
   const L = String(s.heroStats || '').split('\n').map((x) => x.trim()).filter(Boolean), src = (L.length ? L : HERO_STATS).slice(0, 6);
   $('#heroStats').innerHTML = src.map((l) => { const p = l.split('|'); if (p.length < 2) return ''; const ic = p.length >= 3 ? p[0] : '✨', big = p.length >= 3 ? p[1] : p[0], sm = p.length >= 3 ? p.slice(2).join('|') : p.slice(1).join('|'); return '<div class="st"><i class="st-ic" aria-hidden="true">' + E(ic.trim()) + '</i><div><b>' + E(big.trim()) + '</b><span>' + E(sm.trim()) + '</span></div></div>'; }).join('');
