@@ -652,3 +652,8 @@ footer .trafficrow{margin:0 0 18px}footer .trafficrow .trafficcard{max-width:non
 
 /* [2026-10-28] การ์ดอีเมล: ปุ่ม "ส่งอีเมล" กับ "คัดลอกอีเมล" วางคู่กันแถวเดียว (ที่อยู่อีเมลอยู่บรรทัดของตัวเองด้านบน) */
 .mailcard .mc-btns{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+
+/* [2026-10-28] คำถามที่พบบ่อย: จอกว้างแบ่งเป็น 2 แถบ (ข้อ 1 ซ้าย ข้อ 2 ขวา ข้อ 3 ซ้าย …) · กดขยายข้อไหนไม่ยืดข้อข้างๆ (align-items:start) · จอแคบ ≤820px กลับเป็นแถบเดียวตามลำดับเดิม */
+#faqs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 14px;align-items:start}
+#faqs details{margin:0}
+@media(max-width:820px){#faqs{grid-template-columns:1fr}}
