@@ -645,3 +645,14 @@ footer .trafficrow{margin:0 0 18px}footer .trafficrow .trafficcard{max-width:non
 .hero h1 .h1-l.acc{color:var(--accent)}
 .hero h1 .h1-sub{display:flex;align-items:center;gap:12px;margin-top:14px;font-size:clamp(15px,1.7vw,19px);font-weight:600;letter-spacing:.02em;line-height:1.4;color:var(--muted)}
 .hero h1 .h1-sub::before{content:"";flex:none;width:30px;height:2px;border-radius:2px;background:var(--accent)}
+
+/* [2026-10-28] จัดการ์ด LINE ใหม่ให้สมดุล: หัวข้อ → คำอธิบายสั้น → ขั้นตอนมือถือ/คอม (ไอคอนในช่องมน) → หมายเหตุตัวเล็ก → ปุ่ม */
+.linecard .lc-body{gap:9px}
+.linecard .lc-t{font-size:16.5px}
+.linecard .lc-d{font-size:13.5px}
+.lc-steps{list-style:none;margin:2px 0 0;padding:0;display:grid;gap:8px;width:100%}
+.lc-steps li{display:grid;grid-template-columns:30px 1fr;gap:10px;align-items:center;font-size:13px;color:var(--muted);line-height:1.5}
+.lc-steps i{font-style:normal;width:30px;height:30px;border-radius:9px;background:var(--surface2);display:grid;place-items:center;font-size:15px}
+.lc-steps b{color:var(--fg)}
+.linecard .lc-note{font-size:11.5px;opacity:.85;line-height:1.5}
+.linecard .lc-btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:2px}
