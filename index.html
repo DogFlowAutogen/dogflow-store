@@ -21,7 +21,7 @@
 if(ok)return;window.__legacy=true;document.addEventListener('DOMContentLoaded',function(){var d=document.createElement('div');d.setAttribute('style','position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:#0b1222;color:#fff;font-family:Tahoma,sans-serif;text-align:center;padding:60px 20px');
 d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">เบราว์เซอร์นี้ไม่รองรับ</h2><p style="line-height:1.8;max-width:520px;margin:0 auto">Internet Explorer และเบราว์เซอร์รุ่นเก่าไม่รองรับระบบชำระเงินและความปลอดภัยของเว็บนี้<br>กรุณาเปิดด้วย <b>Microsoft Edge</b>, <b>Google Chrome</b>, <b>Safari</b> หรือ <b>Firefox</b> รุ่นล่าสุด<br>ใช้ได้ทั้งคอมพิวเตอร์ แท็บเล็ต และโทรศัพท์</p>';document.body.appendChild(d);});})();
 </script>
-<link rel="stylesheet" href="style.css?v=20261028h">
+<link rel="stylesheet" href="style.css?v=20261028i">
 </head>
 <body>
 <div id="splash" role="status" aria-live="polite">
@@ -241,7 +241,7 @@ function renderStatic() {
   // [2026-10-14] ป้ายเวอร์ชันใช้เลขจริงจากรุ่นล่าสุดที่เปิดให้ดาวน์โหลด (public_latest_release) — ไม่ใช้ช่อง "เวอร์ชัน" ที่กรอกมือ (เคยค้างที่ v1.0) · ช่องในแอดมินเป็นแค่ค่าสำรองตอนยังไม่มีรุ่น/โหลดไม่ได้
   const shownVer = lv ? (/^\d/.test(lv.version) ? 'v' : '') + lv.version : s.version;
   { const bw = (s.brand || '').trim().split(/\s+/), br = $('#brand'); br.className = 'lg'; br.innerHTML = '<b>' + E(bw[0] || '') + '</b>' + (bw.length > 1 ? '<small>' + E(bw.slice(1).join(' ')) + '</small>' : ''); }   /* [2026-10-28] โลโก้ 2 บรรทัด: ชื่อแบรนด์ + ส่วนที่เหลือตัวเล็ก */ $('#ver').textContent = shownVer + ' · ' + s.tagline;
-  $('#hTitle').textContent = s.heroTitle; $('#hSub').textContent = s.heroSub; $('#hCta').textContent = s.heroCta + ' →';
+  { const L = String(s.heroTitle || '').split(/\n/).map((x) => x.trim()).filter(Boolean); let main = L.length > 1 ? L.slice(0, -1) : L; const sub = L.length > 1 ? L[L.length - 1] : '';   /* [2026-10-28] จัดหัวข้อ Hero เป็นลำดับชั้น: หัวข้อหลักสั้นพอดีคอลัมน์ (บรรทัดท้ายสีเน้น) + บรรทัดเล็กใต้หัวข้อ · บรรทัดเดียวที่ยาวมีคำ 'ด้วย' แยกเป็น 2 บรรทัดให้เอง */ if (main.length === 1) { const m = main[0].match(/^(.{6,}?)\s*(ด้วย\s.+)$/); if (m) main = [m[1], m[2]]; } $('#hTitle').innerHTML = main.map((t, i) => '<span class="h1-l' + (main.length > 1 && i === main.length - 1 ? ' acc' : '') + '">' + E(t) + '</span>').join('') + (sub ? '<small class="h1-sub">' + E(sub) + '</small>' : ''); } $('#hSub').textContent = s.heroSub; $('#hCta').textContent = s.heroCta + ' →';
   renderHeroStats(s);
   $('#hImg').src = s.heroImage || 'assets/hero-v4.webp';
   const lid = (s.lineId || '').trim(), line = lid.charAt(0) === '@' ? 'https://line.me/R/ti/p/' + encodeURIComponent(lid).replace('%40', '@') : 'https://line.me/ti/p/~' + encodeURIComponent(lid);   /* [2026-10-28] ขึ้นต้น @ = บัญชี LINE Official (ลิงก์เพิ่มเพื่อน) · นอกนั้น = LINE ID ส่วนตัว */ $('#lineBtn').href = line; $('#lineBtn').hidden = !s.lineId;
