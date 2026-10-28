@@ -649,3 +649,6 @@ footer .trafficrow{margin:0 0 18px}footer .trafficrow .trafficcard{max-width:non
 /* [2026-10-28] ไม่จัดกึ่งกลางแนวตั้ง: การ์ด LINE กับการ์ดอีเมลชิดบน ให้หัวข้อสองการ์ดอยู่ระดับเดียวกัน (เดิมการ์ดอีเมลสั้นกว่าจึงถูกจัดกลางแล้วหัวข้อต่ำกว่าการ์ด LINE) */
 .contactrow{align-items:stretch}
 .contactrow .linecard,.contactrow .mailcard{align-items:flex-start}
+
+/* [2026-10-28] ท้ายหน้าแรก: ข้อความใต้การ์ดติดต่อ (ลิงก์/เงื่อนไข/ลิขสิทธิ์) ชิดซ้ายตรงกับขอบกรอบการ์ด — ใช้เฉพาะฟุตเตอร์ที่มีการ์ดติดต่อ (ฟุตเตอร์หน้าอื่นยังจัดกึ่งกลางเหมือนเดิม) */
+footer:has(.contactrow){text-align:left}
