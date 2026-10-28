@@ -106,6 +106,16 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
 <section class="sec" id="works" hidden><div class="wrap"><h2>ผลงานลูกค้า</h2><p class="sub">ตัวอย่างคลิปแนวตั้งที่สร้างด้วย DogFlow — กดเพื่อดูในหน้านี้ได้เลย</p><div class="chips" id="workTabs"></div><div class="wks" id="workList"></div></div></section>
 <section class="sec" id="guide" hidden><div class="wrap"><h2>คู่มือการใช้งานโปรแกรม</h2><p class="sub">ดูวิดีโอสอนทีละขั้นตอน</p><div class="grid" id="tuts"></div></div></section>
 <section class="sec" id="reviews"><div class="wrap"><h2>รีวิวจากลูกค้า</h2><p class="sub"></p><div class="rv" id="rv"></div></div></section>
+<section class="sec" id="trust"><div class="wrap"><span class="eyebrow">ซื้ออย่างมั่นใจ</span><h2>ทุกขั้นตอนโปร่งใส ตรวจสอบได้ในบัญชีของคุณ</h2><p class="sub">ตั้งแต่ทดลองใช้ ชำระเงิน รับคีย์ ไปจนถึงอัปเดตโปรแกรม ทำผ่านเว็บร้านนี้ทั้งหมด</p>
+  <div class="feat">
+    <div><i>01</i><h4>ทดลองใช้ฟรีก่อนตัดสินใจ</h4><p>ทดลองได้ครบทุกฟีเจอร์ 1 วัน · 1 เครื่อง · 1 สิทธิ์ต่อ 1 คน ซื้อแพ็กเกจภายหลังได้ คีย์เดิมอัปเกรดให้ ไม่ต้องใส่ใหม่</p></div>
+    <div><i>02</i><h4>ชำระเงินและรับคีย์ผ่านเว็บ</h4><p>สแกน QR โอนเงินและแนบสลิป ระบบตรวจยอดให้อัตโนมัติ เมื่อแอดมินยืนยัน คีย์จะส่งเข้าหน้าโปรไฟล์ทันที</p></div>
+    <div><i>03</i><h4>License ผูกกับบัญชีสมาชิก</h4><p>ดูอายุและรายชื่อเครื่องที่ใช้งานอยู่ได้ในโปรแกรม ไม่ต้องรอส่งไฟล์หรือคีย์ทางแชต</p></div>
+    <div><i>04</i><h4>ไฟล์ติดตั้งเข้าถึงได้เฉพาะสมาชิก</h4><p>ดาวน์โหลดได้เมื่อมี License ที่ใช้งานได้ ผ่านลิงก์ชั่วคราวที่ระบบออกให้ ไม่เปิดเป็นลิงก์สาธารณะ</p></div>
+    <div><i>05</i><h4>อัปเดตรุ่นใหม่ในโปรแกรม</h4><p>เมื่อมีเวอร์ชันใหม่ โปรแกรมแจ้งเตือนและมีปุ่ม "อัปเดตเลย" ให้ระบบดาวน์โหลดและติดตั้งให้เอง</p></div>
+    <div><i>06</i><h4>มีทีมงานดูแล</h4><p>มีคำถามก่อนหรือหลังซื้อ ทักสอบถามทีมงานทาง LINE ได้ ตรวจสอบเครื่องและเงื่อนไขได้ก่อนสั่งซื้อ</p></div>
+  </div></div></section>
+
 <section class="sec" id="faq"><div class="wrap"><h2>คำถามที่พบบ่อย</h2><p class="sub"></p><div id="faqs"></div></div></section>
 
 <footer><div class="wrap"><div id="foot"></div><div class="foot-links"><a href="guide-tiktok-ai-sales-clip.html">วิธีทำคลิปขายของ TikTok ด้วย AI</a> · <a href="features.html">ฟีเจอร์ของโปรแกรม</a> · <a href="how-to-buy-and-install.html">วิธีสั่งซื้อและติดตั้ง</a></div>
@@ -176,10 +186,11 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
 <div class="modal" id="mWork"><div class="mbox wbox" style="width:min(460px,100%);text-align:center"><h3 id="wT"></h3><div id="wBox" style="margin:8px auto;display:flex;flex-direction:column;align-items:center;gap:10px"></div><p id="wC" style="color:var(--mut);margin:0 0 4px"></p><p id="wCr" style="color:var(--mut);font-size:13px;margin:0 0 6px;white-space:pre-line"></p><div class="shr" id="wShr"></div><button class="btn ghost sm" data-close>ปิด</button></div></div>
 <div class="modal" id="mVideo"><div class="mbox wbox" style="width:min(860px,100%)"><h3 id="vT"></h3><div id="vBox" style="margin:8px auto;display:flex;flex-direction:column;align-items:center;gap:8px"></div><p id="vD" style="color:var(--mut)"></p><div class="shr" id="vShr"></div><button class="btn ghost sm" data-close>ปิด</button></div></div>
 <div class="modal" id="mTrial"><div class="mbox" style="width:min(560px,100%)">
-  <h3>🎁 ขอคีย์ทดลองใช้ฟรี 1 วัน</h3><p style="color:var(--mut);margin:0 0 4px">ใช้ได้ครบทุกฟีเจอร์ · 1 เครื่อง · 1 สิทธิ์ต่อ 1 คน — ทำตาม 5 ขั้นตอนนี้</p>
+  <h3>🎁 ขอคีย์ทดลองใช้ฟรี 1 วัน</h3><p style="color:var(--mut);margin:0 0 4px">ใช้ได้ครบทุกฟีเจอร์ · 1 เครื่อง · 1 สิทธิ์ต่อ 1 คน — ทำตาม 6 ขั้นตอนนี้</p>
   <ol class="tsteps">
     <li><b>สมัครสมาชิก</b><span>กดปุ่ม "สมัครสมาชิก" ด้านล่าง กรอกชื่อ-นามสกุล อีเมลที่ใช้งานจริง เบอร์โทร (ขึ้นต้น 0, 9–10 หลัก) และรหัสผ่าน</span></li>
     <li><b>ยืนยันอีเมล</b><span>เปิดกล่องจดหมายของอีเมลที่สมัคร กดลิงก์ยืนยัน (ถ้าไม่เจอให้ดูในกล่องสแปม/โปรโมชัน) แล้วกลับมาเข้าสู่ระบบ</span></li>
+    <li><b>ยืนยันตัวตนผ่าน LINE</b><span>ที่การ์ด "ทดลองใช้ฟรี" ในหน้าโปรไฟล์ กด "ยืนยันผ่าน LINE" ระบบจะให้รหัส 6 หลัก (เช่น DF-123456) ให้ส่งรหัสนั้นในแชตบัญชี LINE ของร้าน (สแกน QR หรือกดปุ่มเปิดแชตได้) เมื่อร้านตอบกลับ ✅ หน้าโปรไฟล์จะอัปเดตเอง · ทำครั้งเดียว และ 1 LINE ผูกได้ 1 บัญชี</span></li>
     <li><b>ขอคีย์ที่หน้าโปรไฟล์</b><span>เข้าสู่ระบบ → ไปหน้า "โปรไฟล์" → การ์ด "ทดลองใช้ฟรี" → ติ๊กยินยอมให้เก็บรหัสเครื่อง → กด "ขอคีย์ทดลองใช้ฟรี"</span></li>
     <li><b>รอทีมงานอนุมัติ</b><span>ทีมงานได้รับแจ้งทันทีและจะตรวจสอบ ผลจะขึ้นที่หน้าโปรไฟล์ (การ์ดทดลอง/กล่อง License key ของฉัน และการแจ้งเตือนของสมาชิก) — กลับมาเปิดดูได้เลย ไม่ต้องกดซ้ำ</span></li>
     <li><b>ติดตั้งและใส่คีย์</b><span>ดาวน์โหลดโปรแกรมที่หน้าโปรไฟล์ → ติดตั้ง → เปิดโปรแกรมแล้วใส่คีย์ · วันทดลอง 1 วันเริ่มนับตอนเปิดใช้ครั้งแรก</span></li>
@@ -187,6 +198,7 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
   <div class="tnote"><b>ควรรู้</b><ul>
     <li>คีย์ต้องเริ่มใช้ภายใน 14 วันหลังได้รับ ไม่เช่นนั้นสิทธิ์หมด</li>
     <li>ระบบตรวจเบอร์โทร/อีเมลซ้ำเพื่อกันการขอหลายบัญชี ถ้าเคยใช้สิทธิ์แล้วจะขอซ้ำไม่ได้</li>
+    <li>เบอร์โทรล็อกตั้งแต่สมัคร (แก้เองภายหลังไม่ได้ เหมือนอีเมล) กรุณาตรวจสอบให้ถูกต้องก่อนกดสมัคร หากเบอร์ใช้ไม่ได้จริงให้ติดต่อทีมงาน</li>
     <li>ถ้าคำขอไม่ผ่านจะแจ้งเหตุผลที่หน้าโปรไฟล์ · ซื้อแพ็กเกจภายหลังได้ คีย์เดิมอัปเกรดให้ ไม่ต้องใส่ใหม่</li>
     <li>มีคำถามติดต่อทีมงานทาง LINE ได้</li>
   </ul></div>
