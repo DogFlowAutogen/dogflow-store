@@ -107,7 +107,7 @@ async function lineStart() {
   if (!r.ok) { lineV = { error: r.errors.join(' ') }; trialSig = ''; paintTrial(); return; }
   const d = r.data || {}; if (d.verified) { lineV = null; toast('ยืนยัน LINE แล้ว ✔'); return; }
   if (d.error === 'rate_limited') { lineV = { error: 'ขอรหัสบ่อยเกินไป กรุณารอสักครู่ (ประมาณ 1 ชั่วโมง) แล้วลองใหม่' }; trialSig = ''; paintTrial(); return; }
-  const id = ((DB.settings().lineOaId || '@404qjdlg') + '').trim();   // [2026-10-28] ID บัญชี LINE Official (แยกจาก lineId ที่เป็นช่องทางทักสอบถาม)
+  const cfgId = ((DB.settings().lineId || '') + '').trim(), id = cfgId.charAt(0) === '@' ? cfgId : ((DB.settings().lineOaId || '@404qjdlg') + '').trim();   /* ใช้ LINE ID ในตั้งค่าร้านเมื่อเป็นบัญชี Official (@…) — จุดเดียวกับหน้าแรก */   // [2026-10-28] ID บัญชี LINE Official (แยกจาก lineId ที่เป็นช่องทางทักสอบถาม)
   lineV = { code: d.code, oa: id, qr: !!window.qrcode, url: id ? 'https://line.me/R/oaMessage/' + encodeURIComponent(id) + '/?' + encodeURIComponent(d.code) : '' }; trialSig = ''; paintTrial();
   const until = new Date(d.expiresAt).getTime();
   const tick = async () => {
