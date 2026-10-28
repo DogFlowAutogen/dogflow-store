@@ -73,7 +73,7 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
 <script src="store.local.js?v=20261012a"></script>
 <script src="store.supabase.js?v=20261028a"></script>
 <script src="avatar.js"></script>
-<script src="trial-card.js?v=20261028a"></script>
+<script src="trial-card.js?v=20261028c"></script>
 <script>
 const $ = (s) => document.querySelector(s), E = DB.esc, B = DB.baht;
 const toast = (m) => { const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(t._); t._ = setTimeout(() => t.classList.remove('on'), 2400); };
@@ -96,6 +96,7 @@ function paintTrial() {
   const rel = DB.list('releases').filter((r) => r.active && /\.exe$/i.test(r.fileName || '')).sort((a, b) => vnum(b.version) - vnum(a.version))[0], dl = rel && DB.canDownload && DB.canDownload() ? { id: rel.id, version: rel.version } : null;
   const sig = JSON.stringify([st.state, st.reason, st.request && st.request.id, st.request && st.request.status, st.key && st.key.key, dl && dl.id, trialBusy, lineV && lineV.code, lineV && lineV.error]);
   box.hidden = false; if (sig === trialSig) return; trialSig = sig; box.innerHTML = TrialCard.render(st, { dl, busy: trialBusy, line: st.reason === 'line_unverified' ? lineV : null });
+  { const q = $('#lineQr'); if (q && lineV && lineV.url && window.qrcode) { try { const c = window.qrcode(0, 'M'); c.addData(lineV.url); c.make(); q.innerHTML = c.createSvgTag({ cellSize: 4, margin: 0, scalable: true }); const sv = q.querySelector('svg'); if (sv) { sv.style.width = '100%'; sv.style.height = '100%'; } } catch (e) { q.remove(); } } }   // QR ชี้ไปลิงก์เปิดแชตพร้อมรหัส (สแกนด้วยมือถือ)
 }
 async function trialDo(fn) { trialBusy = true; trialSig = ''; paintTrial(); const r = await fn(); trialBusy = false; trialSig = ''; paintTrial(); return r; }
 // [2026-10-28] ยืนยัน LINE: ขอรหัส → เปิดแชตร้านพร้อมรหัสในช่องพิมพ์ → เช็กสถานะทุก 3 วินาทีจนยืนยันหรือรหัสหมดอายุ
@@ -105,8 +106,8 @@ async function lineStart() {
   if (!r.ok) { lineV = { error: r.errors.join(' ') }; trialSig = ''; paintTrial(); return; }
   const d = r.data || {}; if (d.verified) { lineV = null; toast('ยืนยัน LINE แล้ว ✔'); return; }
   if (d.error === 'rate_limited') { lineV = { error: 'ขอรหัสบ่อยเกินไป กรุณารอสักครู่ (ประมาณ 1 ชั่วโมง) แล้วลองใหม่' }; trialSig = ''; paintTrial(); return; }
-  const id = (DB.settings().lineId || '').trim();
-  lineV = { code: d.code, url: id ? 'https://line.me/R/oaMessage/' + encodeURIComponent(id) + '/?' + encodeURIComponent(d.code) : '' }; trialSig = ''; paintTrial();
+  const id = ((DB.settings().lineOaId || '@404qjdlg') + '').trim();   // [2026-10-28] ID บัญชี LINE Official (แยกจาก lineId ที่เป็นช่องทางทักสอบถาม)
+  lineV = { code: d.code, oa: id, qr: !!window.qrcode, url: id ? 'https://line.me/R/oaMessage/' + encodeURIComponent(id) + '/?' + encodeURIComponent(d.code) : '' }; trialSig = ''; paintTrial();
   const until = new Date(d.expiresAt).getTime();
   linePoll = setInterval(async () => {
     if (Date.now() > until + 5000) { lineStopPoll(); lineV = null; trialSig = ''; paintTrial(); return; }
@@ -115,6 +116,7 @@ async function lineStart() {
 }
 document.addEventListener('click', async (e) => {
   if (e.target.closest('#lineVerifyStart')) { e.preventDefault(); lineStart(); return; }
+  { const cp = e.target.closest('#lineCopy'); if (cp) { e.preventDefault(); try { await navigator.clipboard.writeText(cp.dataset.code); toast('คัดลอกรหัสแล้ว ✔'); } catch (x) { toast('คัดลอกไม่ได้ — พิมพ์รหัสเอง: ' + cp.dataset.code); } return; } }
   if (e.target.closest('[data-focus-prof]')) { e.preventDefault(); const f = $('#fProf'); f.scrollIntoView({ behavior: 'smooth' }); f.name.focus(); return; }
   if (e.target.closest('#trialAsk')) {
     const err = $('#trialErr'); if (!$('#trialConsent').checked) return showErr(err, ['ติ๊กยินยอมให้เก็บรหัสเครื่องก่อนจึงจะขอได้']);

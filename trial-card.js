@@ -29,13 +29,15 @@
     switch (st.state) {
       case 'eligible':
         return wrap('ok', 'ทดลองใช้ฟรี ' + days + ' วัน · ' + dev + ' เครื่อง · ใช้ได้ครบทุกฟีเจอร์',
-          '<p>กดขอแล้วทีมงานจะตรวจสอบและส่งคีย์ให้ในหน้านี้ (แจ้งเตือนให้ทีมงานทราบทันที) · วันทดลองเริ่มนับเมื่อคุณเปิดใช้ในโปรแกรมครั้งแรก · ต้องเริ่มใช้ภายใน ' + claim + ' วันหลังได้รับคีย์</p>' +
+          '<p style="margin:0 0 4px"><b>ขั้นตอน</b></p><ol class="trial-s" style="margin:0 0 8px;padding-left:20px;line-height:1.7"><li>ติ๊กยินยอมด้านล่าง แล้วกดปุ่ม <b>ขอคีย์ทดลองใช้ฟรี</b> (ส่งคำขอถึงทีมงานทันที)</li><li>รอทีมงานตรวจสอบ — ไม่ต้องกดขอซ้ำ</li><li>เมื่ออนุมัติ คีย์จะขึ้นในกล่อง <b>"License key ของฉัน"</b> และมีแจ้งเตือนในกล่อง "การแจ้งเตือน"</li><li>ดาวน์โหลดและติดตั้งโปรแกรม แล้วใส่คีย์ — วันทดลองเริ่มนับเมื่อเปิดใช้ครั้งแรก (ต้องเริ่มใช้ภายใน ' + claim + ' วันหลังได้รับคีย์)</li></ol>' +   /* [2026-10-28] ขั้นตอนตั้งแต่ขอจนได้คีย์ */
           '<label class="trial-c"><input type="checkbox" id="trialConsent"> ยินยอมให้เก็บรหัสเครื่องเพื่อป้องกันการใช้สิทธิ์ทดลองซ้ำ</label>' +
           '<input id="trialNote" maxlength="200" placeholder="หมายเหตุถึงทีมงาน (ไม่บังคับ)" style="width:100%;margin-top:6px"><div class="errs" id="trialErr"></div>',
           '<button class="btn gold" id="trialAsk"' + (ctx.busy ? ' disabled' : '') + '>🎁 ขอคีย์ทดลองใช้ฟรี</button>');
       case 'pending':
         return wrap('wait', '⏳ ส่งคำขอแล้ว — รอทีมงานตรวจสอบ',
-          '<p>ส่งเมื่อ ' + esc(dt(st.request && st.request.requestedAt)) + ' · ทีมงานได้รับแจ้งเตือนแล้ว เมื่ออนุมัติ คีย์จะขึ้นในกล่อง "License key ของฉัน" อัตโนมัติ (หน้านี้อัปเดตเอง ไม่ต้องกดขอซ้ำ)</p>',
+          '<p style="margin:0 0 6px">ส่งเมื่อ ' + esc(dt(st.request && st.request.requestedAt)) + ' · ทีมงานได้รับแจ้งเตือนแล้ว</p>' +
+          '<ol class="trial-s" style="margin:0 0 6px;padding-left:20px;line-height:1.7"><li>✅ ส่งคำขอแล้ว</li><li>⏳ <b>ตอนนี้:</b> รอทีมงานตรวจสอบ — <b>ไม่ต้องกดขอซ้ำ</b> เปิดหน้านี้ค้างไว้หรือกลับมาดูภายหลังได้</li><li>เมื่ออนุมัติ: คีย์ขึ้นในกล่อง <b>"License key ของฉัน"</b> (ด้านล่าง) และมีแจ้งเตือนในกล่อง "การแจ้งเตือน" ด้านบน</li><li>จากนั้น: ดาวน์โหลดและติดตั้งโปรแกรม แล้วใส่คีย์ที่ได้</li></ol>' +
+          '<p style="font-size:12px;opacity:.75;margin:0">หน้านี้อัปเดตสถานะเอง · ถ้าไม่ต้องการแล้วกดยกเลิกคำขอได้ · ถ้ารอนานผิดปกติ ติดต่อทีมงานผ่านปุ่ม LINE ที่หน้าร้าน</p>',
           st.canCancel ? '<button class="btn ghost sm" id="trialCancel"' + (ctx.busy ? ' disabled' : '') + '>ยกเลิกคำขอ</button>' : '');
       case 'issued': {
         var k = st.key || {}, dl = ctx.dl;
@@ -60,10 +62,18 @@
         var b = BLOCK[st.reason] || ['ขอทดลองใช้ฟรีไม่ได้ในขณะนี้', 'โปรดลองใหม่ภายหลังหรือติดต่อทีมงาน'];
         if (b[2] === 'line') {   // [2026-10-28] ยืนยัน LINE: ยังไม่มีรหัส = ปุ่มขอรหัส · มีรหัสแล้ว = แสดงรหัส + ปุ่มเปิดแชตร้านพร้อมข้อความรหัส
           var ln = ctx.line || {};
-          if (ln.code) {
-            return wrap('wait', 'ส่งรหัสนี้ในแชต LINE ของร้าน',
-              '<p style="font-size:26px;font-weight:800;letter-spacing:2px;margin:6px 0">' + esc(ln.code) + '</p><p>รหัสหมดอายุใน 10 นาที · หน้านี้จะอัปเดตเองเมื่อยืนยันสำเร็จ</p>',
-              (ln.url ? '<a class="btn gold" target="_blank" rel="noopener" href="' + esc(ln.url) + '">💬 เปิดแชต LINE แล้วส่งรหัส</a> ' : '<span>เปิดแชต LINE ของร้านแล้วพิมพ์รหัสนี้ส่งไป</span> ') +
+          if (ln.code) {   // [2026-10-28] แสดงขั้นตอนส่งรหัส + ปุ่มคัดลอก + ที่วาง QR (profile.html ใส่ SVG ให้ถ้ามีไลบรารี QR)
+            var oa = esc(ln.oa || '');
+            return wrap('wait', 'ยืนยันตัวตนผ่าน LINE — ส่งรหัสนี้ให้ร้าน',
+              '<p style="font-size:26px;font-weight:800;letter-spacing:2px;margin:6px 0">' + esc(ln.code) + '</p>' +
+              '<ol style="margin:8px 0 6px;padding-left:20px;line-height:1.7">' +
+              '<li>เปิดแอป LINE แล้วเข้าแชตของร้าน' + (oa ? ' (ค้นหา ID <b>' + oa + '</b> แล้วเพิ่มเพื่อน)' : '') + ' — กดปุ่มด้านล่าง' + (ln.qr ? ' หรือสแกน QR ด้วยมือถือ' : '') + '</li>' +
+              '<li>ส่งรหัส <b>' + esc(ln.code) + '</b> เป็นข้อความ (ถ้าเปิดจากปุ่ม รหัสจะอยู่ในช่องพิมพ์แล้ว กดส่งได้เลย)</li>' +
+              '<li>รอข้อความ ✅ ตอบกลับในแชต หน้านี้จะอัปเดตเอง</li></ol>' +
+              '<p style="font-size:12px;opacity:.75;margin:0">รหัสหมดอายุใน 10 นาที · ส่งในแชต 1 ต่อ 1 กับบัญชีร้านเท่านั้น (ไม่ใช่ในกลุ่ม)</p>' +
+              (ln.qr ? '<div id="lineQr" style="width:160px;height:160px;margin:10px 0;background:#fff;padding:6px;border-radius:10px"></div>' : ''),
+              (ln.url ? '<a class="btn gold" target="_blank" rel="noopener" href="' + esc(ln.url) + '">💬 เปิดแชต LINE แล้วส่งรหัส</a> ' : '') +
+              '<button class="btn ghost sm" id="lineCopy" data-code="' + esc(ln.code) + '">คัดลอกรหัส</button> ' +
               '<button class="btn ghost sm" id="lineVerifyStart"' + (ctx.busy ? ' disabled' : '') + '>ขอรหัสใหม่</button>');
           }
           return wrap('warn', esc(b[0]), '<p>' + esc(b[1]) + '</p>' + (ln.error ? '<div class="errs">' + esc(ln.error) + '</div>' : ''),
