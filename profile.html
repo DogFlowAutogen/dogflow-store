@@ -73,7 +73,8 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
 <script src="store.local.js?v=20261012a"></script>
 <script src="store.supabase.js?v=20261028a"></script>
 <script src="avatar.js"></script>
-<script src="trial-card.js?v=20261028c"></script>
+<script src="vendor/qrcode.js?v=20261028a"></script>
+<script src="trial-card.js?v=20261028d"></script>
 <script>
 const $ = (s) => document.querySelector(s), E = DB.esc, B = DB.baht;
 const toast = (m) => { const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(t._); t._ = setTimeout(() => t.classList.remove('on'), 2400); };
@@ -96,7 +97,7 @@ function paintTrial() {
   const rel = DB.list('releases').filter((r) => r.active && /\.exe$/i.test(r.fileName || '')).sort((a, b) => vnum(b.version) - vnum(a.version))[0], dl = rel && DB.canDownload && DB.canDownload() ? { id: rel.id, version: rel.version } : null;
   const sig = JSON.stringify([st.state, st.reason, st.request && st.request.id, st.request && st.request.status, st.key && st.key.key, dl && dl.id, trialBusy, lineV && lineV.code, lineV && lineV.error]);
   box.hidden = false; if (sig === trialSig) return; trialSig = sig; box.innerHTML = TrialCard.render(st, { dl, busy: trialBusy, line: st.reason === 'line_unverified' ? lineV : null });
-  { const q = $('#lineQr'); if (q && lineV && lineV.url && window.qrcode) { try { const c = window.qrcode(0, 'M'); c.addData(lineV.url); c.make(); q.innerHTML = c.createSvgTag({ cellSize: 4, margin: 0, scalable: true }); const sv = q.querySelector('svg'); if (sv) { sv.style.width = '100%'; sv.style.height = '100%'; } } catch (e) { q.remove(); } } }   // QR ชี้ไปลิงก์เปิดแชตพร้อมรหัส (สแกนด้วยมือถือ)
+  { const q = $('#lineQr'); if (q && lineV && lineV.url && window.qrcode) { try { const c = window.qrcode(0, 'M'); c.addData(lineV.url); c.make(); q.innerHTML = c.createSvgTag({ cellSize: 4, margin: 16, scalable: true }); const sv = q.querySelector('svg'); if (sv) { sv.style.width = '100%'; sv.style.height = '100%'; } } catch (e) { q.remove(); } } }   // QR ชี้ไปลิงก์เปิดแชตพร้อมรหัส (สแกนด้วยมือถือ)
 }
 async function trialDo(fn) { trialBusy = true; trialSig = ''; paintTrial(); const r = await fn(); trialBusy = false; trialSig = ''; paintTrial(); return r; }
 // [2026-10-28] ยืนยัน LINE: ขอรหัส → เปิดแชตร้านพร้อมรหัสในช่องพิมพ์ → เช็กสถานะทุก 3 วินาทีจนยืนยันหรือรหัสหมดอายุ

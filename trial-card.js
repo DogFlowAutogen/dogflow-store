@@ -71,7 +71,7 @@
               '<li>ส่งรหัส <b>' + esc(ln.code) + '</b> เป็นข้อความ (ถ้าเปิดจากปุ่ม รหัสจะอยู่ในช่องพิมพ์แล้ว กดส่งได้เลย)</li>' +
               '<li>รอข้อความ ✅ ตอบกลับในแชต หน้านี้จะอัปเดตเอง</li></ol>' +
               '<p style="font-size:12px;opacity:.75;margin:0">รหัสหมดอายุใน 10 นาที · ส่งในแชต 1 ต่อ 1 กับบัญชีร้านเท่านั้น (ไม่ใช่ในกลุ่ม)</p>' +
-              (ln.qr ? '<div id="lineQr" style="width:160px;height:160px;margin:10px 0;background:#fff;padding:6px;border-radius:10px"></div>' : ''),
+              (ln.qr ? '<div id="lineQr" style="width:190px;height:190px;margin:10px 0;background:#fff;padding:0;border-radius:10px;overflow:hidden"></div>' : ''),
               (ln.url ? '<a class="btn gold" target="_blank" rel="noopener" href="' + esc(ln.url) + '">💬 เปิดแชต LINE แล้วส่งรหัส</a> ' : '') +
               '<button class="btn ghost sm" id="lineCopy" data-code="' + esc(ln.code) + '">คัดลอกรหัส</button> ' +
               '<button class="btn ghost sm" id="lineVerifyStart"' + (ctx.busy ? ' disabled' : '') + '>ขอรหัสใหม่</button>');
