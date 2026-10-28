@@ -650,8 +650,5 @@ footer .trafficrow{margin:0 0 18px}footer .trafficrow .trafficcard{max-width:non
 .contactrow{align-items:stretch}
 .contactrow .linecard,.contactrow .mailcard{align-items:flex-start}
 
-/* [2026-10-28] ท้ายหน้าแรก: ข้อความใต้การ์ดติดต่อ (ลิงก์/เงื่อนไข/ลิขสิทธิ์) ชิดซ้ายตรงกับขอบกรอบการ์ด — ใช้เฉพาะฟุตเตอร์ที่มีการ์ดติดต่อ (ฟุตเตอร์หน้าอื่นยังจัดกึ่งกลางเหมือนเดิม) */
-footer:has(.contactrow){text-align:left}
-
 /* [2026-10-28] การ์ดอีเมล: ปุ่ม "ส่งอีเมล" กับ "คัดลอกอีเมล" วางคู่กันแถวเดียว (ที่อยู่อีเมลอยู่บรรทัดของตัวเองด้านบน) */
 .mailcard .mc-btns{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
