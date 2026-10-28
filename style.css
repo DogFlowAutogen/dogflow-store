@@ -645,3 +645,7 @@ footer .trafficrow{margin:0 0 18px}footer .trafficrow .trafficcard{max-width:non
 .hero h1 .h1-l.acc{color:var(--accent)}
 .hero h1 .h1-sub{display:flex;align-items:center;gap:12px;margin-top:14px;font-size:clamp(15px,1.7vw,19px);font-weight:600;letter-spacing:.02em;line-height:1.4;color:var(--muted)}
 .hero h1 .h1-sub::before{content:"";flex:none;width:30px;height:2px;border-radius:2px;background:var(--accent)}
+
+/* [2026-10-28] ไม่จัดกึ่งกลางแนวตั้ง: การ์ด LINE กับการ์ดอีเมลชิดบน ให้หัวข้อสองการ์ดอยู่ระดับเดียวกัน (เดิมการ์ดอีเมลสั้นกว่าจึงถูกจัดกลางแล้วหัวข้อต่ำกว่าการ์ด LINE) */
+.contactrow{align-items:stretch}
+.contactrow .linecard,.contactrow .mailcard{align-items:flex-start}
