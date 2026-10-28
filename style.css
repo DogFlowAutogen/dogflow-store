@@ -605,3 +605,5 @@ small{color:var(--muted);font-size:12px}
 .trafficcard.trend{display:block}.trafficcard.trend svg{display:block;width:100%;height:36px;margin-top:10px}
 .trafficcard.trend svg path{fill:none;stroke:var(--accent);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
 .trafficcard.trend svg .f{fill:var(--accent);opacity:.12;stroke:none}
+/* [2026-10-28] ย้ายการ์ดสถิติไปท้ายหน้า (ในฟุตเตอร์) — ยกเลิกเพดานความกว้างและจัดให้เรียงตรงกึ่งกลางแถว */
+footer .trafficrow{margin:0 0 18px}footer .trafficrow .trafficcard{max-width:none;flex:0 1 260px}
