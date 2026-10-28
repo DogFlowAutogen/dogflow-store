@@ -609,3 +609,9 @@ small{color:var(--muted);font-size:12px}
 footer .trafficrow{margin:0 0 18px}footer .trafficrow .trafficcard{max-width:none;flex:0 1 260px}
 /* [2026-10-28] การ์ดสถิติกลับมาอยู่ส่วนบน (hero) — เว้นระยะจากสถิติเดิม */
 .hero .trafficrow{margin:14px 0 0;max-width:560px}
+
+/* [2026-10-28] การ์ด QR เพิ่มเพื่อน LINE ร้าน (ท้ายหน้า) — พื้นขาวรอบ QR ให้สแกนติดทั้งโหมดสว่าง/มืด */
+.linecard{display:flex;gap:16px;align-items:center;flex-wrap:wrap;max-width:560px;margin:0 0 18px;padding:14px 16px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+.linecard img{width:132px;height:132px;flex:none;background:#fff;padding:6px;border-radius:10px;border:1px solid var(--line)}
+.linecard>div{flex:1;min-width:200px;display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.linecard b{font-size:15.5px}.linecard span{font-size:13px;color:var(--muted)}.linecard span b{font-size:inherit;color:var(--fg)}
