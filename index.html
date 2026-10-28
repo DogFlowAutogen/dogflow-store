@@ -227,7 +227,7 @@ function renderStatic() {
   $('#brand').textContent = s.brand; $('#ver').textContent = shownVer + ' · ' + s.tagline;
   $('#hTitle').textContent = s.heroTitle; $('#hSub').textContent = s.heroSub; $('#hCta').textContent = s.heroCta + ' →';
   renderHeroStats(s);
-  $('#hImg').src = s.heroImage || 'assets/app-meta-bot.png';
+  $('#hImg').src = s.heroImage || 'assets/hero-v4.webp';
   const line = 'https://line.me/ti/p/~' + encodeURIComponent(s.lineId || ''); $('#lineBtn').href = line; $('#fab').href = line; $('#lineBtn').hidden = $('#fab').hidden = !s.lineId;
   $('#foot').innerHTML = [s.lineId ? 'LINE: <b>' + E(s.lineId) + '</b>' : '', s.contactEmail ? 'อีเมล ' + E(s.contactEmail) : ''].filter(Boolean).join(' · '); $('#yr').textContent = new Date().getFullYear();
   $('#rv').innerHTML = DB.list('reviews').map((r) => `<div><div class="star">${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</div><p>${E(r.text)}</p><b>— ${E(r.name)}</b></div>`).join('');
