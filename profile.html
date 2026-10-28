@@ -74,7 +74,7 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
 <script src="store.supabase.js?v=20261028a"></script>
 <script src="avatar.js"></script>
 <script src="vendor/qrcode.js?v=20261028a"></script>
-<script src="trial-card.js?v=20261028d"></script>
+<script src="trial-card.js?v=20261028e"></script>
 <script>
 const $ = (s) => document.querySelector(s), E = DB.esc, B = DB.baht;
 const toast = (m) => { const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(t._); t._ = setTimeout(() => t.classList.remove('on'), 2400); };
@@ -113,9 +113,15 @@ async function lineStart() {
   const tick = async () => {
     if (!linePoll) return;
     if (Date.now() > until + 5000) { lineStopPoll(); lineV = null; trialSig = ''; paintTrial(); return; }
-    const c = await DB.lineVerifyCheck(); if (c.ok && c.verified) { lineStopPoll(); lineV = null; trialSig = ''; paintTrial(); toast('ยืนยัน LINE สำเร็จ ✔ ขอทดลองใช้ฟรีได้แล้ว'); }
+    const chk = $('#lineChk'), hh = () => new Date().toLocaleTimeString('th-TH');
+    let c; try { c = await DB.lineVerifyCheck(); } catch (e) { c = { ok: false, errors: [String((e && e.message) || e)] }; console.error('[line-verify] check', e); }
+    if (chk) chk.textContent = c.ok ? '(เช็กล่าสุด ' + hh() + ')' : '(เช็กไม่สำเร็จ ' + hh() + ': ' + (c.errors || []).join(' ') + ')';
+    if (c.ok && c.verified) {
+      lineStopPoll(); lineV = null; trialSig = ''; paintTrial(); toast('ยืนยัน LINE สำเร็จ ✔ ขอทดลองใช้ฟรีได้แล้ว');
+      setTimeout(() => { if ($('#lineVerifyStart')) location.reload(); }, 1200);   // ตัวกันพลาด: ถ้าการ์ดยังค้างขั้นตอน LINE ให้โหลดหน้าใหม่เอง
+    }
   };
-  linePoll = setInterval(tick, 3000); lineTick = tick;
+  linePoll = setInterval(tick, 2500); lineTick = tick; tick();   // เช็กทันที 1 ครั้ง แล้วทุก 2.5 วินาที
 }
 /* [2026-10-28] สลับกลับมาที่แท็บ (เช่น กลับจากแอป LINE) → เช็กสถานะทันที ไม่รอตัวจับเวลา (เบราว์เซอร์ชะลอแท็บที่อยู่เบื้องหลัง) */
 document.addEventListener('visibilitychange', () => { if (!document.hidden && linePoll && lineTick) lineTick(); });
