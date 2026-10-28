@@ -230,6 +230,9 @@
       if (data && data.state === 'pending' && data.request) sb.functions.invoke('notify-line', { body: { event: 'trial', requestId: data.request.id } }).catch(() => {});
       return { ok: true, status: data };
     },
+    // [2026-10-28] ยืนยันตัวตนผ่าน LINE: ขอรหัส (คืนรหัสดิบครั้งเดียว) / เช็กสถานะ — เมื่อยืนยันแล้วโหลดสถานะทดลองใช้ฟรีใหม่
+    async lineVerifyStart() { const { data, error } = await sb.rpc('line_verify_start'); if (error) return fail(error); if (data && data.verified) { await loadTrial(); emit(); } return { ok: true, data }; },
+    async lineVerifyCheck() { const { data, error } = await sb.rpc('line_verify_status'); if (error) return fail(error); if (data && data.verified) { await loadTrial(); emit(); } return { ok: true, verified: !!(data && data.verified) }; },
     async cancelTrialRequest() { const { data, error } = await sb.rpc('cancel_trial_request'); if (error) return fail(error); S.trial = data; emit(); return { ok: true, status: data }; },
     async reviewTrial(id, action, code, note, retry) { const { data, error } = await sb.rpc('admin_review_trial', { p_id: id, p_action: action, p_code: code || '', p_note: note || '', p_retry: retry || 'default' }); if (error) return fail(error); await loadTrial(); emit(); return { ok: true, status: data && data.status }; },
     async approveTrial(requestId, days, devices, force) { const { data, error } = await sb.functions.invoke('issue-trial', { body: { requestId, days, devices, force: !!force } }); if (error) return { ok: false, errors: [await fnErr(error)] }; if (data.dup) return { ok: false, dup: true, matches: data.matches || [], errors: [data.error] }; await Promise.all([loadDynamic(), loadTrial()]); emit(); return data.ok ? { ok: true, key: data.key, days: data.days, devices: data.devices } : { ok: false, errors: [data.error || 'อนุมัติไม่สำเร็จ'] }; },
