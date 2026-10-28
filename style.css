@@ -657,3 +657,10 @@ footer .trafficrow{margin:0 0 18px}footer .trafficrow .trafficcard{max-width:non
 #faqs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 14px;align-items:start}
 #faqs details{margin:0}
 @media(max-width:820px){#faqs{grid-template-columns:1fr}}
+
+/* [2026-10-28] จัดชิดซ้ายเฉพาะข้อความ 2 จุดในการ์ดติดต่อ: (1) ข้อความ 3 บรรทัดในการ์ด LINE (อีโมจิอยู่คอลัมน์แคบซ้าย บรรทัดที่ห่อลงมาตรงกับตัวหนังสือ) (2) ย่อหน้าคำอธิบายในการ์ดอีเมล — ข้อความส่วนอื่นท้ายหน้ายังจัดกึ่งกลางเหมือนเดิม */
+.linecard .lc-text{display:flex;flex-direction:column;gap:7px;width:100%;text-align:left}
+.linecard .lc-l{display:grid;grid-template-columns:1.7em minmax(0,1fr);align-items:start;line-height:1.55;text-align:left}
+.linecard .lc-l i{font-style:normal}
+.linecard .lc-l.plain{display:block}
+.mailcard>div:last-child>span:not(.mc-btns){text-align:left}
