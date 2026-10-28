@@ -90,7 +90,7 @@ async function paintGroup(ok) {
   box.hidden = false;
 }
 // การ์ดทดลองใช้ฟรี: วาดใหม่เฉพาะเมื่อสถานะเปลี่ยน (กัน db:change ล้างช่องที่กำลังพิมพ์/ติ๊กอยู่)
-let trialSig = '', trialBusy = false, lineV = null, linePoll = 0;   // lineV = { code, url, error } ระหว่างยืนยัน LINE
+let trialSig = '', trialBusy = false, lineV = null, linePoll = 0, lineTick = null;   // lineV = { code, url, error } ระหว่างยืนยัน LINE
 function paintTrial() {
   const box = $('#trial'), st = DB.trialStatus && DB.trialStatus(); if (!st || !window.TrialCard) { box.hidden = true; return; }
   const vnum = (v) => String(v).split('.').reduce((n, x) => n * 1000 + (parseInt(x, 10) || 0), 0);   // ปุ่มของคนทดลองต้องเป็นตัวติดตั้ง (.exe) รุ่นเลขสูงสุดเท่านั้น — ไม่เอาแพ็กเกจอัปเดต (.zip) และไม่เรียงตามวันที่อัป
@@ -110,11 +110,16 @@ async function lineStart() {
   const id = ((DB.settings().lineOaId || '@404qjdlg') + '').trim();   // [2026-10-28] ID บัญชี LINE Official (แยกจาก lineId ที่เป็นช่องทางทักสอบถาม)
   lineV = { code: d.code, oa: id, qr: !!window.qrcode, url: id ? 'https://line.me/R/oaMessage/' + encodeURIComponent(id) + '/?' + encodeURIComponent(d.code) : '' }; trialSig = ''; paintTrial();
   const until = new Date(d.expiresAt).getTime();
-  linePoll = setInterval(async () => {
+  const tick = async () => {
+    if (!linePoll) return;
     if (Date.now() > until + 5000) { lineStopPoll(); lineV = null; trialSig = ''; paintTrial(); return; }
     const c = await DB.lineVerifyCheck(); if (c.ok && c.verified) { lineStopPoll(); lineV = null; trialSig = ''; paintTrial(); toast('ยืนยัน LINE สำเร็จ ✔ ขอทดลองใช้ฟรีได้แล้ว'); }
-  }, 3000);
+  };
+  linePoll = setInterval(tick, 3000); lineTick = tick;
 }
+/* [2026-10-28] สลับกลับมาที่แท็บ (เช่น กลับจากแอป LINE) → เช็กสถานะทันที ไม่รอตัวจับเวลา (เบราว์เซอร์ชะลอแท็บที่อยู่เบื้องหลัง) */
+document.addEventListener('visibilitychange', () => { if (!document.hidden && linePoll && lineTick) lineTick(); });
+window.addEventListener('focus', () => { if (linePoll && lineTick) lineTick(); });
 document.addEventListener('click', async (e) => {
   if (e.target.closest('#lineVerifyStart')) { e.preventDefault(); lineStart(); return; }
   { const cp = e.target.closest('#lineCopy'); if (cp) { e.preventDefault(); try { await navigator.clipboard.writeText(cp.dataset.code); toast('คัดลอกรหัสแล้ว ✔'); } catch (x) { toast('คัดลอกไม่ได้ — พิมพ์รหัสเอง: ' + cp.dataset.code); } return; } }
