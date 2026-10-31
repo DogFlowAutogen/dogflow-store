@@ -488,6 +488,7 @@ function renderShop() {
   $('#chips').innerHTML = [{ id: 'all', name: 'ทั้งหมด', icon: '🛍️' }, ...cats].map((c) => `<button class="chip ${cat === c.id ? 'on' : ''}" data-cat="${E(c.id)}">${c.icon} ${E(c.name)}</button>`).join('');
   let list = DB.list('products').filter((p) => p.active && (cat === 'all' || p.categoryId === cat) && (!q || (p.name + p.desc + p.sku).toLowerCase().includes(q)));
   const so = $('#sort').value, disc = (p) => 1 - DB.price(p) / p.price;
+  list.sort((a, b) => (a.price - b.price) || String(a.id).localeCompare(String(b.id)));   // [2026-11-01] ลำดับเริ่มต้นคงที่: ถูก → แพง (7 วัน · เดือน · ปี · ตลอดชีพ) — ก่อนหน้านี้ตารางไม่มีคอลัมน์ลำดับ จึงสลับไปมาได้
   if (so === 'lo') list.sort((a, b) => DB.price(a) - DB.price(b)); if (so === 'hi') list.sort((a, b) => DB.price(b) - DB.price(a)); if (so === 'disc') list.sort((a, b) => disc(b) - disc(a));
   $('#count').textContent = list.length + ' รายการ';
   $('#grid').innerHTML = list.map((p) => {
