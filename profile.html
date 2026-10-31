@@ -71,7 +71,7 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
 <script src="vendor/supabase.js"></script>
 <script src="store.common.js?v=20261012b"></script>
 <script src="store.local.js?v=20261012a"></script>
-<script src="store.supabase.js?v=20261031a"></script>
+<script src="store.supabase.js?v=20261031b"></script>
 <script src="avatar.js"></script>
 <script src="vendor/qrcode.js?v=20261028a"></script>
 <script src="trial-card.js?v=20261028f"></script>
@@ -285,5 +285,6 @@ $('#del').onclick = async () => { if (!confirm('ลบบัญชีถาว�
 window.addEventListener('db:change', render); // แอดมินอนุมัติ → (Supabase Realtime / localStorage event) → คีย์เด้งเข้าอัตโนมัติ
 DB.init().then(render).then(() => { if (location.hash === '#aff' || location.hash === '#trial') setTimeout(() => $(location.hash).scrollIntoView({ behavior: 'smooth' }), 150); }).then(DFCommon.hideSplash).catch((e) => { DFCommon.hideSplash(); document.body.insertAdjacentHTML('afterbegin', '<div style="background:#7f1d1d;color:#fff;padding:14px;text-align:center">เชื่อมต่อฐานข้อมูลไม่สำเร็จ — กรุณารีเฟรช</div>'); console.error(e); });
 </script>
+<script src="site-track.js?v=20261031a" data-page="profile"></script>
 </body>
 </html>

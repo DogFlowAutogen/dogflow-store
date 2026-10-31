@@ -225,6 +225,7 @@
     async broadcastHistory() { const { data, error } = await sb.from('broadcasts').select('id,created_at,title,audience,recipients,type').order('created_at', { ascending: false }).limit(8); return error ? [] : data; },
     trialStatus: () => S.trial || null,
     siteStats: () => S.siteStats || null,
+    siteReport: async (from, to) => { if (!S.isAdmin) return null; try { const r = await sb.rpc('admin_site_report', { p_from: from, p_to: to }); return r.error ? null : r.data; } catch (e) { return null; } },   // [2026-10-31] รายงานเข้าชมละเอียดตามช่วงวันที่
     trialStats: () => (S.trialStats ? Object.assign({}, S.trialStats, { converted: S.trialConv || 0 }) : null),
     trialQueue: () => S.trialQ || { pending: [], recent: [] },
     async requestTrial(note, consent) {   // สมาชิกกดขอ → RPC (กันกดซ้ำที่ฐานข้อมูล) แล้วยิงแจ้ง LINE แอดมินทันที (ล้มเหลวไม่เป็นไร ตัวกวาดทุกนาทีเก็บตกให้)

@@ -72,7 +72,7 @@
       }
       var vt = view.vals.reduce(function (a, b) { return a + b; }, 0);
       view.sum = vt; view.max = Math.max.apply(null, view.vals.concat([0])); view.avg = view.vals.length ? Math.round(vt / view.vals.length) : 0; view.sel = sv;
-      site = { view: view, yearMonths: mons0.filter(function (x) { return x.views > 0 || true; }).map(function (x) { return x.month; }).reverse(), yr: yr, daily: daily, today: sd[key(today)] || 0, yesterday: sd[key(today - DAY)] || 0, week: sum7, range: sumRange, rangePrev: sumPrev, months: mons.slice(-12).reverse(), monthNow: (mons.filter(function (x) { return x.month === curMon; })[0] || { views: 0 }).views, total: num(S.siteStats.total) };
+      site = { rFrom: o.siteFrom || key(from), rTo: o.siteTo || key(today), view: view, yearMonths: mons0.filter(function (x) { return x.views > 0 || true; }).map(function (x) { return x.month; }).reverse(), yr: yr, daily: daily, today: sd[key(today)] || 0, yesterday: sd[key(today - DAY)] || 0, week: sum7, range: sumRange, rangePrev: sumPrev, months: mons.slice(-12).reverse(), monthNow: (mons.filter(function (x) { return x.month === curMon; })[0] || { views: 0 }).views, total: num(S.siteStats.total) };
     }
     var health = (S.health || []).filter(function (h) { return h && h.msg; }).slice(0, 5);
     var lowStock = products.filter(function (p) { return p.active && num(p.stock) <= 5; }).length;
@@ -105,7 +105,54 @@
       + '<span class="ov-mut">' + E(s.view.caption) + ' · รวม <b>' + th(s.view.sum) + '</b> · เฉลี่ย ' + th(s.view.avg) + ' · สูงสุด ' + th(s.view.max) + '</span></div>'
       + (s.view.sum > 0 ? C.vbars(s.view.vals, s.view.labels || m.labels.map(function (l, i) { return i % step === 0 ? l.split(' ')[0] : ''; }), { h: 190, color: 'var(--c1)', hi: s.view.vals.indexOf(s.view.max), label: 'ยอดเข้าชม' }) : empty('ยังไม่มีข้อมูลการเข้าชมในช่วงนี้'))
       + (s.months.length ? '<table class="ov-tbl" style="margin-top:12px"><tr><th>เดือน</th><th class="r">เข้าชม</th></tr>' + s.months.map(function (x) { return '<tr><td>' + E(mn(x.month)) + '</td><td class="r">' + th(x.views) + '</td></tr>'; }).join('') + '</table>' : '')
+      + '<h4 style="margin:18px 0 8px">🔎 รายงานละเอียด (เลือกช่วงวันที่เอง)</h4>'
+      + '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px"><input type="date" id="sFrom" value="' + E(s.rFrom) + '" style="width:auto"> – <input type="date" id="sTo" value="' + E(s.rTo) + '" style="width:auto">'
+      + '<button type="button" class="btn sm" id="sGo">ดูช่วงนี้</button><button type="button" class="btn sm ghost" id="sCsv">⬇ ส่งออก CSV</button></div>'
+      + '<div id="siteRep" class="ov-mut">กำลังโหลด…</div>'
       + '</div>';
+  }
+
+  // [2026-10-31] รายงานละเอียดของช่วงที่เลือก: ผู้เข้าชมไม่ซ้ำ · เทียบยอดขาย · รายหน้า · แหล่งที่มา · อุปกรณ์ · ช่วงเวลา (rep มาจาก admin_site_report)
+  var SRC = { direct: 'เข้าตรง', google: 'Google', tiktok: 'TikTok', facebook: 'Facebook', line: 'LINE', youtube: 'YouTube', other: 'อื่นๆ' };
+  var DEV = { mobile: '📱 มือถือ', tablet: '📟 แท็บเล็ต', desktop: '💻 คอมพิวเตอร์' };
+  var PG = { home: 'หน้าแรก', features: 'ฟีเจอร์', howto: 'วิธีซื้อ/ติดตั้ง', guide: 'คู่มือทำคลิป TikTok', profile: 'โปรไฟล์/สมาชิก' };
+  var dkey = function (ms) { var q = new Date(ms); return q.getFullYear() + '-' + ('0' + (q.getMonth() + 1)).slice(-2) + '-' + ('0' + q.getDate()).slice(-2); };
+  function salesByDay(S) {
+    var map = {}; ((S && S.orders) || []).forEach(function (x) { if (!okStatus(x.status)) return; var k = dkey(payTime(x)), r = map[k] || (map[k] = { n: 0, rev: 0 }); r.n++; r.rev += num(x.total); }); return map;
+  }
+  function siteReport(rep, S) {
+    if (!rep || !Array.isArray(rep.daily)) return empty('โหลดรายงานไม่สำเร็จ');
+    var th = function (n) { return num(n).toLocaleString('th-TH'); }, sum = function (k) { return rep.daily.reduce(function (a, x) { return a + num(x[k]); }, 0); }, sd = salesByDay(S);
+    var views = sum('views'), visits = sum('visits'), uniq = sum('uniques'), n = 0, rev = 0;
+    rep.daily.forEach(function (x) { var r = sd[x.day]; if (r) { n += r.n; rev += r.rev; } });
+    var conv = visits ? Math.round(n / visits * 1000) / 10 : 0, pv = visits ? (views / visits).toFixed(1) : '0';
+    if (!views) return empty('ยังไม่มีข้อมูลละเอียดในช่วงนี้ — เริ่มเก็บตั้งแต่ ' + (rep.since ? fmtDate(new Date(rep.since + 'T00:00:00').getTime()) : 'วันที่เปิดใช้ตัวนับใหม่'));
+    var out = '<div class="ov-strip s4">' + TILE('🚪', 'เข้าเว็บ (ครั้ง)', th(visits), '<span class="ov-mut">หน้าที่เปิด ' + th(views) + ' · ' + pv + ' หน้า/ครั้ง</span>')
+      + TILE('🧍', 'ผู้เข้าชมไม่ซ้ำ', th(uniq), '<span class="ov-mut">นับรายวัน (คนเดิมคนละวันนับใหม่)</span>')
+      + TILE('🧾', 'ออเดอร์ที่ชำระ', th(n), '<span class="ov-mut">ยอด ' + C.baht(rev) + '</span>')
+      + TILE('🎯', 'เข้าชม → ซื้อ', conv + '%', '<span class="ov-mut">ออเดอร์ ÷ การเข้าเว็บ</span>') + '</div>';
+    var two = function (t, cap, body) { return '<div class="ov-card" style="box-shadow:none"><h3>' + t + '</h3><div class="cap">' + cap + '</div>' + body + '</div>'; };
+    var totV = function (a, k) { return a.reduce(function (s, x) { return s + num(x[k]); }, 0) || 1; };
+    var mk = function (arr, key, names, vk) { return arr.map(function (x) { return { label: (names[x[key]] || x[key]) + ' · ' + Math.round(num(x[vk]) / totV(arr, vk) * 100) + '%', value: num(x[vk]) }; }); };
+    var pgs = mk(rep.pages, 'page', PG, 'views'), srcs = mk(rep.sources, 'source', SRC, 'visits'), devs = mk(rep.devices, 'device', DEV, 'visits');
+    out += '<div class="ov-two">' + two('📄 หน้าที่ถูกเปิดมากสุด', 'จำนวนหน้าที่เปิด', pgs.length ? C.hbars(pgs, {}) : empty('ไม่มีข้อมูล'))
+      + two('🧭 แหล่งที่มา', 'เข้าเว็บมาจากไหน (ครั้ง)', srcs.length ? C.hbars(srcs, {}) : empty('ไม่มีข้อมูล')) + '</div>';
+    var hrs = (rep.hours || []).map(num);
+    out += '<div class="ov-two" style="margin-top:16px">' + two('📱 อุปกรณ์', 'มือถือ vs คอม (ครั้ง)', devs.length ? C.hbars(devs, {}) : empty('ไม่มีข้อมูล'))
+      + two('🕐 ช่วงเวลาที่คนเข้า', 'ชั่วโมงตามเวลาไทย (ครั้ง) · สูงสุด ' + (hrs.length ? hrs.indexOf(Math.max.apply(null, hrs)) + ':00 น.' : '-'), hrs.some(function (v) { return v > 0; }) ? C.vbars(hrs, hrs.map(function (v, i) { return i % 3 === 0 ? String(i) : ''; }), { h: 170, color: 'var(--c3)', label: 'เข้าเว็บรายชั่วโมง' }) : empty('ไม่มีข้อมูล')) + '</div>';
+    var dv = rep.daily.map(function (x) { return num(x.visits); }), st = Math.max(1, Math.ceil(dv.length / 8));
+    out += '<div style="margin-top:16px">' + two('📈 การเข้าเว็บรายวัน (' + E(rep.from) + ' – ' + E(rep.to) + ')', 'ครั้งที่เข้าเว็บต่อวัน', C.vbars(dv, rep.daily.map(function (x, i) { return i % st === 0 ? x.day.slice(8) : ''; }), { h: 170, color: 'var(--c2)', label: 'เข้าเว็บรายวัน' })) + '</div>';
+    return out;
+  }
+  // CSV รายวันของช่วงที่เลือก: เข้าเว็บ + ผู้ไม่ซ้ำ + ออเดอร์/ยอดขายของวันนั้น (เปิดใน Excel ไทยได้: UTF-8 + BOM)
+  function siteCsv(rep, S) {
+    var cell = function (v) { v = String(v == null ? '' : v); if (/^[=+\-@\t\r]/.test(v)) v = "'" + v; return '"' + v.replace(/"/g, '""') + '"'; }, sd = salesByDay(S);
+    var rows = [['วันที่', 'หน้าที่เปิด', 'เข้าเว็บ (ครั้ง)', 'ผู้เข้าชมไม่ซ้ำ', 'ออเดอร์ที่ชำระ', 'ยอดขาย (บาท)']];
+    rep.daily.forEach(function (x) { var r = sd[x.day] || { n: 0, rev: 0 }; rows.push([x.day, x.views, x.visits, x.uniques, r.n, r.rev]); });
+    rows.push([]); rows.push(['แหล่งที่มา', 'เข้าเว็บ (ครั้ง)']); rep.sources.forEach(function (x) { rows.push([SRC[x.source] || x.source, x.visits]); });
+    rows.push([]); rows.push(['อุปกรณ์', 'เข้าเว็บ (ครั้ง)']); rep.devices.forEach(function (x) { rows.push([DEV[x.device] || x.device, x.visits]); });
+    rows.push([]); rows.push(['หน้า', 'หน้าที่เปิด']); rep.pages.forEach(function (x) { rows.push([PG[x.page] || x.page, x.views]); });
+    return '﻿' + rows.map(function (r) { return r.map(cell).join(','); }).join('\r\n');
   }
 
   function render(m) {
@@ -146,6 +193,6 @@
     return '﻿' + rows.map(function (r) { return r.map(cell).join(','); }).join('\r\n');
   }
 
-  var api = { model: model, render: render, csv: csv, ago: ago };
+  var api = { model: model, render: render, csv: csv, ago: ago, siteReport: siteReport, siteCsv: siteCsv };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.AdminOverview = api;
 })(typeof window !== 'undefined' ? window : this);

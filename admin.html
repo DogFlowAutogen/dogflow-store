@@ -51,12 +51,12 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
 <div class="toast" id="toast"></div>
 
 <script src="config.js"></script>
-<script src="admin-charts.js?v=20261031a"></script><script src="admin-overview.js?v=20261031b"></script><script src="admin-broadcast.js?v=20261014a"></script>
+<script src="admin-charts.js?v=20261031a"></script><script src="admin-overview.js?v=20261031c"></script><script src="admin-broadcast.js?v=20261014a"></script>
 <script src="pw-eye.js?v=20261014a" defer></script>
 <script src="vendor/supabase.js"></script>
 <script src="store.common.js?v=20261012b"></script>
 <script src="store.local.js?v=20261012b"></script>
-<script src="store.supabase.js?v=20261031a"></script>
+<script src="store.supabase.js?v=20261031b"></script>
 <script src="avatar.js"></script>
 <script>
 const $ = (s) => document.querySelector(s), E = DB.esc, B = DB.baht;
@@ -249,7 +249,7 @@ $('#mTk').addEventListener('submit', async (e) => { if (e.target.id !== 'tkForm'
 /* ===== วิว ===== */
 const V = {
   dash() {   // [2026-10-14] หน้าภาพรวมแบบกราฟ/แผนภูมิ (admin-overview.js + admin-charts.js) — เลือกแบบ B Clean Analytics
-    return AdminOverview.render(AdminOverview.model(ovSnap(), { days: window._ovDays || 30, siteView: window._siteView }));
+    return AdminOverview.render(AdminOverview.model(ovSnap(), { days: window._ovDays || 30, siteView: window._siteView, siteFrom: window._siteFrom, siteTo: window._siteTo }));
   },
   orders() {
     const st = { pending: ['รอชำระ', 'pending'], review: ['รอตรวจสลิป', 'paid'], paid: ['ชำระแล้ว', 'done'], rejected: ['สลิปไม่ผ่าน', 'cancelled'], cancelled: ['ยกเลิก', 'cancelled'], done: ['เสร็จสิ้น', 'done'] };
@@ -486,6 +486,17 @@ const V = {
 const PF = () => [{ k: 'name', label: 'ชื่อสินค้า', full: true }, { k: 'sku', label: 'SKU' }, { k: 'categoryId', label: 'หมวดหมู่', type: 'select', opts: catOpts() }, { k: 'brandId', label: 'แบรนด์', type: 'select', opts: [['', '— ไม่ระบุ —'], ...DB.list('brands').map((b) => [b.id, b.name])] }, { k: 'price', label: 'ราคาปกติ', type: 'number' }, { k: 'salePrice', label: 'ราคาโปร (0 = ไม่มี)', type: 'number' }, { k: 'stock', label: 'สต็อก', type: 'number' }, { k: 'badge', label: 'ป้าย (เช่น ยอดนิยม)' }, { k: 'icon', label: 'ไอคอน emoji' }, { k: 'licenseDevices', label: '🔑 จำนวนเครื่อง License (0 = ไม่ใช่สินค้าคีย์)', type: 'number' }, { k: 'licenseDays', label: '🔑 อายุคีย์ (วัน, 0 = ตลอดชีพ)', type: 'number' }, { k: 'commission', label: '🪪 ค่าคอมตัวแทนต่อชิ้น (บาท, 0 = ไม่มี)', type: 'number' }, { k: 'image', label: 'รูปสินค้า', type: 'image' }, { k: 'desc', label: 'คำอธิบาย', type: 'textarea', full: true }, { k: 'features', label: 'จุดเด่น (บรรทัดละข้อ)', type: 'textarea', full: true, list: true }, { k: 'active', label: 'เปิดขาย', type: 'check', full: true }];
 const A = {
   dash() {   // ตัวเลือกช่วงเวลา + ส่งออก CSV ของหน้าภาพรวม
+    // [2026-10-31] รายงานเข้าชมละเอียด: โหลดตามช่วงวันที่ที่เลือก + ปุ่ม CSV
+    const loadRep = async (force) => {
+      const box = $('#siteRep'), fi = $('#sFrom'), ti = $('#sTo'); if (!box || !fi || !ti) return;
+      window._siteFrom = fi.value; window._siteTo = ti.value; const key = fi.value + '|' + ti.value;
+      if (!force && window._siteRepKey === key && window._siteRep) { box.innerHTML = AdminOverview.siteReport(window._siteRep, ovSnap()); return; }
+      box.textContent = 'กำลังโหลด…'; const rep = DB.siteReport ? await DB.siteReport(fi.value, ti.value) : null;
+      if (!$('#siteRep')) return; window._siteRep = rep; window._siteRepKey = key;
+      $('#siteRep').innerHTML = rep ? AdminOverview.siteReport(rep, ovSnap()) : '<p class="ov-empty">โหลดรายงานไม่สำเร็จ (ยังไม่ได้ลง SQL site-analytics หรือไม่ใช่แอดมิน)</p>';
+    };
+    const sGo = $('#sGo'); if (sGo) { sGo.onclick = () => loadRep(true); loadRep(false); }
+    const sCsv = $('#sCsv'); if (sCsv) sCsv.onclick = () => { if (!window._siteRep) return; const url = URL.createObjectURL(new Blob([AdminOverview.siteCsv(window._siteRep, ovSnap())], { type: 'text/csv;charset=utf-8' })), a = document.createElement('a'); a.href = url; a.download = 'dogflow-traffic-' + window._siteRep.from + '_' + window._siteRep.to + '.csv'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1500); };
     const sv = $('#siteView'); if (sv) sv.onchange = () => { window._siteView = sv.value; render(); };
     const sel = $('#ovDays'); if (sel) sel.onchange = () => { window._ovDays = Number(sel.value) || 30; render(); };
     const b = $('#ovCsv'); if (b) b.onclick = () => { const snap = ovSnap(), m = AdminOverview.model(snap, { days: window._ovDays || 30 }), url = URL.createObjectURL(new Blob([AdminOverview.csv(snap, m)], { type: 'text/csv;charset=utf-8' })), a = document.createElement('a'); a.href = url; a.download = 'dogflow-orders-' + m.days + 'd.csv'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1500); };
