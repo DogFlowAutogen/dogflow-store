@@ -681,3 +681,9 @@ footer .trafficrow{margin:0 0 18px}footer .trafficrow .trafficcard{max-width:non
 
 /* [2026-10-31] บล็อกตัวแทนขายอยู่ต่อท้ายส่วนเลือกซื้อสินค้า = กลุ่มเดียวกัน ลดช่องว่างด้านบน */
 #affiliate{padding-top:0}
+
+/* การ์ดบอทส่วนบนสุด: บรรทัดสเปกเรียงเท่ากันทุกใบ ไม่ตัดคำกลางบรรทัด */
+.stats .st span.st-sp{white-space:nowrap;color:var(--fg);font-weight:600;font-size:12px}
+.stats .st span.st-sp:last-child{color:var(--accent);font-weight:700}
+.stats>div.st{align-items:flex-start}.stats .st .st-ic{margin-top:2px}
+@media(max-width:820px){.stats .st span.st-sp{font-size:11px;white-space:normal}}
