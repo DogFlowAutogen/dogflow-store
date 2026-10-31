@@ -11,7 +11,7 @@
   const sb = w.supabase.createClient(CFG.supabaseUrl, CFG.supabaseAnonKey, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } });
 
   const DEFAULTS = { brand: 'DogFlow Auto Gen', version: 'v1.0', tagline: '', heroTitle: '', heroSub: '', heroCta: 'เลือกแพ็กเกจเลย', promoText: '', installGuide: '', promoEndsAt: '', lineId: '', contactEmail: '', paymentInfo: '', paymentQr: '', heroImage: '', rules: '', affEnabled: true, affHoldDays: 7, affMin: 300, affTerms: '' };
-  const S = { user: null, me: null, isAdmin: false, settings: Object.assign({}, DEFAULTS), categories: [], brands: [], products: [], releases: [], latest: [], promos: [], banners: [], blocks: [], commissions: [], payouts: [], tickets: [], aff: null, reqs: [], modes: [], showcase: [], works: [], tutorials: [], reviews: [], faqs: [], coupons: [], members: [], orders: [], notices: [], audit: [] };
+  const S = { user: null, me: null, isAdmin: false, settings: Object.assign({}, DEFAULTS), categories: [], brands: [], products: [], releases: [], latest: [], promos: [], banners: [], blocks: [], commissions: [], payouts: [], tickets: [], contacts: [], aff: null, reqs: [], modes: [], showcase: [], works: [], tutorials: [], reviews: [], faqs: [], coupons: [], members: [], orders: [], notices: [], audit: [] };
 
   /* ---------- แปลงแถวฐานข้อมูล ↔ วัตถุในแอป ---------- */
   const IN = {
@@ -104,6 +104,7 @@
     for (const r of [o, p, k, n, m, cp, au, cm, po]) if (r && r.error) throw r.error;
     const tkq = await sb.from('feedback_tickets').select('*').order('created_at', { ascending: false }).limit(S.isAdmin ? 1000 : 100);   // แอดมินเห็นทั้งหมด · สมาชิกเห็นเฉพาะของตัวเอง (RLS)
     S.tickets = tkq.error ? [] : tkq.data.map(IN.tickets);
+    if (S.isAdmin) { const cq = await sb.from('contact_messages').select('*').order('created_at', { ascending: false }).limit(300); S.contacts = cq.error ? [] : cq.data.map((r) => ({ id: r.id, createdAt: r.created_at, name: r.name, email: r.email, phone: r.phone || '', subject: r.subject, message: r.message, status: r.status, lineSent: !!r.line_sent, emailSent: !!r.email_sent, notifyError: r.notify_error || '' })); } else S.contacts = [];   // [2026-10-28] ข้อความจากฟอร์มติดต่อ (เฉพาะแอดมิน · ยังไม่ได้ลงตาราง = ว่างเงียบๆ)
     const pays = groupBy(p.data, 'order_id'), keys = groupBy(k.data, 'order_id');
     // [2026-10-14] ต่ออายุคีย์เดิม: ออเดอร์ที่ใช้ต่อไม่มีแถวคีย์ของตัวเอง → ยืมแถวคีย์เดิมมาแสดงในออเดอร์นั้น (ติดธง renewed ไม่ให้นับซ้ำในรายการคีย์)
     for (const kr of k.data) for (const e of (kr.renewed_orders || [])) { const [oid, slot] = String(e).split('|'); (keys[oid] = keys[oid] || []).push(Object.assign({}, kr, { slot, renewed: true })); }
@@ -122,7 +123,7 @@
     if (live || !S.user) return;
     const refresh = () => { clearTimeout(timer); timer = setTimeout(() => Promise.all([loadDynamic(), loadAff(), loadTrial()]).then(emit).catch(() => {}), 400); };
     live = sb.channel('df-live');
-    ['orders', 'payments', 'license_keys', 'notices', 'commissions', 'payouts', 'feedback_tickets', 'trial_requests'].forEach((t) => live.on('postgres_changes', { event: '*', schema: 'public', table: t }, refresh));
+    ['orders', 'payments', 'license_keys', 'notices', 'commissions', 'payouts', 'feedback_tickets', 'trial_requests', 'contact_messages'].forEach((t) => live.on('postgres_changes', { event: '*', schema: 'public', table: t }, refresh));
     live.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'feedback_messages' }, () => { refresh(); w.dispatchEvent(new CustomEvent('fb:msg')); });   // ข้อความใหม่ในตั๋ว → ให้หน้าต่างสนทนาที่เปิดอยู่โหลดใหม่
     live.subscribe();
   }
@@ -130,7 +131,7 @@
   async function loadReleases() { const r = await sb.from('releases').select('*').order('created_at', { ascending: false }); if (r.error) throw r.error; S.releases = r.data.map(IN.releases); }   // RLS: คืนเฉพาะผู้มีคีย์ที่ใช้งานได้ / แอดมิน
   async function loadMine() {
     const { data: s } = await sb.auth.getSession(); S.user = (s.session && s.session.user) || null;
-    S.me = null; S.isAdmin = false; S.orders = []; S.notices = []; S.members = []; S.coupons = []; S.audit = []; S.commissions = []; S.payouts = []; S.tickets = []; S.aff = null; S.trial = null; S.trialQ = null; S.trialStats = null; S.trialConv = 0;
+    S.me = null; S.isAdmin = false; S.orders = []; S.notices = []; S.members = []; S.coupons = []; S.audit = []; S.commissions = []; S.payouts = []; S.tickets = []; S.contacts = []; S.aff = null; S.trial = null; S.trialQ = null; S.trialStats = null; S.trialConv = 0;
     S.releases = [];
     if (!S.user) { unsubscribe(); return; }
     const { data: p } = await sb.from('profiles').select('*').eq('id', S.user.id).maybeSingle();
@@ -395,6 +396,9 @@
     async fbAdminReply(id, body, status, internal) { const { error } = await sb.rpc('fb_admin_reply', { p_ticket: id, p_body: body, p_status: status || null, p_internal: !!internal }); if (error) return fail(error); await loadDynamic(); emit(); return { ok: true }; },
     async fbAdminSet(id, p) { const { error } = await sb.rpc('fb_admin_set', { p_ticket: id, p_status: p.status || null, p_priority: p.priority || null, p_category: p.category || null, p_dup_of: p.dupOf || null, p_clear_dup: !!p.clearDup }); if (error) return fail(error); await loadDynamic(); emit(); return { ok: true }; },
     async fbAttachUrls(t) { const out = []; for (const a of t.attachments || []) { const r = await sb.storage.from('feedback').createSignedUrl(a.path, 600); if (!r.error) out.push({ name: a.name, size: a.size, url: r.data.signedUrl }); } return out; },
+    // [2026-10-28] ข้อความติดต่อ (แอดมิน): เปลี่ยนสถานะ / ลบ
+    async contactSet(id, status) { if (!['new', 'read', 'done'].includes(status)) return { ok: false, errors: ['สถานะไม่ถูกต้อง'] }; const { error } = await sb.from('contact_messages').update({ status }).eq('id', id); if (error) return fail(error); const m = S.contacts.find((x) => x.id === id); if (m) m.status = status; emit(); return { ok: true }; },
+    async contactDelete(id) { const { error } = await sb.from('contact_messages').delete().eq('id', id); if (error) return fail(error); S.contacts = S.contacts.filter((x) => x.id !== id); emit(); return { ok: true }; },
     async fbDelete(id) { const t = S.tickets.find((x) => x.id === id); if (t) { const ps = (t.attachments || []).map((a) => a.path).filter(Boolean); if (ps.length) { try { await sb.storage.from('feedback').remove(ps); } catch (e) { /* ลบไฟล์ไม่ได้ก็ลบรายการต่อ */ } } }
       const { error } = await sb.from('feedback_tickets').delete().eq('id', id); if (error) return fail(error); await loadDynamic(); emit(); return { ok: true }; },
     // ----- ตัวแทนขายโปรแกรม (Affiliate) -----

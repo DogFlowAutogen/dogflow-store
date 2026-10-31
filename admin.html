@@ -56,7 +56,7 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
 <script src="vendor/supabase.js"></script>
 <script src="store.common.js?v=20261012b"></script>
 <script src="store.local.js?v=20261012b"></script>
-<script src="store.supabase.js?v=20261028a"></script>
+<script src="store.supabase.js?v=20261028b"></script>
 <script src="avatar.js"></script>
 <script>
 const $ = (s) => document.querySelector(s), E = DB.esc, B = DB.baht;
@@ -93,17 +93,18 @@ $('#out').onclick = async () => { if (SB) await DB.logout(); else sessionStorage
 
 document.addEventListener('click', (e) => { const g = e.target.closest('[data-gotab]'); if (g && authed()) { tab = g.dataset.gotab; render(); } });   // ปุ่มลัดข้ามแท็บ
 /* ===== เมนู ===== */
-const TABS = [['dash', '📊 ภาพรวม'], ['me', '👤 โปรไฟล์ของฉัน'], ['orders', '🧾 ออเดอร์/ชำระเงิน'], ['trials', '🎁 ขอคีย์ฟรี'], ['feedback', '💬 แจ้งปัญหา/เสนอแนะ'], ['products', '📦 สินค้า'], ['cats', '🗂️ หมวดหมู่'], ['members', '👥 สมาชิก'], ['affiliate', '🪪 ตัวแทนขาย'], ['showcase', '🖥️ ภาพหน้าตาโปรแกรม'], ['releases', '💿 ดาวน์โหลดโปรแกรม'], ['works', '🎬 ผลงานลูกค้า'], ['tutorials', '📚 คู่มือ/วิดีโอ'], ['banners', '🖼️ แบนเนอร์โฆษณา'], ['blocks', '🧱 บล็อกหน้าแรก'], ['modes', '🚀 โหมด/ประเภทเรื่อง'], ['reqs', '✅ คุณสมบัติ/เช็กก่อนซื้อ'], ['promos', '🔥 โปรโมชัน'], ['brands', '🏷️ แบรนด์สินค้า'], ['coupons', '🎟️ คูปอง'], ['content', '📝 รีวิว/FAQ'], ['settings', '⚙️ ตั้งค่าหน้าแรก'], ['health', '🩺 ตรวจสอบระบบ'], ['data', '💾 สำรอง/ประวัติ']];
+const TABS = [['dash', '📊 ภาพรวม'], ['me', '👤 โปรไฟล์ของฉัน'], ['orders', '🧾 ออเดอร์/ชำระเงิน'], ['trials', '🎁 ขอคีย์ฟรี'], ['feedback', '💬 แจ้งปัญหา/เสนอแนะ'], ['contacts', '✉️ ข้อความติดต่อ'], ['products', '📦 สินค้า'], ['cats', '🗂️ หมวดหมู่'], ['members', '👥 สมาชิก'], ['affiliate', '🪪 ตัวแทนขาย'], ['showcase', '🖥️ ภาพหน้าตาโปรแกรม'], ['releases', '💿 ดาวน์โหลดโปรแกรม'], ['works', '🎬 ผลงานลูกค้า'], ['tutorials', '📚 คู่มือ/วิดีโอ'], ['banners', '🖼️ แบนเนอร์โฆษณา'], ['blocks', '🧱 บล็อกหน้าแรก'], ['modes', '🚀 โหมด/ประเภทเรื่อง'], ['reqs', '✅ คุณสมบัติ/เช็กก่อนซื้อ'], ['promos', '🔥 โปรโมชัน'], ['brands', '🏷️ แบรนด์สินค้า'], ['coupons', '🎟️ คูปอง'], ['content', '📝 รีวิว/FAQ'], ['settings', '⚙️ ตั้งค่าหน้าแรก'], ['health', '🩺 ตรวจสอบระบบ'], ['data', '💾 สำรอง/ประวัติ']];
+const ctNew = () => (DB.list('contacts') || []).filter((m) => m.status === 'new').length;   // [2026-10-28] จำนวนข้อความติดต่อใหม่ (ป้ายที่เมนู)
 const trialPend = () => (DB.trialQueue ? DB.trialQueue().pending.length : 0);
 // [2026-10-14] จัดกลุ่มเมนูแอดมิน (เดิมเป็นรายการยาว 24 รายการเรียงต่อกัน) — กลุ่มพับ/ขยายได้ จำสถานะไว้ · กลุ่มที่มีหน้าปัจจุบันไม่พับเอง · ป้ายตัวเลขงานค้างรวมขึ้นที่หัวกลุ่มตอนพับ (ไม่ให้งานค้างหายจากสายตา)
-const MENU_GROUPS = [['งานประจำวัน', '📌', ['dash', 'orders', 'trials', 'feedback']], ['ลูกค้าและการขาย', '🛒', ['members', 'affiliate', 'coupons', 'promos']], ['สินค้า', '📦', ['products', 'cats', 'brands', 'reqs']],
+const MENU_GROUPS = [['งานประจำวัน', '📌', ['dash', 'orders', 'trials', 'feedback', 'contacts']], ['ลูกค้าและการขาย', '🛒', ['members', 'affiliate', 'coupons', 'promos']], ['สินค้า', '📦', ['products', 'cats', 'brands', 'reqs']],
   ['หน้าร้านและเนื้อหา', '🖼️', ['banners', 'blocks', 'showcase', 'works', 'tutorials', 'modes', 'content']], ['ระบบและตั้งค่า', '⚙️', ['releases', 'settings', 'health', 'data', 'me']]];
 const MENU_LABEL = Object.fromEntries(TABS);
 const menuCollapsed = () => { try { return new Set(JSON.parse(localStorage.getItem('df_admin_menu_off') || '[]')); } catch (e) { return new Set(); } };
 const menuSave = (set) => { try { localStorage.setItem('df_admin_menu_off', JSON.stringify([...set])); } catch (e) { /* ไม่มี storage ก็แค่ไม่จำ */ } };
 function render() {
   const pend = DB.list('orders').filter((o) => o.status === 'review').length, off = menuCollapsed();
-  const badge = (k) => (k === 'orders' ? pend : k === 'trials' ? trialPend() : k === 'feedback' ? fbUnread() : 0) || 0;
+  const badge = (k) => (k === 'orders' ? pend : k === 'trials' ? trialPend() : k === 'feedback' ? fbUnread() : k === 'contacts' ? ctNew() : 0) || 0;
   $('#menu').innerHTML = MENU_GROUPS.map(([name, ic, keys]) => {
     const has = keys.includes(tab), closed = off.has(name) && !has, sum = keys.reduce((s, k) => s + badge(k), 0);
     return `<div class="mg${closed ? ' closed' : ''}"><button type="button" class="mg-h" data-g="${name}" aria-expanded="${!closed}"><span class="mg-i">${ic}</span><span class="mg-n">${name}</span>${closed && sum ? `<span class="tag err">${sum}</span>` : ''}<svg class="mg-c" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button><div class="mg-b">${keys.map((k) => `<a class="${tab === k ? 'on' : ''}" data-t="${k}">${MENU_LABEL[k] || k}${badge(k) ? ` <span class="tag err">${badge(k)}</span>` : ''}</a>`).join('')}</div></div>`;
@@ -325,6 +326,22 @@ const V = {
       + '<div class="tw"><table><tr><th></th><th>เรื่อง</th><th>ผู้ส่ง</th><th>เวอร์ชัน</th><th>ผลกระทบ</th><th>สถานะ</th><th>ล่าสุด</th></tr>'
       + (list.map((t) => { const m = mem.find((x) => x.id === t.memberId); return '<tr class="fb-row" data-tk="' + E(t.id) + '" style="cursor:pointer"><td>' + (t.adminUnread ? '<span class="tag err" title="รอตรวจ/ลูกค้าตอบใหม่">●</span>' : '') + '</td><td><b>' + E(t.title) + '</b><br><small>' + E(t.code) + ' · ' + E(FBX.cat[t.category]) + ' · ' + (t.source === 'app' ? '🖥️ โปรแกรม' : t.source === 'web' ? '🌐 เว็บ' : '✍️ แอดมิน') + '</small></td><td>' + (m ? E(m.name) + '<br><small>' + E(m.email) + '</small>' : '<small>' + E(t.keyMask || '—') + '</small>') + (t.keyMask && !t.verified ? '<br><span class="tag warn">คีย์ยังไม่ยืนยัน</span>' : '') + '</td><td>' + E(t.appVersion || '—') + (fbOutdated(t.appVersion) ? '<br><span class="tag warn">เก่า</span>' : '') + '</td><td>' + E(FBX.sev[t.severity]) + (t.priority === 'urgent' || t.priority === 'high' ? '<br><span class="tag err">' + E(FBX.prio[t.priority]) + '</span>' : '') + '</td><td>' + fbTag(t.status) + (t.rating ? '<br><small>' + '★'.repeat(t.rating) + '</small>' : '') + '</td><td><small>' + fbAgo(t.lastActivityAt) + '</small></td></tr>'; }).join('') || '<tr><td colspan="7" style="color:var(--mut)">ไม่มีเรื่องในตัวกรองนี้</td></tr>') + '</table></div>';
   },
+  contacts() {   // [2026-10-28] ข้อความจากฟอร์ม "ส่งข้อความถึงเรา" ท้ายหน้าร้าน (ตาราง contact_messages)
+    if (!SB) return '<h1>✉️ ข้อความติดต่อ</h1><p style="color:var(--mut)">ใช้ได้เฉพาะโหมด Supabase (ฐานข้อมูลจริง)</p>';
+    const L = DB.list('contacts') || [], f = window._ctf || (window._ctf = 'active'), ST = { new: ['🆕 ใหม่', 'err'], read: ['👁 อ่านแล้ว', ''], done: ['✅ เสร็จแล้ว', 'okk'] };
+    const rows = L.filter((m) => f === 'all' || (f === 'active' ? m.status !== 'done' : m.status === f));
+    return '<h1>✉️ ข้อความติดต่อ</h1><p style="color:var(--mut)">ข้อความจากฟอร์ม "ส่งข้อความถึงเรา" ท้ายหน้าร้าน — ระบบส่งอีเมลถึงอีเมลร้านและแจ้ง LINE แอดมินให้อัตโนมัติ (ที่นี่เป็นที่เก็บสำรอง/ติดตามสถานะ)</p>'
+      + '<div class="kpi"><div><b>' + L.filter((m) => m.status === 'new').length + '</b><span>ใหม่ (ยังไม่เปิดอ่าน)</span></div><div><b>' + L.filter((m) => m.status !== 'done').length + '</b><span>ยังไม่เสร็จ</span></div><div><b>' + L.length + '</b><span>ทั้งหมด</span></div></div>'
+      + '<div class="toolbar" style="margin:12px 0"><select id="ctF">' + [['active', 'ที่ยังไม่เสร็จ'], ['new', 'ใหม่'], ['read', 'อ่านแล้ว'], ['done', 'เสร็จแล้ว'], ['all', 'ทั้งหมด']].map(([k, l]) => '<option value="' + k + '"' + (f === k ? ' selected' : '') + '>' + l + '</option>').join('') + '</select></div>'
+      + (rows.length ? rows.map((m) => {
+        const st = ST[m.status] || ST.new, warn = !m.lineSent || !m.emailSent, re = '?subject=' + encodeURIComponent('Re: ' + m.subject);
+        return '<div class="hl" style="display:block;margin-bottom:10px"><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><span class="tag ' + st[1] + '">' + st[0] + '</span><b>' + E(m.name) + '</b><span style="color:var(--mut)">· ' + E(m.subject) + '</span><span style="margin-left:auto;color:var(--mut);font-size:12.5px">' + E(DFCommon.thaiDateTime(m.createdAt)) + '</span></div>'
+          + '<div style="margin:6px 0;font-size:13px;color:var(--mut)"><a href="mailto:' + encodeURI(m.email) + re + '">' + E(m.email) + '</a>' + (m.phone ? ' · โทร ' + E(m.phone) : '') + '</div>'
+          + '<div style="white-space:pre-wrap;padding:8px 12px;border-left:3px solid var(--accent);background:var(--surface2);border-radius:6px;font-size:14px">' + E(m.message) + '</div>'
+          + (warn ? '<div style="margin-top:6px;font-size:12px;color:var(--mut)">⚠ แจ้งเตือนไม่ครบ — LINE: ' + (m.lineSent ? '✅' : '❌') + ' · อีเมล: ' + (m.emailSent ? '✅' : '❌') + (m.notifyError ? ' · ' + E(m.notifyError) : '') + ' (ข้อความนี้ถูกเก็บไว้ที่นี่ครบ)</div>' : '')
+          + '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">' + (m.status === 'new' ? '<button class="btn sm" data-cts="' + E(m.id) + '" data-to="read">👁 ทำเครื่องหมายอ่านแล้ว</button>' : '') + (m.status !== 'done' ? '<button class="btn sm" data-cts="' + E(m.id) + '" data-to="done">✅ เสร็จแล้ว</button>' : '<button class="btn ghost sm" data-cts="' + E(m.id) + '" data-to="read">↩ เปิดใหม่</button>') + '<a class="btn ghost sm" href="mailto:' + encodeURI(m.email) + re + '">✉ ตอบทางอีเมล</a><button class="btn ghost sm" data-ctd="' + E(m.id) + '">🗑 ลบ</button></div></div>';
+      }).join('') : '<p style="color:var(--mut)">ยังไม่มีข้อความในหมวดนี้</p>');
+  },
   affiliate() {
     if (!SB) return '<h1>🪪 ตัวแทนขายโปรแกรม</h1><p style="color:var(--mut)">ใช้ได้เฉพาะโหมด Supabase (ฐานข้อมูลจริง)</p>';
     const sub = window._affTab || 'overview', cm = DB.list('commissions'), po = DB.list('payouts'), mem = DB.list('members'), P = DB.list('products'), s = DB.settings();
@@ -543,6 +560,14 @@ const A = {
       }
       const v = await confirmDlg({ title: 'ยกเลิกคำขอ', sub: r0.name + ' · ' + r0.email, body: 'ต่างจากปฏิเสธ: สมาชิกขอใหม่ได้ทันที', fields: [{ k: 'note', label: 'เหตุผล (ไม่บังคับ)', type: 'text' }], okText: 'ยกเลิกคำขอ' });
       if (!v) return; const r = await DB.reviewTrial(id, 'cancel', '', v.note); r.ok ? (toast('ยกเลิกแล้ว'), render()) : alert(r.errors.join('\n'));
+    };
+  },
+  contacts() {   // [2026-10-28]
+    if (!SB) return;
+    $('#main').onchange = (e) => { if (e.target.id === 'ctF') { window._ctf = e.target.value; render(); } };
+    $('#main').onclick = async (e) => {
+      const b = e.target.closest('[data-cts]'); if (b) { const r = await DB.contactSet(b.dataset.cts, b.dataset.to); r.ok ? render() : alert(r.errors.join('\n')); return; }
+      const d = e.target.closest('[data-ctd]'); if (d) { if (!confirm('ลบข้อความนี้ถาวร?')) return; const r = await DB.contactDelete(d.dataset.ctd); r.ok ? (toast('ลบแล้ว'), render()) : alert(r.errors.join('\n')); }
     };
   },
   feedback() {
