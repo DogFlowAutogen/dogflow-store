@@ -117,7 +117,8 @@
   // ตัวแทนขาย: สรุปทั้งหมดของสมาชิกคนนี้มาจาก RPC เดียว (ปิดบังข้อมูลผู้สมัคร คำนวณยอดที่ฐานข้อมูล) — ล้มเหลวไม่กระทบส่วนอื่น
   async function loadAff() { if (!S.user) { S.aff = null; return; } const r = await sb.rpc('aff_overview'); S.aff = r.error ? null : r.data; }
   // [2026-10-14] สถานะสิทธิ์ทดลองใช้ฟรีของสมาชิก (แหล่งความจริงเดียวที่ฐานข้อมูล) + คิวคำขอของแอดมิน — ล้มเหลวไม่กระทบส่วนอื่น
-  async function loadTrial() { if (!S.user) { S.trial = null; S.trialQ = null; return; } const r = await sb.rpc('trial_status'); S.trial = r.error ? null : r.data; if (S.isAdmin) { const q = await sb.rpc('admin_trial_queue'); S.trialQ = q.error ? null : q.data; const st = await sb.from('trial_requests').select('status').limit(5000); S.trialStats = st.error ? null : { requested: st.data.length, approved: st.data.filter((x) => x.status === 'approved').length, rejected: st.data.filter((x) => x.status === 'rejected').length, cancelled: st.data.filter((x) => x.status === 'cancelled').length, pending: st.data.filter((x) => x.status === 'pending').length }; } else { S.trialQ = null; S.trialStats = null; } }
+  async function loadTrial() { if (!S.user) { S.trial = null; S.trialQ = null; return; } const r = await sb.rpc('trial_status'); S.trial = r.error ? null : r.data; if (S.isAdmin) { const q = await sb.rpc('admin_trial_queue'); S.trialQ = q.error ? null : q.data; const st = await sb.from('trial_requests').select('status').limit(5000); S.siteStats = null; try { const ss = await sb.rpc('admin_site_stats'); S.siteStats = ss.error ? null : ss.data; } catch (e) {}   /* [2026-10-31] สถิติเข้าชมเว็บ (ยังไม่ลง SQL = null → ซ่อนการ์ด) */
+    S.trialStats = st.error ? null : { requested: st.data.length, approved: st.data.filter((x) => x.status === 'approved').length, rejected: st.data.filter((x) => x.status === 'rejected').length, cancelled: st.data.filter((x) => x.status === 'cancelled').length, pending: st.data.filter((x) => x.status === 'pending').length }; } else { S.trialQ = null; S.trialStats = null; } }
   let live = null, timer = null;
   function subscribe() {
     if (live || !S.user) return;
@@ -223,6 +224,7 @@
     async broadcastSend(o) { const { data, error } = await sb.rpc('admin_broadcast', { p_idem: o.idem, p_title: o.title, p_body: o.body, p_type: o.type, p_audience: o.audience, p_expect: o.expect }); if (error) return fail(error); return { ok: true, recipients: data.recipients, duplicate: !!data.duplicate }; },
     async broadcastHistory() { const { data, error } = await sb.from('broadcasts').select('id,created_at,title,audience,recipients,type').order('created_at', { ascending: false }).limit(8); return error ? [] : data; },
     trialStatus: () => S.trial || null,
+    siteStats: () => S.siteStats || null,
     trialStats: () => (S.trialStats ? Object.assign({}, S.trialStats, { converted: S.trialConv || 0 }) : null),
     trialQueue: () => S.trialQ || { pending: [], recent: [] },
     async requestTrial(note, consent) {   // สมาชิกกดขอ → RPC (กันกดซ้ำที่ฐานข้อมูล) แล้วยิงแจ้ง LINE แอดมินทันที (ล้มเหลวไม่เป็นไร ตัวกวาดทุกนาทีเก็บตกให้)

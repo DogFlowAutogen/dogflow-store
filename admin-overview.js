@@ -51,13 +51,25 @@
     tickets.forEach(function (x) { var a = t(x.createdAt); if (a) ev.push({ at: a, k: 'ticket', m: 'ตั๋วใหม่ · ' + (x.title || ''), v: x.status === 'new' ? 'ใหม่' : '' }); });
     ((S.trialQ && S.trialQ.pending) || []).forEach(function (x) { var a = t(x.requestedAt); if (a) ev.push({ at: a, k: 'trial', m: 'คำขอทดลองฟรี · ' + (x.name || ''), v: 'รออนุมัติ' }); });
     ev.sort(function (a, b) { return b.at - a.at; }); var recent = ev.slice(0, 6).map(function (e) { e.t = ago(e.at, now); return e; });
+    // [2026-10-31] สถิติเข้าชมเว็บ: รายวันตามช่วงที่เลือก + รายเดือน (ไม่มีข้อมูล = null → ซ่อนการ์ด)
+    var site = null;
+    if (S.siteStats && Array.isArray(S.siteStats.days)) {
+      var sd = {}; S.siteStats.days.forEach(function (x) { sd[x.day] = num(x.views); });
+      var key = function (ms) { var q = new Date(ms); return q.getFullYear() + '-' + ('0' + (q.getMonth() + 1)).slice(-2) + '-' + ('0' + q.getDate()).slice(-2); };
+      var daily = [], sum7 = 0, sumRange = 0, sumPrev = 0, i2;
+      for (i2 = 0; i2 < days; i2++) { var vv = sd[key(from + i2 * DAY)] || 0; daily.push(vv); sumRange += vv; }
+      for (i2 = 0; i2 < days; i2++) sumPrev += sd[key(prevFrom + i2 * DAY)] || 0;
+      for (i2 = 0; i2 < 7; i2++) sum7 += sd[key(today - i2 * DAY)] || 0;
+      var curMon = key(today).slice(0, 7), mons = (S.siteStats.months || []).map(function (x) { return { month: x.month, views: num(x.views) }; });
+      site = { daily: daily, today: sd[key(today)] || 0, yesterday: sd[key(today - DAY)] || 0, week: sum7, range: sumRange, rangePrev: sumPrev, months: mons.slice(-6).reverse(), monthNow: (mons.filter(function (x) { return x.month === curMon; })[0] || { views: 0 }).views, total: num(S.siteStats.total) };
+    }
     var health = (S.health || []).filter(function (h) { return h && h.msg; }).slice(0, 5);
     var lowStock = products.filter(function (p) { return p.active && num(p.stock) <= 5; }).length;
     return {
       days: days, now: now, from: from, to: today, labels: labels, revenueDaily: revenueDaily, ordersDaily: ordersDaily, heat: heat,
       revenue: revenue, revenuePrev: revenuePrev, orderCount: orderCount, orderPrev: orderPrev, avgOrder: orderCount ? Math.round(revenue / orderCount) : 0,
       membersTotal: members.length, membersNew: membersNew, membersNewPrev: membersNewPrev, keysIssued: keysIssued, conversion: created ? Math.round(createdOk / created * 1000) / 10 : 0, created: created,
-      status: status, topProducts: top, funnel: funnel, tickets: ticketsBy, commission: { pending: comPending, paid: comPaid, agents: Object.keys(agents).length }, recent: recent, health: health,
+      site: site, status: status, topProducts: top, funnel: funnel, tickets: ticketsBy, commission: { pending: comPending, paid: comPaid, agents: Object.keys(agents).length }, recent: recent, health: health,
       alerts: { slips: statusCount.review, trials: ((S.trialQ && S.trialQ.pending) || []).length, tickets: tk.new, lowStock: lowStock }
     };
   }
@@ -67,6 +79,20 @@
   var TILE = function (icon, lb, n, sub) { return '<div><div class="lb"><i>' + icon + '</i>' + lb + '</div><div class="n">' + n + '</div>' + sub + '</div>'; };
   var icon = { order: '🛒', member: '👤', ticket: '💬', trial: '🎁' };
   var empty = function (msg) { return '<p class="ov-empty">' + E(msg) + '</p>'; };
+
+  // [2026-10-31] การ์ดสถิติเข้าชมเว็บไซต์: วันนี้/7 วัน/เดือนนี้ + กราฟรายวัน + ตารางรายเดือน
+  function siteCard(m, step) {
+    var s = m.site; if (!s) return '';
+    var d = C.delta(s.range, s.rangePrev), th = function (n) { return num(n).toLocaleString('th-TH'); };
+    var mn = function (k) { var p = String(k).split('-'); return MON[Number(p[1]) - 1] + ' ' + (Number(p[0]) + 543); };
+    return '<div class="ov-card"><h3>👁 ยอดเข้าชมเว็บไซต์</h3><div class="cap">จำนวนครั้งที่เข้าชม (นับ 1 ครั้งต่อแท็บ · เวลาไทย) · เริ่มเก็บตั้งแต่ติดตั้งตัวนับ</div>'
+      + '<div class="ov-strip s4">' + TILE('☀️', 'วันนี้', th(s.today), '<span class="ov-mut">เมื่อวาน ' + th(s.yesterday) + '</span>')
+      + TILE('📅', '7 วัน', th(s.week), '<span class="ov-mut">รวม 7 วันล่าสุด</span>') + TILE('🗓️', 'เดือนนี้', th(s.monthNow), '<span class="ov-mut">สะสมทั้งหมด ' + th(s.total) + '</span>')
+      + TILE('📈', m.days + ' วัน', th(s.range), dlt(d, 'เทียบ ' + m.days + ' วันก่อน')) + '</div>'
+      + (s.range > 0 ? C.vbars(s.daily, m.labels.map(function (l, i) { return i % step === 0 ? l.split(' ')[0] : ''; }), { h: 190, color: 'var(--c1)', hi: s.daily.indexOf(Math.max.apply(null, s.daily)), label: 'ยอดเข้าชมรายวัน' }) : empty('ยังไม่มีข้อมูลการเข้าชมในช่วงนี้'))
+      + (s.months.length ? '<table class="ov-tbl" style="margin-top:12px"><tr><th>เดือน</th><th class="r">เข้าชม</th></tr>' + s.months.map(function (x) { return '<tr><td>' + E(mn(x.month)) + '</td><td class="r">' + th(x.views) + '</td></tr>'; }).join('') + '</table>' : '')
+      + '</div>';
+  }
 
   function render(m) {
     var vs = 'เทียบ ' + m.days + ' วันก่อน', dRev = C.delta(m.revenue, m.revenuePrev), dOrd = C.delta(m.orderCount, m.orderPrev), dMem = C.delta(m.membersNew, m.membersNewPrev), a = m.alerts;
@@ -87,6 +113,7 @@
       + '<div class="ov-card"><div class="ov-big"><b>' + C.baht(m.revenue) + '</b>' + dlt(dRev, vs) + '</div><h3>รายได้รายวัน</h3><div class="cap">ยอดชำระแล้ว ' + m.days + ' วันล่าสุด' + (hasSales ? ' · จุดสูงสุด ' + C.baht(Math.max.apply(null, m.revenueDaily)) : '') + '</div>' + (hasSales ? C.area(m.revenueDaily, m.labels, { h: 280, label: 'รายได้รายวัน', xTicks: 8 }) : empty('ยังไม่มียอดขายในช่วงนี้')) + '</div>'
       + '<div class="ov-two"><div class="ov-card"><h3>ออเดอร์รายวัน</h3><div class="cap">จำนวนคำสั่งซื้อที่ชำระแล้ว</div>' + (hasSales ? C.vbars(m.ordersDaily, m.labels.map(function (l, i) { return i % step === 0 ? l.split(' ')[0] : ''; }), { h: 190, color: 'var(--c2)', hi: m.ordersDaily.indexOf(Math.max.apply(null, m.ordersDaily)), label: 'ออเดอร์รายวัน' }) : empty('ยังไม่มีข้อมูล')) + '</div>'
       + '<div class="ov-card"><h3>ช่วงเวลาที่ลูกค้าสั่งซื้อ</h3><div class="cap">วัน × ชั่วโมง (สีเข้ม = มากกว่า) · ออเดอร์ที่สร้างในช่วงนี้</div>' + (m.created ? C.heat(m.heat) : empty('ยังไม่มีข้อมูล')) + '</div></div>'
+      + siteCard(m, step)
       + '<div class="ov-card"><h3>กรวยการทดลองใช้ฟรี → ซื้อแพ็กเกจ</h3><div class="cap">ดูว่าคำขอทดลองกลายเป็นลูกค้าจริงกี่เปอร์เซ็นต์ (ตลอดทั้งระบบ)</div>' + (m.funnel.length ? C.funnel(m.funnel) : empty('ยังไม่มีคำขอทดลองใช้ฟรี')) + '</div>'
       + '</div><div class="ov-stack">'
       + '<div class="ov-card"><h3>สถานะออเดอร์</h3><div class="cap">ทุกออเดอร์ในร้าน</div>' + (m.status.some(function (s) { return s.value > 0; }) ? C.donut(m.status, { sub: 'ออเดอร์', size: 150, thickness: 20 }) : empty('ยังไม่มีออเดอร์')) + '</div>'

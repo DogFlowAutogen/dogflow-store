@@ -11,7 +11,7 @@ if(ok)return;window.__legacy=true;document.addEventListener('DOMContentLoaded',f
 d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">เบราว์เซอร์นี้ไม่รองรับ</h2><p style="line-height:1.8;max-width:520px;margin:0 auto">Internet Explorer และเบราว์เซอร์รุ่นเก่าไม่รองรับระบบชำระเงินและความปลอดภัยของเว็บนี้<br>กรุณาเปิดด้วย <b>Microsoft Edge</b>, <b>Google Chrome</b>, <b>Safari</b> หรือ <b>Firefox</b> รุ่นล่าสุด<br>ใช้ได้ทั้งคอมพิวเตอร์ แท็บเล็ต และโทรศัพท์</p>';document.body.appendChild(d);});})();
 </script>
 <link rel="stylesheet" href="style.css?v=20261019b">
-<link rel="stylesheet" href="admin-charts.css?v=20261014f">
+<link rel="stylesheet" href="admin-charts.css?v=20261031a">
 </head>
 <body>
 <div id="splash" role="status" aria-live="polite">
@@ -51,12 +51,12 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
 <div class="toast" id="toast"></div>
 
 <script src="config.js"></script>
-<script src="admin-charts.js?v=20261014a"></script><script src="admin-overview.js?v=20261014b"></script><script src="admin-broadcast.js?v=20261014a"></script>
+<script src="admin-charts.js?v=20261031a"></script><script src="admin-overview.js?v=20261031a"></script><script src="admin-broadcast.js?v=20261014a"></script>
 <script src="pw-eye.js?v=20261014a" defer></script>
 <script src="vendor/supabase.js"></script>
 <script src="store.common.js?v=20261012b"></script>
 <script src="store.local.js?v=20261012b"></script>
-<script src="store.supabase.js?v=20261028b"></script>
+<script src="store.supabase.js?v=20261031a"></script>
 <script src="avatar.js"></script>
 <script>
 const $ = (s) => document.querySelector(s), E = DB.esc, B = DB.baht;
@@ -171,7 +171,7 @@ function confirmDlg(o) {
 // สรุปข้อมูลสมาชิกสำหรับหน้าต่างยืนยัน: ชื่อ/อีเมล/โทร/สมัครเมื่อ/ออเดอร์+ยอดซื้อ/คำเตือน/สถานะ/จำนวนคีย์
 let _bc = null;   // ตัวควบคุมหน้าต่างแจ้งลูกค้าทั้งหมด (สร้างตอนกดครั้งแรก)
 document.addEventListener('click', (e) => { const b = e.target.closest('[data-bc]'); if (!b || !authed() || !SB) return; if (!_bc) _bc = AdminBroadcast.create({ DB, host: { toast }, box: $('#bcBox'), modal: $('#mBc') }); _bc.open(); });
-const ovSnap = () => ({ orders: DB.list('orders'), members: DB.list('members'), products: DB.list('products'), tickets: DB.list('tickets') || [], commissions: DB.list('commissions'), payouts: DB.list('payouts'), trialKeys: DB.trialKeys ? DB.trialKeys() : [], trialQ: DB.trialQueue ? DB.trialQueue() : { pending: [] }, trialStats: DB.trialStats ? DB.trialStats() : null, health: DB.health() });
+const ovSnap = () => ({ orders: DB.list('orders'), members: DB.list('members'), products: DB.list('products'), tickets: DB.list('tickets') || [], commissions: DB.list('commissions'), payouts: DB.list('payouts'), trialKeys: DB.trialKeys ? DB.trialKeys() : [], trialQ: DB.trialQueue ? DB.trialQueue() : { pending: [] }, trialStats: DB.trialStats ? DB.trialStats() : null, siteStats: DB.siteStats ? DB.siteStats() : null, health: DB.health() });
 const memKeys = (m) => DB.list('orders').filter((o) => o.memberId === m.id).flatMap((o) => (o.licenseKeys || []).filter((k) => !k.renewed)).concat(DB.trialKeys ? DB.trialKeys(m.id) : []);   // รวมคีย์ทดลอง (ระงับ/คืนสิทธิ์พร้อมกัน — revoke-keys ครอบคลุมทุกคีย์ของสมาชิก)
 const memRows = (m) => { const os = DB.list('orders').filter((o) => o.memberId === m.id), spent = os.filter((o) => ['paid', 'done'].includes(o.status)).reduce((s, o) => s + o.total, 0);
   return [['ชื่อ', m.name], ['อีเมล', m.email], ['โทร', m.phone || '—'], ['สมัครเมื่อ', fmt(m.createdAt)], ['ออเดอร์ / ยอดซื้อ', os.length + ' · ' + B(spent)], ['License key', memKeys(m).length + ' ดอก'], ['คำเตือน', (m.strikes || 0) + '/3 ครั้ง'], ['สถานะ', m.banned ? 'ถูกระงับ' + (m.banReason ? ' — ' + m.banReason : '') : 'ปกติ']]; };

@@ -94,3 +94,6 @@ table.mt{width:100%;min-width:0;table-layout:fixed;border-collapse:collapse;back
 .mt-empty{color:var(--muted);text-align:center;padding:40px 0}
 @media(max-width:1180px){.mt col.c3,.mt th.c3,.mt td.c3{display:none}}
 @media(max-width:900px){.mt col.c2,.mt th.c2,.mt td.c2{display:none}.mt col.c5{width:120px}.mt-acts .btn:not(.keep){display:none}.mt tr.mt-d td{padding-left:16px}}
+
+/* [2026-10-31] แถบตัวเลข 4 ช่อง (การ์ดสถิติเข้าชมเว็บ) */
+.ov-strip.s4{grid-template-columns:repeat(4,1fr)}@media(max-width:1200px){.ov-strip.s4{grid-template-columns:repeat(2,1fr)}}
