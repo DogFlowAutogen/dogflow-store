@@ -687,3 +687,6 @@ footer .trafficrow{margin:0 0 18px}footer .trafficrow .trafficcard{max-width:non
 .stats .st span.st-sp:last-child{color:var(--accent);font-weight:700}
 .stats>div.st{align-items:flex-start}.stats .st .st-ic{margin-top:2px}
 @media(max-width:820px){.stats .st span.st-sp{font-size:11px;white-space:normal}}
+
+/* รูปส่วนบนสุด: ยืดกรอบให้สูงเท่าเนื้อหาฝั่งซ้าย · รูปแนวตั้งต่อพื้นหลังบน/ล่างให้กลืนกับสีกรอบ วางกึ่งกลาง กว้างเต็มกรอบเสมอ (ไม่ตัดด้านข้าง) */
+@media(min-width:821px){.hero .heroimg{align-self:stretch;position:relative;background:linear-gradient(#0b0b19,#0a0b16)}.hero .heroimg img{position:absolute;left:0;top:50%;transform:translateY(-50%);width:100%;height:auto;display:block}}
