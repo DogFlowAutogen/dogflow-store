@@ -60,8 +60,19 @@
       for (i2 = 0; i2 < days; i2++) { var vv = sd[key(from + i2 * DAY)] || 0; daily.push(vv); sumRange += vv; }
       for (i2 = 0; i2 < days; i2++) sumPrev += sd[key(prevFrom + i2 * DAY)] || 0;
       for (i2 = 0; i2 < 7; i2++) sum7 += sd[key(today - i2 * DAY)] || 0;
-      var curMon = key(today).slice(0, 7), mons = (S.siteStats.months || []).map(function (x) { return { month: x.month, views: num(x.views) }; });
-      site = { daily: daily, today: sd[key(today)] || 0, yesterday: sd[key(today - DAY)] || 0, week: sum7, range: sumRange, rangePrev: sumPrev, months: mons.slice(-6).reverse(), monthNow: (mons.filter(function (x) { return x.month === curMon; })[0] || { views: 0 }).views, total: num(S.siteStats.total) };
+      var curMon = key(today).slice(0, 7), mons = (S.siteStats.months || []).map(function (x) { return { month: x.month, views: num(x.views) }; }), mons0 = mons;
+      var sv = String(o.siteView || 'range'), yr = new Date(today).getFullYear(), view = { mode: 'range', labels: null, vals: daily, caption: 'รายวัน ' + days + ' วันล่าสุด' };
+      if (sv === 'year') {
+        var mv = [], ml = [], mm; for (mm = 0; mm < 12; mm++) { var kk = yr + '-' + ('0' + (mm + 1)).slice(-2); ml.push(MON[mm]); mv.push((mons0.filter(function (x) { return x.month === kk; })[0] || { views: 0 }).views); }
+        view = { mode: 'year', labels: ml, vals: mv, caption: 'รายเดือน ทั้งปี ' + (yr + 543) };
+      } else if (/^\d{4}-\d{2}$/.test(sv)) {
+        var py = Number(sv.slice(0, 4)), pm = Number(sv.slice(5)) - 1, nd = new Date(py, pm + 1, 0).getDate(), dv = [], dl = [], dd2;
+        for (dd2 = 1; dd2 <= nd; dd2++) { dv.push(sd[sv + '-' + ('0' + dd2).slice(-2)] || 0); dl.push(dd2 % 5 === 1 || dd2 === nd ? String(dd2) : ''); }
+        view = { mode: 'month', labels: dl, vals: dv, caption: 'รายวัน ' + MON[pm] + ' ' + (py + 543) };
+      }
+      var vt = view.vals.reduce(function (a, b) { return a + b; }, 0);
+      view.sum = vt; view.max = Math.max.apply(null, view.vals.concat([0])); view.avg = view.vals.length ? Math.round(vt / view.vals.length) : 0; view.sel = sv;
+      site = { view: view, yearMonths: mons0.filter(function (x) { return x.views > 0 || true; }).map(function (x) { return x.month; }).reverse(), yr: yr, daily: daily, today: sd[key(today)] || 0, yesterday: sd[key(today - DAY)] || 0, week: sum7, range: sumRange, rangePrev: sumPrev, months: mons.slice(-12).reverse(), monthNow: (mons.filter(function (x) { return x.month === curMon; })[0] || { views: 0 }).views, total: num(S.siteStats.total) };
     }
     var health = (S.health || []).filter(function (h) { return h && h.msg; }).slice(0, 5);
     var lowStock = products.filter(function (p) { return p.active && num(p.stock) <= 5; }).length;
@@ -89,7 +100,10 @@
       + '<div class="ov-strip s4">' + TILE('☀️', 'วันนี้', th(s.today), '<span class="ov-mut">เมื่อวาน ' + th(s.yesterday) + '</span>')
       + TILE('📅', '7 วัน', th(s.week), '<span class="ov-mut">รวม 7 วันล่าสุด</span>') + TILE('🗓️', 'เดือนนี้', th(s.monthNow), '<span class="ov-mut">สะสมทั้งหมด ' + th(s.total) + '</span>')
       + TILE('📈', m.days + ' วัน', th(s.range), dlt(d, 'เทียบ ' + m.days + ' วันก่อน')) + '</div>'
-      + (s.range > 0 ? C.vbars(s.daily, m.labels.map(function (l, i) { return i % step === 0 ? l.split(' ')[0] : ''; }), { h: 190, color: 'var(--c1)', hi: s.daily.indexOf(Math.max.apply(null, s.daily)), label: 'ยอดเข้าชมรายวัน' }) : empty('ยังไม่มีข้อมูลการเข้าชมในช่วงนี้'))
+      + '<div style="display:flex;gap:10px;align-items:center;margin:4px 0 8px;flex-wrap:wrap"><select id="siteView" aria-label="มุมมองสถิติเข้าชม"><option value="range"' + (s.view.sel === 'range' ? ' selected' : '') + '>ตามช่วงที่เลือก (' + m.days + ' วัน)</option><option value="year"' + (s.view.sel === 'year' ? ' selected' : '') + '>ทั้งปี ' + (s.yr + 543) + ' (รายเดือน)</option>'
+      + s.yearMonths.map(function (k) { return '<option value="' + k + '"' + (s.view.sel === k ? ' selected' : '') + '>' + E(mn(k)) + ' (รายวัน)</option>'; }).join('') + '</select>'
+      + '<span class="ov-mut">' + E(s.view.caption) + ' · รวม <b>' + th(s.view.sum) + '</b> · เฉลี่ย ' + th(s.view.avg) + ' · สูงสุด ' + th(s.view.max) + '</span></div>'
+      + (s.view.sum > 0 ? C.vbars(s.view.vals, s.view.labels || m.labels.map(function (l, i) { return i % step === 0 ? l.split(' ')[0] : ''; }), { h: 190, color: 'var(--c1)', hi: s.view.vals.indexOf(s.view.max), label: 'ยอดเข้าชม' }) : empty('ยังไม่มีข้อมูลการเข้าชมในช่วงนี้'))
       + (s.months.length ? '<table class="ov-tbl" style="margin-top:12px"><tr><th>เดือน</th><th class="r">เข้าชม</th></tr>' + s.months.map(function (x) { return '<tr><td>' + E(mn(x.month)) + '</td><td class="r">' + th(x.views) + '</td></tr>'; }).join('') + '</table>' : '')
       + '</div>';
   }
