@@ -71,7 +71,7 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
 <script src="vendor/supabase.js"></script>
 <script src="store.common.js?v=20261012b"></script>
 <script src="store.local.js?v=20261012a"></script>
-<script src="store.supabase.js?v=20261031b"></script>
+<script src="store.supabase.js?v=20261116a"></script>
 <script src="avatar.js"></script>
 <script src="vendor/qrcode.js?v=20261028a"></script>
 <script src="trial-card.js?v=20261028f"></script>
@@ -161,7 +161,8 @@ function render() {
       <div style="color:var(--mut);font-size:13px">${E(PL[r.platform] || r.platform)}${r.createdAt ? ' · เผยแพร่ ' + E(DFCommon.thaiDateTime(r.createdAt)) : ''}${r.mandatory ? ' · <b style="color:var(--gold)">แนะนำให้อัปเดตทันที</b>' : ''}${r.sizeBytes ? ' · ' + (r.sizeBytes / 1048576).toFixed(1) + ' MB' : ''}</div>
       ${r.notes ? `<div style="white-space:pre-line;margin:8px 0;font-size:14px">${E(r.notes)}</div>` : ''}
       ${r.sha256 ? `<div style="color:var(--mut);font-size:12px;margin:6px 0">SHA-256: <code style="word-break:break-all;user-select:all">${E(r.sha256)}</code></div>` : ''}
-      <button class="btn ${i === 0 ? 'gold' : 'ghost'} sm" data-dl="${E(r.id)}">⬇ ดาวน์โหลด</button></div>`).join('')
+      <button class="btn ${i === 0 ? 'gold' : 'ghost'} sm" data-dl="${E(r.id)}">⬇ ดาวน์โหลด</button>
+      <div data-dlst="${E(r.id)}" style="font-size:12.5px;color:var(--mut);margin-top:6px"></div></div>`).join('')
     : keys.length ? '<p style="color:var(--mut)">ยังไม่มีไฟล์ให้ดาวน์โหลดในตอนนี้ (หรือสิทธิ์/อายุคีย์หมดแล้ว) — หากมีปัญหาติดต่อแอดมิน</p>' : '<p style="color:var(--mut)">ดาวน์โหลดได้เมื่อมี License ที่ใช้งานได้ — <a href="index.html#shop" style="color:var(--cyan)">เลือกซื้อแพ็กเกจ</a></p>';
   const guide = DB.settings().installGuide; $('#dlguide').innerHTML = can && guide ? `<details open style="margin-top:10px"><summary>📖 วิธีติดตั้งและเริ่มใช้งาน</summary><div style="white-space:pre-line;color:var(--mut);font-size:14px;margin-top:6px">${E(guide)}</div></details>` : '';
   paintAff(); paintFb();
@@ -276,7 +277,22 @@ $('#avFile').onchange = async (e) => { const fl = e.target.files[0]; e.target.va
 $('#avDel').onclick = async () => { if (!confirm('ลบรูปโปรไฟล์ของคุณ?\nรูปจะถูกลบออกจากระบบถาวร (ยังเพิ่มรูปใหม่ได้ภายหลัง)')) return;
   const r = await DB.removeAvatar(); r.ok ? (toast('ลบรูปโปรไฟล์แล้ว'), render()) : showErr($('#eAv'), r.errors); };
 $('#emUpd').onchange = async (e) => { const r = await DB.setEmailUpdates(e.target.checked); r.ok ? toast(e.target.checked ? 'เปิดรับอีเมลแจ้งอัปเดต' : 'ปิดรับอีเมลแจ้งอัปเดตแล้ว (ยังเห็นในโปรไฟล์)') : (alert(r.errors.join('\n')), (e.target.checked = !e.target.checked)); };
-document.addEventListener('click', async (e) => { const d = e.target.closest('[data-dl]'); if (d) { d.disabled = true; const r = await DB.downloadUrl(d.dataset.dl); d.disabled = false; if (!r.ok) return alert(r.errors.join('\n')); const a = document.createElement('a'); a.href = r.url; a.rel = 'noopener'; if (r.fileName) a.download = r.fileName; document.body.appendChild(a); a.click(); a.remove(); toast('เริ่มดาวน์โหลด...'); return; }
+document.addEventListener('click', async (e) => { const d = e.target.closest('[data-dl]'); if (d) {
+    // [2026-11-16 ผู้ใช้แจ้งกดดาวน์โหลดแล้วไม่มีสถานะ] โชว์ "กำลังเตรียมไฟล์" ทันที แล้วอัปเดต % ตามไบต์ที่โหลดจริงระหว่างทาง ไม่ใช่รอเฉยๆจนเสร็จแบบเดิม
+    const st = document.querySelector(`[data-dlst="${d.dataset.dl}"]`); const btnTxt = d.textContent;
+    d.disabled = true; d.textContent = '⏳ กำลังเตรียมไฟล์...'; if (st) st.textContent = '⏳ กำลังเตรียมไฟล์...';
+    const fmtMB = (n) => (n / 1048576).toFixed(1);
+    const r = await DB.downloadFile(d.dataset.dl, (got, total) => { if (!st) return;
+      st.textContent = total ? `⬇ กำลังดาวน์โหลด ${fmtMB(got)} / ${fmtMB(total)} MB (${Math.round((got / total) * 100)}%)` : `⬇ กำลังดาวน์โหลด ${fmtMB(got)} MB...`; });
+    d.disabled = false; d.textContent = btnTxt;
+    if (!r.ok) { if (st) st.textContent = ''; return alert(r.errors.join('\n')); }
+    if (r.blob) {
+      const u = URL.createObjectURL(r.blob); const a = document.createElement('a'); a.href = u; a.rel = 'noopener'; if (r.fileName) a.download = r.fileName; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(u), 30000); if (st) st.textContent = '✔ ดาวน์โหลดเสร็จแล้ว'; toast('ดาวน์โหลดเสร็จแล้ว ✔'); return;
+    }
+    const a = document.createElement('a'); a.href = r.url; a.rel = 'noopener'; if (r.fileName) a.download = r.fileName; document.body.appendChild(a); a.click(); a.remove();
+    if (st) st.textContent = 'เริ่มดาวน์โหลดแล้ว — ดูความคืบหน้าที่แถบดาวน์โหลดของเบราว์เซอร์'; toast('เริ่มดาวน์โหลด...'); return;
+  }
   const r = e.target.closest('[data-read]'); if (r) DB.markNoticesRead(r.dataset.read); const b = e.target.closest('[data-copy]'); if (b) navigator.clipboard.writeText(b.dataset.copy).then(() => toast('คัดลอกคีย์แล้ว')); });
 $('#fProf').onsubmit = async (e) => { e.preventDefault(); const f = e.target, r = await DB.updateProfile({ name: f.name.value, phone: f.phone.value }); r.ok ? (showErr($('#eProf'), []), toast('บันทึกแล้ว ✔'), render()) : showErr($('#eProf'), r.errors); };
 $('#fPw').onsubmit = async (e) => { e.preventDefault(); const f = e.target, r = await DB.changeMyPassword(f.old.value, f.n1.value, f.n2.value); if (r.ok) { f.reset(); showErr($('#ePw'), []); toast('เปลี่ยนรหัสผ่านแล้ว ✔'); } else showErr($('#ePw'), r.errors); };

@@ -256,6 +256,35 @@
       const s = await sb.storage.from('releases').createSignedUrl(data.path, 120, { download: data.fileName || true }); if (s.error) return fail(s.error);
       return { ok: true, url: s.data.signedUrl, fileName: data.fileName, sha256: data.sha256 };
     },
+    // [2026-11-16 ผู้ใช้แจ้ง "กดดาวน์โหลดแล้วไม่มีสถานะอะไรขึ้นเลย"] เหมือน downloadUrl ทุกประการ แต่ดึงไฟล์เองทีละก้อน (stream) แทนรอ sb.functions.invoke
+    //  คืน blob ก้อนเดียวเหมือนเดิม — จึงรู้ "โหลดไปแล้วกี่ไบต์ จากทั้งหมดกี่ไบต์" ระหว่างทาง เรียก onProgress(got, total) ให้หน้าเว็บโชว์ % ได้ (เดิมไม่มีทางรู้เลยจนกว่าจะเสร็จทั้งไฟล์)
+    //  ดึงตรงไม่ได้ (เช่น CORS/เครือข่าย) → ถอยไปใช้ downloadUrl เดิม (ได้ลิงก์ตรง ไม่มี % แต่เบราว์เซอร์โชว์ความคืบหน้าของตัวเองที่แถบดาวน์โหลดแทน)
+    async downloadFile(id, onProgress) {
+      const prog = typeof onProgress === 'function' ? onProgress : () => {};
+      async function readWithProgress(res, totalHint) {
+        const total = Number(res.headers.get('content-length')) || totalHint || 0;
+        if (!res.body || !res.body.getReader) { const blob = await res.blob(); prog(blob.size, total || blob.size); return blob; }
+        const reader = res.body.getReader(); const chunks = []; let got = 0;
+        for (;;) { const { done, value } = await reader.read(); if (done) break; chunks.push(value); got += value.length; prog(got, total); }
+        return new Blob(chunks);
+      }
+      const cached = S.releases.find((x) => x.id === id);
+      try {
+        if (cached && /^https:\/\/api\.github\.com\/repos\/DogFlowAutogen\/dogflow-releases\/releases\/assets\//.test(cached.externalUrl || '')) {
+          const { data: ssn } = await sb.auth.getSession(); const token = ssn && ssn.session && ssn.session.access_token;
+          if (!token) return { ok: false, errors: ['เซสชันหมดอายุ — ออกจากระบบแล้วเข้าสู่ระบบใหม่'] };
+          const res = await fetch(CFG.supabaseUrl + '/functions/v1/release-download', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token, apikey: CFG.supabaseAnonKey }, body: JSON.stringify({ releaseId: id }) });
+          if (!res.ok) {
+            let msg = 'ดาวน์โหลดไม่สำเร็จ (สถานะ ' + res.status + ')';
+            try { const j = await res.json(); if (j && j.error) msg = j.error; } catch (_e) { /* คำตอบไม่ใช่ JSON ก็ใช้ข้อความเดิม */ }
+            return { ok: false, errors: [msg] };
+          }
+          const blob = await readWithProgress(res, cached.sizeBytes);
+          return { ok: true, blob, fileName: cached.fileName, sha256: cached.sha256 };
+        }
+      } catch (e) { /* ดึงตรงไม่สำเร็จ — ถอยไปทาง downloadUrl เดิมด้านล่าง ไม่ถือเป็น error */ }
+      return DB.downloadUrl(id);
+    },
     // แอดมิน: อัปโหลดไฟล์ติดตั้งเข้า bucket releases + คำนวณ SHA-256 (ไฟล์ใหญ่เกิน 300MB ให้ใส่ SHA-256 เอง / อัปโหลดผ่าน Dashboard)
     async attachRelease(o, file) {
       if (file.size > 1073741824) return { ok: false, errors: ['ไฟล์ใหญ่เกิน 1GB'] };
