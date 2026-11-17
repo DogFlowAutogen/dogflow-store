@@ -11,7 +11,7 @@
   const sb = w.supabase.createClient(CFG.supabaseUrl, CFG.supabaseAnonKey, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } });
 
   const DEFAULTS = { brand: 'DogFlow Auto Gen', version: 'v1.0', tagline: '', heroTitle: '', heroSub: '', heroCta: 'เลือกแพ็กเกจเลย', promoText: '', installGuide: '', promoEndsAt: '', lineId: '', contactEmail: '', paymentInfo: '', paymentQr: '', heroImage: '', rules: '', affEnabled: true, affHoldDays: 7, affMin: 300, affTerms: '' };
-  const S = { user: null, me: null, isAdmin: false, settings: Object.assign({}, DEFAULTS), categories: [], brands: [], products: [], releases: [], latest: [], promos: [], banners: [], blocks: [], commissions: [], payouts: [], tickets: [], contacts: [], aff: null, affKyc: null, affKycQ: [], affIp: [], reqs: [], modes: [], showcase: [], works: [], tutorials: [], reviews: [], faqs: [], coupons: [], members: [], orders: [], notices: [], audit: [] };
+  const S = { user: null, me: null, isAdmin: false, settings: Object.assign({}, DEFAULTS), categories: [], brands: [], products: [], releases: [], latest: [], promos: [], banners: [], blocks: [], commissions: [], payouts: [], tickets: [], contacts: [], aff: null, affKyc: null, affTerms: null, affKycQ: [], affIp: [], reqs: [], modes: [], showcase: [], works: [], tutorials: [], reviews: [], faqs: [], coupons: [], members: [], orders: [], notices: [], audit: [] };
 
   /* ---------- แปลงแถวฐานข้อมูล ↔ วัตถุในแอป ---------- */
   const IN = {
@@ -118,7 +118,8 @@
   }
   // ตัวแทนขาย: สรุปทั้งหมดของสมาชิกคนนี้มาจาก RPC เดียว (ปิดบังข้อมูลผู้สมัคร คำนวณยอดที่ฐานข้อมูล) — ล้มเหลวไม่กระทบส่วนอื่น
   async function loadAff() { if (!S.user) { S.aff = null; S.affKyc = null; return; } const r = await sb.rpc('aff_overview'); S.aff = r.error ? null : r.data;
-    const kq = await sb.rpc('aff_kyc_status'); S.affKyc = kq.error ? null : kq.data; }   // [2026-11-17] เฟส 3 ข้อ 3: สถานะยืนยันตัวตนด้วยบัตร (ฟังก์ชันยังไม่มี = null ไม่พังหน้า)
+    const kq = await sb.rpc('aff_kyc_status'); S.affKyc = kq.error ? null : kq.data;
+    const tq = await sb.rpc('aff_terms_status'); S.affTerms = tq.error ? null : tq.data; }   // [2026-11-17] ตัวแทนเดิมต้องยอมรับเงื่อนไขฉบับล่าสุดซ้ำก่อนถอน (ฟังก์ชันยังไม่มี = null ไม่พังหน้า)   // [2026-11-17] เฟส 3 ข้อ 3: สถานะยืนยันตัวตนด้วยบัตร (ฟังก์ชันยังไม่มี = null ไม่พังหน้า)
   // [2026-10-14] สถานะสิทธิ์ทดลองใช้ฟรีของสมาชิก (แหล่งความจริงเดียวที่ฐานข้อมูล) + คิวคำขอของแอดมิน — ล้มเหลวไม่กระทบส่วนอื่น
   async function loadTrial() { if (!S.user) { S.trial = null; S.trialQ = null; return; } const r = await sb.rpc('trial_status'); S.trial = r.error ? null : r.data; if (S.isAdmin) { const q = await sb.rpc('admin_trial_queue'); S.trialQ = q.error ? null : q.data; const st = await sb.from('trial_requests').select('status').limit(5000); S.siteStats = null; try { const ss = await sb.rpc('admin_site_stats'); S.siteStats = ss.error ? null : ss.data; } catch (e) {}   /* [2026-10-31] สถิติเข้าชมเว็บ (ยังไม่ลง SQL = null → ซ่อนการ์ด) */
     S.trialStats = st.error ? null : { requested: st.data.length, approved: st.data.filter((x) => x.status === 'approved').length, rejected: st.data.filter((x) => x.status === 'rejected').length, cancelled: st.data.filter((x) => x.status === 'cancelled').length, pending: st.data.filter((x) => x.status === 'pending').length }; } else { S.trialQ = null; S.trialStats = null; } }
@@ -437,7 +438,8 @@
     async fbDelete(id) { const t = S.tickets.find((x) => x.id === id); if (t) { const ps = (t.attachments || []).map((a) => a.path).filter(Boolean); if (ps.length) { try { await sb.storage.from('feedback').remove(ps); } catch (e) { /* ลบไฟล์ไม่ได้ก็ลบรายการต่อ */ } } }
       const { error } = await sb.from('feedback_tickets').delete().eq('id', id); if (error) return fail(error); await loadDynamic(); emit(); return { ok: true }; },
     // ----- ตัวแทนขายโปรแกรม (Affiliate) -----
-    affIp: () => S.affIp || [], affKyc: () => S.affKyc, affKycQueue: () => S.affKycQ || [], aff: () => S.aff,
+    affIp: () => S.affIp || [], affKyc: () => S.affKyc, affTermsStatus: () => S.affTerms,
+    async affAcceptTerms() { const { error } = await sb.rpc('aff_accept_terms'); if (error) return fail(error); await loadAff(); emit(); return { ok: true }; }, affKycQueue: () => S.affKycQ || [], aff: () => S.aff,
     // [2026-11-17] เฟส 3 ข้อ 3: ส่งรูปบัตรประชาชน (bucket ส่วนตัว kyc/<uid>/…) → ฟังก์ชันบันทึกสถานะ "รอตรวจ" · รูปเก่าของตัวเองลบทิ้งแบบไม่รอผล
     async affKycSubmit(file, nameOnId) {
       if (!S.user) return fail('กรุณาเข้าสู่ระบบ');

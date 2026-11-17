@@ -73,7 +73,7 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
 <script src="vendor/supabase.js"></script>
 <script src="store.common.js?v=20261012b"></script>
 <script src="store.local.js?v=20261012a"></script>
-<script src="store.supabase.js?v=20261117b"></script>
+<script src="store.supabase.js?v=20261117c"></script>
 <script src="avatar.js"></script>
 <script src="vendor/qrcode.js?v=20261028a"></script>
 <script src="trial-card.js?v=20261028f"></script>
@@ -191,7 +191,7 @@ function paintAff() {
   const box = $('#aff'), a = DB.aff && DB.aff();
   if (DB.mode !== 'supabase' || !a) { box.hidden = true; return; } box.hidden = false;
   const ae = document.activeElement; if (ae && box.contains(ae) && /^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName) && ae.id !== 'affUrl') return;  // กำลังพิมพ์อยู่ ไม่วาดทับ
-  const sig = JSON.stringify([a, DB.affKyc && DB.affKyc()]); if (sig === affSig) return; affSig = sig;
+  const sig = JSON.stringify([a, DB.affKyc && DB.affKyc(), DB.affTermsStatus && DB.affTermsStatus()]); if (sig === affSig) return; affSig = sig;
   const st = a.stats, rates = a.rates || [], pi = a.payoutInfo || {}, open = (a.payouts || []).find((x) => x.status === 'requested');
   const lo = rates.length ? Math.min(...rates.map((r) => r.commission)) : 0, hi = rates.length ? Math.max(...rates.map((r) => r.commission)) : 0;
   $('#affPill').hidden = !rates.length; $('#affPill').textContent = 'ระบบแนะนำสมาชิก · รับ ' + (lo === hi ? B(lo) : B(lo) + ' – ' + B(hi)) + ' ตามแพ็กเกจ';
@@ -224,8 +224,15 @@ function paintAff() {
       : ky.status === 'pending' ? '<div class="aff-note" style="background:var(--accent-soft);color:var(--accent)">⏳ ส่งรูปแล้ว รอแอดมินตรวจสอบ (ถอนค่าคอมได้เมื่อผ่าน)</div>'
       : (ky.status === 'rejected' ? '<div class="aff-note">❌ ไม่ผ่าน: ' + E(ky.note || '') + ' — ส่งรูปใหม่ได้</div>' : '<div class="aff-note">ค่าคอมสะสมของคุณ ' + B(ky.lifetime) + ' เกินเกณฑ์ ' + B(ky.threshold) + ' — ต้องยืนยันตัวตนก่อนถอนครั้งถัดไป</div>') + kyForm)
     + '</div>';
+  /* [2026-11-17] ตัวแทนเดิมต้องยอมรับเงื่อนไขฉบับล่าสุดซ้ำเมื่อเวอร์ชันเปลี่ยน — ยังได้ค่าคอมตามปกติ แต่ขอถอนไม่ได้จนกว่าจะยอมรับ (ฝั่งฐานข้อมูลบังคับจริง) */
+  const tst = DB.affTermsStatus && DB.affTermsStatus(), tNeed = !!(tst && tst.needsAccept);
+  const termsBanner = !tNeed ? '' : '<div class="aff-note" style="margin-top:12px"><b>📜 เงื่อนไขตัวแทนขายมีการอัปเดต</b> — กรุณาอ่านและยอมรับฉบับล่าสุดก่อนขอถอนค่าคอม (คุณยังได้รับค่าคอมตามปกติ)</div>'
+    + (a.terms ? '<div style="white-space:pre-line;font-size:13px;color:var(--mut);max-height:240px;overflow:auto;border:1px solid var(--line);border-radius:var(--r);padding:12px;margin:8px 0">' + E(a.terms) + '</div>' : '')
+    + '<label style="display:flex;gap:8px;align-items:center;margin-bottom:8px;font-size:14px"><input type="checkbox" id="affAcceptNewTerms" style="width:auto"> ฉันอ่านและยอมรับเงื่อนไขตัวแทนขายฉบับล่าสุดแล้ว</label>'
+    + '<button class="btn gold sm" id="affAcceptNewBtn" disabled>✔ ยอมรับเงื่อนไขฉบับล่าสุด</button>';
   $('#affBody').innerHTML =
     (a.blocked ? '<div class="aff-note">⛔ สิทธิ์ตัวแทนขายของคุณถูกระงับ' + (a.blockReason ? ' — ' + E(a.blockReason) : '') + ' · ติดต่อแอดมินหากต้องการสอบถาม</div>' : '')
+    + termsBanner
     + (!a.enabled ? '<div class="aff-note">⏸ ระบบตัวแทนขายปิดให้บริการชั่วคราว — ค่าคอมที่สะสมไว้ยังอยู่ครบ</div>' : '')
     + '<h4 style="margin:14px 0 6px">🔗 ลิงก์แนะนำของคุณ</h4><div class="aff-link"><input id="affUrl" readonly value="' + E(affLink(a.code)) + '" aria-label="ลิงก์แนะนำ"><button class="btn sm" data-affcopy>📋 คัดลอกลิงก์</button>' + (navigator.share ? '<button class="btn ghost sm" data-affshare>📤 แชร์</button>' : '') + '</div>'
     + '<small style="color:var(--mut)">รหัสของคุณ <b style="font-family:var(--mono)">' + E(a.code) + '</b> · ผู้ที่ <b>สมัครสมาชิกใหม่</b> ผ่านลิงก์นี้จะผูกกับคุณถาวร เมื่อเขาซื้อโปรแกรมสำเร็จ คุณได้ค่าคอมตามแพ็กเกจที่เขาซื้อทุกครั้ง</small>'
@@ -234,7 +241,7 @@ function paintAff() {
     + kycBox
     + '<div style="border-top:1px solid var(--line);padding-top:12px"><h4 style="margin:0 0 6px">💸 ถอนค่าคอม</h4>'
     + (open ? '<div class="aff-note" style="background:var(--accent-soft);color:var(--accent)">⏳ คำขอถอน ' + B(open.amount) + ' ส่งเมื่อ ' + D8(open.requestedAt) + ' — รอแอดมินโอนเข้าบัญชีที่แจ้งไว้</div>'
-      : '<p style="margin:0 0 8px;color:var(--mut);font-size:14px">ถอนได้ ' + B(st.available) + ' · ขั้นต่ำ ' + B(a.minPayout) + (short > 0 && st.available > 0 ? ' (อีก ' + B(short) + ' ถึงขั้นต่ำ)' : '') + '</p><button class="btn gold sm" data-affwd ' + (can && st.available >= a.minPayout && pi.account ? '' : 'disabled') + '>💸 ขอถอน ' + B(st.available) + '</button>' + (!pi.account ? ' <small style="color:var(--mut)">กรอกข้อมูลรับเงินด้านล่างก่อน</small>' : ''))
+      : '<p style="margin:0 0 8px;color:var(--mut);font-size:14px">ถอนได้ ' + B(st.available) + ' · ขั้นต่ำ ' + B(a.minPayout) + (short > 0 && st.available > 0 ? ' (อีก ' + B(short) + ' ถึงขั้นต่ำ)' : '') + '</p><button class="btn gold sm" data-affwd ' + (can && !tNeed && st.available >= a.minPayout && pi.account ? '' : 'disabled') + '>💸 ขอถอน ' + B(st.available) + '</button>' + (!pi.account ? ' <small style="color:var(--mut)">กรอกข้อมูลรับเงินด้านล่างก่อน</small>' : ''))
     + '<form id="fAffPay" class="aff-pay" novalidate style="margin-top:12px"><div class="f"><label>วิธีรับเงิน</label><select name="method" style="width:100%"><option value="promptpay"' + (pi.method !== 'bank' ? ' selected' : '') + '>พร้อมเพย์</option><option value="bank"' + (pi.method === 'bank' ? ' selected' : '') + '>โอนเข้าบัญชีธนาคาร</option></select></div>'
     + '<div class="f" id="affBankRow"' + (pi.method === 'bank' ? '' : ' hidden') + '><label>ชื่อธนาคาร</label><input name="bank" value="' + E(pi.method === 'bank' ? pi.bank : '') + '" placeholder="เช่น กสิกรไทย"></div>'
     + '<div class="f"><label id="affAccLbl">' + (pi.method === 'bank' ? 'เลขบัญชี' : 'เบอร์พร้อมเพย์ / เลขบัตรประชาชน') + '</label><input name="account" inputmode="numeric" value="' + E(pi.account || '') + '" autocomplete="off"></div>'
@@ -253,6 +260,9 @@ function paintAff() {
 }
 $('#aff').addEventListener('click', async (e) => {
   const a = DB.aff(); if (!a) return;
+  const tb = e.target.closest('#affAcceptNewBtn');
+  if (tb && !tb.disabled) { tb.disabled = true; tb.textContent = '⏳ กำลังบันทึก...';
+    const r = await DB.affAcceptTerms(); if (r.ok) { affSig = ''; toast('ยอมรับเงื่อนไขฉบับล่าสุดแล้ว ✔'); } else { alert(r.errors.join('\n')); tb.disabled = false; tb.textContent = '✔ ยอมรับเงื่อนไขฉบับล่าสุด'; } return; }
   const kb = e.target.closest('#affKycBtn');
   if (kb && !kb.disabled) { const fl = $('#affKycFile').files[0], nmv = $('#affKycName').value; if (!fl) return alert('เลือกรูปบัตรประชาชนก่อน');
     kb.disabled = true; kb.textContent = '⏳ กำลังส่ง...'; const r = await DB.affKycSubmit(fl, nmv);
@@ -267,7 +277,8 @@ $('#aff').addEventListener('click', async (e) => {
     w.disabled = true; const r = await DB.affRequestPayout(); r.ok ? toast('ส่งคำขอถอน ' + B(r.amount) + ' แล้ว ✔') : (alert(r.errors.join('\n')), (w.disabled = false)); }
 });
 $('#aff').addEventListener('change', (e) => { if (e.target.name === 'method') { const bank = e.target.value === 'bank'; $('#affBankRow').hidden = !bank; $('#affAccLbl').textContent = bank ? 'เลขบัญชี' : 'เบอร์พร้อมเพย์ / เลขบัตรประชาชน'; }
-  if (e.target.id === 'affAcceptTerms') { const b = $('#affOptInBtn'); if (b) b.disabled = !e.target.checked; } });
+  if (e.target.id === 'affAcceptTerms') { const b = $('#affOptInBtn'); if (b) b.disabled = !e.target.checked; }
+  if (e.target.id === 'affAcceptNewTerms') { const b = $('#affAcceptNewBtn'); if (b) b.disabled = !e.target.checked; } });
 $('#aff').addEventListener('submit', async (e) => { if (e.target.id !== 'fAffPay') return; e.preventDefault(); const f = e.target;
   const r = await DB.affSavePayout({ method: f.method.value, bank: f.bank.value, account: f.account.value, name: f.name.value }); if (r.ok) { affSig = ''; showErr($('#eAffPay'), []); toast('บันทึกข้อมูลรับเงินแล้ว ✔'); } else showErr($('#eAffPay'), r.errors); });
 $('#readAll').onclick = () => DB.markNoticesRead();
