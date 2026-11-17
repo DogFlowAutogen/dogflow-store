@@ -11,7 +11,7 @@
   const sb = w.supabase.createClient(CFG.supabaseUrl, CFG.supabaseAnonKey, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } });
 
   const DEFAULTS = { brand: 'DogFlow Auto Gen', version: 'v1.0', tagline: '', heroTitle: '', heroSub: '', heroCta: 'เลือกแพ็กเกจเลย', promoText: '', installGuide: '', promoEndsAt: '', lineId: '', contactEmail: '', paymentInfo: '', paymentQr: '', heroImage: '', rules: '', affEnabled: true, affHoldDays: 7, affMin: 300, affTerms: '' };
-  const S = { user: null, me: null, isAdmin: false, settings: Object.assign({}, DEFAULTS), categories: [], brands: [], products: [], releases: [], latest: [], promos: [], banners: [], blocks: [], commissions: [], payouts: [], tickets: [], contacts: [], aff: null, affIp: [], reqs: [], modes: [], showcase: [], works: [], tutorials: [], reviews: [], faqs: [], coupons: [], members: [], orders: [], notices: [], audit: [] };
+  const S = { user: null, me: null, isAdmin: false, settings: Object.assign({}, DEFAULTS), categories: [], brands: [], products: [], releases: [], latest: [], promos: [], banners: [], blocks: [], commissions: [], payouts: [], tickets: [], contacts: [], aff: null, affKyc: null, affKycQ: [], affIp: [], reqs: [], modes: [], showcase: [], works: [], tutorials: [], reviews: [], faqs: [], coupons: [], members: [], orders: [], notices: [], audit: [] };
 
   /* ---------- แปลงแถวฐานข้อมูล ↔ วัตถุในแอป ---------- */
   const IN = {
@@ -106,7 +106,7 @@
     S.tickets = tkq.error ? [] : tkq.data.map(IN.tickets);
     if (S.isAdmin) { const cq = await sb.from('contact_messages').select('*').order('created_at', { ascending: false }).limit(300); S.contacts = cq.error ? [] : cq.data.map((r) => ({ id: r.id, createdAt: r.created_at, name: r.name, email: r.email, phone: r.phone || '', subject: r.subject, message: r.message, status: r.status, lineSent: !!r.line_sent, emailSent: !!r.email_sent, notifyError: r.notify_error || '' })); } else S.contacts = [];   // [2026-10-28] ข้อความจากฟอร์มติดต่อ (เฉพาะแอดมิน · ยังไม่ได้ลงตาราง = ว่างเงียบๆ)
     // [2026-11-17] เฟส 3 ข้อ 1: สัญญาณ IP ผู้แนะนำ/ผู้ถูกแนะนำ (เฉพาะแอดมิน) — ฟังก์ชันยังไม่มีบนฐานข้อมูล/ไม่ใช่แอดมิน = ว่าง ไม่ให้พังหน้า
-    if (S.isAdmin) { const iq = await sb.rpc('admin_aff_ip_flags'); S.affIp = iq.error ? [] : (iq.data || []); }
+    if (S.isAdmin) { const iq = await sb.rpc('admin_aff_ip_flags'); S.affIp = iq.error ? [] : (iq.data || []); const kqq = await sb.rpc('admin_aff_kyc_list'); S.affKycQ = kqq.error ? [] : (kqq.data || []); }
     const pays = groupBy(p.data, 'order_id'), keys = groupBy(k.data, 'order_id');
     // [2026-10-14] ต่ออายุคีย์เดิม: ออเดอร์ที่ใช้ต่อไม่มีแถวคีย์ของตัวเอง → ยืมแถวคีย์เดิมมาแสดงในออเดอร์นั้น (ติดธง renewed ไม่ให้นับซ้ำในรายการคีย์)
     for (const kr of k.data) for (const e of (kr.renewed_orders || [])) { const [oid, slot] = String(e).split('|'); (keys[oid] = keys[oid] || []).push(Object.assign({}, kr, { slot, renewed: true })); }
@@ -117,7 +117,8 @@
     if (S.isAdmin) { S.commissions = cm.data.map(IN.commissions); S.payouts = po.data.map(IN.payouts); S.members = m.data.map(IN.members); S.coupons = cp.data.map(IN.coupons); S.audit = au.data.map((r) => ({ ts: r.ts, action: r.action, entity: r.entity, detail: (r.detail && (r.detail.name || r.detail.id)) || '' })); }
   }
   // ตัวแทนขาย: สรุปทั้งหมดของสมาชิกคนนี้มาจาก RPC เดียว (ปิดบังข้อมูลผู้สมัคร คำนวณยอดที่ฐานข้อมูล) — ล้มเหลวไม่กระทบส่วนอื่น
-  async function loadAff() { if (!S.user) { S.aff = null; return; } const r = await sb.rpc('aff_overview'); S.aff = r.error ? null : r.data; }
+  async function loadAff() { if (!S.user) { S.aff = null; S.affKyc = null; return; } const r = await sb.rpc('aff_overview'); S.aff = r.error ? null : r.data;
+    const kq = await sb.rpc('aff_kyc_status'); S.affKyc = kq.error ? null : kq.data; }   // [2026-11-17] เฟส 3 ข้อ 3: สถานะยืนยันตัวตนด้วยบัตร (ฟังก์ชันยังไม่มี = null ไม่พังหน้า)
   // [2026-10-14] สถานะสิทธิ์ทดลองใช้ฟรีของสมาชิก (แหล่งความจริงเดียวที่ฐานข้อมูล) + คิวคำขอของแอดมิน — ล้มเหลวไม่กระทบส่วนอื่น
   async function loadTrial() { if (!S.user) { S.trial = null; S.trialQ = null; return; } const r = await sb.rpc('trial_status'); S.trial = r.error ? null : r.data; if (S.isAdmin) { const q = await sb.rpc('admin_trial_queue'); S.trialQ = q.error ? null : q.data; const st = await sb.from('trial_requests').select('status').limit(5000); S.siteStats = null; try { const ss = await sb.rpc('admin_site_stats'); S.siteStats = ss.error ? null : ss.data; } catch (e) {}   /* [2026-10-31] สถิติเข้าชมเว็บ (ยังไม่ลง SQL = null → ซ่อนการ์ด) */
     S.trialStats = st.error ? null : { requested: st.data.length, approved: st.data.filter((x) => x.status === 'approved').length, rejected: st.data.filter((x) => x.status === 'rejected').length, cancelled: st.data.filter((x) => x.status === 'cancelled').length, pending: st.data.filter((x) => x.status === 'pending').length }; } else { S.trialQ = null; S.trialStats = null; } }
@@ -436,7 +437,28 @@
     async fbDelete(id) { const t = S.tickets.find((x) => x.id === id); if (t) { const ps = (t.attachments || []).map((a) => a.path).filter(Boolean); if (ps.length) { try { await sb.storage.from('feedback').remove(ps); } catch (e) { /* ลบไฟล์ไม่ได้ก็ลบรายการต่อ */ } } }
       const { error } = await sb.from('feedback_tickets').delete().eq('id', id); if (error) return fail(error); await loadDynamic(); emit(); return { ok: true }; },
     // ----- ตัวแทนขายโปรแกรม (Affiliate) -----
-    affIp: () => S.affIp || [], aff: () => S.aff, async affRefresh() { await loadAff(); emit(); return S.aff; },
+    affIp: () => S.affIp || [], affKyc: () => S.affKyc, affKycQueue: () => S.affKycQ || [], aff: () => S.aff,
+    // [2026-11-17] เฟส 3 ข้อ 3: ส่งรูปบัตรประชาชน (bucket ส่วนตัว kyc/<uid>/…) → ฟังก์ชันบันทึกสถานะ "รอตรวจ" · รูปเก่าของตัวเองลบทิ้งแบบไม่รอผล
+    async affKycSubmit(file, nameOnId) {
+      if (!S.user) return fail('กรุณาเข้าสู่ระบบ');
+      const EXT = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
+      if (!file || !EXT[file.type]) return fail('ใช้ได้เฉพาะรูป JPG / PNG / WebP');
+      if (file.size > 5 * 1024 * 1024) return fail('ไฟล์ใหญ่เกิน 5 MB');
+      const path = S.user.id + '/' + Date.now() + '.' + EXT[file.type];
+      const up = await sb.storage.from('kyc').upload(path, file, { upsert: false, contentType: file.type, cacheControl: '60' }); if (up.error) return fail(up.error);
+      const { data, error } = await sb.rpc('aff_kyc_submit', { p_path: path, p_name: nameOnId || '' });
+      if (error) { try { await sb.storage.from('kyc').remove([path]); } catch (e) { /* ลบไม่ได้ก็ปล่อย */ } return fail(error); }
+      if (data && data.oldPath) { try { await sb.storage.from('kyc').remove([data.oldPath]); } catch (e) { /* ลบไม่ได้ก็ปล่อย */ } }
+      await loadAff(); emit(); return { ok: true };
+    },
+    async kycImageUrl(path) { if (!path) return ''; const { data } = await sb.storage.from('kyc').createSignedUrl(path, 120); return (data && data.signedUrl) || ''; },
+    // แอดมิน: ลบไฟล์รูปก่อน (ลบไม่ได้ = หยุด ไม่เปลี่ยนสถานะ) แล้วค่อยบันทึกผลตรวจ
+    async affKycReview(memberId, approve, note, path) {
+      if (path) { const rm = await sb.storage.from('kyc').remove([path]); if (rm.error) return fail(rm.error); }
+      const { error } = await sb.rpc('admin_aff_kyc_review', { p_member: memberId, p_approve: !!approve, p_note: note || '' }); if (error) return fail(error);
+      await loadDynamic(); emit(); return { ok: true };
+    },
+    async affRefresh() { await loadAff(); emit(); return S.aff; },
     // [2026-11-17] เฟส 1 กันมิจฉาชีพ: ต้องกดสมัครรับทราบเงื่อนไข + ยืนยันตัวตนผ่าน LINE ก่อนถึงได้ลิงก์แนะนำ
     async affOptIn() { const { error } = await sb.rpc('aff_opt_in'); if (error) return fail(error); await loadAff(); emit(); return { ok: true }; },
     async affSavePayout(f) { const { error } = await sb.rpc('aff_save_payout_info', { p_method: f.method, p_bank: f.bank || '', p_account: f.account || '', p_name: f.name || '' }); if (error) return fail(error); await loadMine(); emit(); return { ok: true }; },

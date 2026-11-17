@@ -73,7 +73,7 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
 <script src="vendor/supabase.js"></script>
 <script src="store.common.js?v=20261012b"></script>
 <script src="store.local.js?v=20261012a"></script>
-<script src="store.supabase.js?v=20261117a"></script>
+<script src="store.supabase.js?v=20261117b"></script>
 <script src="avatar.js"></script>
 <script src="vendor/qrcode.js?v=20261028a"></script>
 <script src="trial-card.js?v=20261028f"></script>
@@ -191,7 +191,7 @@ function paintAff() {
   const box = $('#aff'), a = DB.aff && DB.aff();
   if (DB.mode !== 'supabase' || !a) { box.hidden = true; return; } box.hidden = false;
   const ae = document.activeElement; if (ae && box.contains(ae) && /^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName) && ae.id !== 'affUrl') return;  // กำลังพิมพ์อยู่ ไม่วาดทับ
-  const sig = JSON.stringify(a); if (sig === affSig) return; affSig = sig;
+  const sig = JSON.stringify([a, DB.affKyc && DB.affKyc()]); if (sig === affSig) return; affSig = sig;
   const st = a.stats, rates = a.rates || [], pi = a.payoutInfo || {}, open = (a.payouts || []).find((x) => x.status === 'requested');
   const lo = rates.length ? Math.min(...rates.map((r) => r.commission)) : 0, hi = rates.length ? Math.max(...rates.map((r) => r.commission)) : 0;
   $('#affPill').hidden = !rates.length; $('#affPill').textContent = 'ระบบแนะนำสมาชิก · รับ ' + (lo === hi ? B(lo) : B(lo) + ' – ' + B(hi)) + ' ตามแพ็กเกจ';
@@ -214,6 +214,16 @@ function paintAff() {
   const mCnt = (a.commissions || []).filter((c) => !c.manual && c.state !== 'void' && mk(c.createdAt) === nowK).reduce((n, c) => n + (c.qty || 1), 0);
   const nxt = mCnt + 1 >= t3n ? 'Gold · ' + t3p + '% ของค่าคอม' : mCnt + 1 >= t2n ? 'Silver · ' + t2p + '% ของค่าคอม' : 'Bronze · ค่าคอมปกติ';
   const tierLine = !tOn ? '' : '<div class="aff-note" style="background:var(--accent-soft);color:var(--accent);margin-top:10px">🚀 เดือนนี้คุณขายได้ <b>' + mCnt + ' ชิ้น</b> · ชิ้นถัดไปได้ระดับ <b>' + nxt + '</b>' + (mCnt + 1 < t3n ? ' · อีก ' + ((mCnt + 1 < t2n ? t2n : t3n) - mCnt) + ' ชิ้น ' + (mCnt + 1 < t2n ? 'ถึง Silver (' + t2p + '%)' : 'ถึง Gold (' + t3p + '%)') : '') + ' · นับใหม่ทุกต้นเดือน</div>';
+  /* [2026-11-17] เฟส 3 ข้อ 3: ค่าคอมสะสมเกินเกณฑ์ → ต้องยืนยันตัวตนด้วยรูปบัตรก่อนถอน (ฝั่งฐานข้อมูลบังคับจริง) · แสดงเฉพาะเมื่อถึงเกณฑ์หรือเคยส่งแล้ว */
+  const ky = DB.affKyc && DB.affKyc(), kyForm = '<div class="f" style="margin-top:8px"><label>ชื่อ-นามสกุลตามบัตร</label><input id="affKycName" maxlength="80" autocomplete="off" value="' + E((ky && ky.nameOnId) || '') + '"></div>'
+    + '<div class="f" style="margin-top:8px"><label>รูปบัตรประชาชน (JPG/PNG/WebP ไม่เกิน 5 MB)</label><input type="file" id="affKycFile" accept="image/jpeg,image/png,image/webp"></div>'
+    + '<small style="color:var(--mut)">ถ่ายให้เห็นชื่อและรูปถ่ายชัดเจน · ปิดเลขหลังบัตร/เลขเลเซอร์ได้ · ระบบลบรูปทิ้งทันทีหลังตรวจเสร็จ เก็บเฉพาะผลตรวจ</small>'
+    + '<div style="margin-top:8px"><button class="btn gold sm" id="affKycBtn">🪪 ส่งรูปเพื่อยืนยันตัวตน</button></div>';
+  const kycBox = !ky || !(ky.required || ky.status !== 'none') ? '' : '<div style="border-top:1px solid var(--line);margin-top:14px;padding-top:12px"><h4 style="margin:0 0 6px">🪪 ยืนยันตัวตน</h4>'
+    + (ky.status === 'approved' ? '<div class="aff-note" style="background:var(--ok-soft);color:var(--ok)">✅ ยืนยันตัวตนผ่านแล้ว — ถอนค่าคอมได้ตามปกติ</div>'
+      : ky.status === 'pending' ? '<div class="aff-note" style="background:var(--accent-soft);color:var(--accent)">⏳ ส่งรูปแล้ว รอแอดมินตรวจสอบ (ถอนค่าคอมได้เมื่อผ่าน)</div>'
+      : (ky.status === 'rejected' ? '<div class="aff-note">❌ ไม่ผ่าน: ' + E(ky.note || '') + ' — ส่งรูปใหม่ได้</div>' : '<div class="aff-note">ค่าคอมสะสมของคุณ ' + B(ky.lifetime) + ' เกินเกณฑ์ ' + B(ky.threshold) + ' — ต้องยืนยันตัวตนก่อนถอนครั้งถัดไป</div>') + kyForm)
+    + '</div>';
   $('#affBody').innerHTML =
     (a.blocked ? '<div class="aff-note">⛔ สิทธิ์ตัวแทนขายของคุณถูกระงับ' + (a.blockReason ? ' — ' + E(a.blockReason) : '') + ' · ติดต่อแอดมินหากต้องการสอบถาม</div>' : '')
     + (!a.enabled ? '<div class="aff-note">⏸ ระบบตัวแทนขายปิดให้บริการชั่วคราว — ค่าคอมที่สะสมไว้ยังอยู่ครบ</div>' : '')
@@ -221,6 +231,7 @@ function paintAff() {
     + '<small style="color:var(--mut)">รหัสของคุณ <b style="font-family:var(--mono)">' + E(a.code) + '</b> · ผู้ที่ <b>สมัครสมาชิกใหม่</b> ผ่านลิงก์นี้จะผูกกับคุณถาวร เมื่อเขาซื้อโปรแกรมสำเร็จ คุณได้ค่าคอมตามแพ็กเกจที่เขาซื้อทุกครั้ง</small>'
     + '<div class="aff-kpi"><div><b>' + B(st.pending) + '</b><span>ค่าคอมที่รอพัก (' + a.holdDays + ' วัน)</span></div><div class="ok"><b>' + B(st.available) + '</b><span>ถอนได้ตอนนี้</span></div><div><b>' + B(st.paid) + '</b><span>จ่ายแล้ว</span></div><div><b>' + st.signups + '</b><span>สมัครผ่านลิงก์ · ซื้อแล้ว ' + boughtN + ' คน</span></div></div>'
     + tierLine
+    + kycBox
     + '<div style="border-top:1px solid var(--line);padding-top:12px"><h4 style="margin:0 0 6px">💸 ถอนค่าคอม</h4>'
     + (open ? '<div class="aff-note" style="background:var(--accent-soft);color:var(--accent)">⏳ คำขอถอน ' + B(open.amount) + ' ส่งเมื่อ ' + D8(open.requestedAt) + ' — รอแอดมินโอนเข้าบัญชีที่แจ้งไว้</div>'
       : '<p style="margin:0 0 8px;color:var(--mut);font-size:14px">ถอนได้ ' + B(st.available) + ' · ขั้นต่ำ ' + B(a.minPayout) + (short > 0 && st.available > 0 ? ' (อีก ' + B(short) + ' ถึงขั้นต่ำ)' : '') + '</p><button class="btn gold sm" data-affwd ' + (can && st.available >= a.minPayout && pi.account ? '' : 'disabled') + '>💸 ขอถอน ' + B(st.available) + '</button>' + (!pi.account ? ' <small style="color:var(--mut)">กรอกข้อมูลรับเงินด้านล่างก่อน</small>' : ''))
@@ -242,6 +253,10 @@ function paintAff() {
 }
 $('#aff').addEventListener('click', async (e) => {
   const a = DB.aff(); if (!a) return;
+  const kb = e.target.closest('#affKycBtn');
+  if (kb && !kb.disabled) { const fl = $('#affKycFile').files[0], nmv = $('#affKycName').value; if (!fl) return alert('เลือกรูปบัตรประชาชนก่อน');
+    kb.disabled = true; kb.textContent = '⏳ กำลังส่ง...'; const r = await DB.affKycSubmit(fl, nmv);
+    if (r.ok) { affSig = ''; toast('ส่งรูปแล้ว รอแอดมินตรวจสอบ ✔'); } else { alert(r.errors.join('\n')); kb.disabled = false; kb.textContent = '🪪 ส่งรูปเพื่อยืนยันตัวตน'; } return; }
   const ob = e.target.closest('#affOptInBtn');
   if (ob && !ob.disabled) { ob.disabled = true; ob.textContent = '⏳ กำลังสมัคร...';
     const r = await DB.affOptIn(); if (r.ok) { affSig = ''; toast('สมัครเป็นตัวแทนขายสำเร็จ ✔'); } else { alert(r.errors.join('\n')); ob.disabled = false; ob.textContent = '🪪 สมัครเป็นตัวแทนขาย'; } return; }
