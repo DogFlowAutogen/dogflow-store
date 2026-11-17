@@ -435,6 +435,8 @@
       const { error } = await sb.from('feedback_tickets').delete().eq('id', id); if (error) return fail(error); await loadDynamic(); emit(); return { ok: true }; },
     // ----- ตัวแทนขายโปรแกรม (Affiliate) -----
     aff: () => S.aff, async affRefresh() { await loadAff(); emit(); return S.aff; },
+    // [2026-11-17] เฟส 1 กันมิจฉาชีพ: ต้องกดสมัครรับทราบเงื่อนไข + ยืนยันตัวตนผ่าน LINE ก่อนถึงได้ลิงก์แนะนำ
+    async affOptIn() { const { error } = await sb.rpc('aff_opt_in'); if (error) return fail(error); await loadAff(); emit(); return { ok: true }; },
     async affSavePayout(f) { const { error } = await sb.rpc('aff_save_payout_info', { p_method: f.method, p_bank: f.bank || '', p_account: f.account || '', p_name: f.name || '' }); if (error) return fail(error); await loadMine(); emit(); return { ok: true }; },
     async affRequestPayout() { const { data, error } = await sb.rpc('aff_request_payout'); if (error) return fail(error); await Promise.all([loadAff(), loadDynamic()]); emit(); return { ok: true, amount: data.amount }; },
     async processPayout(id, action, ref, note) { const { error } = await sb.rpc('admin_process_payout', { p_payout: id, p_action: action, p_ref: ref || '', p_note: note || '' }); if (error) return fail(error); await loadDynamic(); emit(); return { ok: true }; },

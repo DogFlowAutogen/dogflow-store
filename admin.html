@@ -616,7 +616,10 @@ const A = {
       if (d.cdel) { const c = DB.find('commissions', d.cdel);
         return del('commissions', c.id, c.product, { title: 'ลบรายการค่าคอมนี้ถาวร?', sub: c.id.slice(0, 8), body: 'ค่าคอมจะหายจากยอดและประวัติของสมาชิกทันที — ย้อนกลับไม่ได้ (ถ้าต้องการเก็บประวัติ ให้เปลี่ยนสถานะเป็น "ยกเลิก" แทน)', rows: [['ผู้รับ', by(c.referrerId).name || '—'], ['ที่มา', c.manual ? 'แอดมินเพิ่มเอง' : 'ออเดอร์ ' + c.orderId], ['รายการ', c.product + (c.qty > 1 ? ' ×' + c.qty : '')], ['ยอด', B(c.amount)], ['สถานะ', c.status]], check: 'ฉันตรวจสอบแล้ว ต้องการลบค่าคอม ' + B(c.amount) + ' ของ ' + (by(c.referrerId).name || '') }); }
       if (d.ppay || d.prej) { const p = DB.find('payouts', d.ppay || d.prej), m = by(p.memberId), i = p.info || {}, rows = [['สมาชิก', m.name + ' · ' + m.email], ['ยอด', B(p.amount)], ['บัญชีรับเงิน', (i.bank || '') + ' ' + (i.account || '') + ' · ' + (i.name || '')]];
-        if (d.ppay) { const v = await confirmDlg({ title: 'ยืนยันว่าโอนเงินแล้ว?', sub: B(p.amount) + ' → ' + (m.name || ''), body: 'ตรวจว่าโอนเข้าบัญชีด้านล่างครบถ้วนแล้วจึงกดยืนยัน — สมาชิกจะได้รับแจ้ง และรายการค่าคอมทั้งหมดในคำขอนี้จะเป็น "จ่ายแล้ว" (ย้อนกลับไม่ได้)', rows, fields: [{ k: 'ref', label: 'เลขอ้างอิงการโอน (ถ้ามี)' }, { k: 'note', label: 'หมายเหตุถึงสมาชิก (ถ้ามี)' }], check: 'ฉันโอนเงิน ' + B(p.amount) + ' ให้สมาชิกแล้ว', okText: 'ยืนยัน: โอนแล้ว', cancelText: 'ยังไม่ยืนยัน' });
+        // [2026-11-17] เฟส 2 กันมิจฉาชีพ: เทียบชื่อบัญชีรับเงินกับชื่อสมาชิกคร่าวๆ — ไม่ตรงกันเลย = อาจเป็นบัญชีคนอื่น (ตัวกลางฟอกเงิน) เตือนให้แอดมินตรวจก่อนโอน ไม่บล็อกอัตโนมัติ (มีเคสปกติ เช่น โอนให้คนในครอบครัว)
+        const norm = (s) => String(s || '').toLowerCase().replace(/[^฀-๿a-z]/g, '');
+        const nm = norm(m.name), pn = norm(i.name), nameMismatch = nm && pn && !nm.includes(pn) && !pn.includes(nm);
+        if (d.ppay) { const v = await confirmDlg({ title: 'ยืนยันว่าโอนเงินแล้ว?', sub: B(p.amount) + ' → ' + (m.name || ''), body: 'ตรวจว่าโอนเข้าบัญชีด้านล่างครบถ้วนแล้วจึงกดยืนยัน — สมาชิกจะได้รับแจ้ง และรายการค่าคอมทั้งหมดในคำขอนี้จะเป็น "จ่ายแล้ว" (ย้อนกลับไม่ได้)', rows, warn: nameMismatch ? '⚠ ชื่อบัญชีรับเงิน "' + (i.name || '') + '" ไม่ตรงกับชื่อสมาชิก "' + (m.name || '') + '" — ตรวจสอบก่อนโอนว่าไม่ใช่บัญชีคนอื่น (อาจเป็นการใช้บัญชีตัวกลางฟอกเงิน)' : '', fields: [{ k: 'ref', label: 'เลขอ้างอิงการโอน (ถ้ามี)' }, { k: 'note', label: 'หมายเหตุถึงสมาชิก (ถ้ามี)' }], check: 'ฉันโอนเงิน ' + B(p.amount) + ' ให้สมาชิกแล้ว', okText: 'ยืนยัน: โอนแล้ว', cancelText: 'ยังไม่ยืนยัน' });
           if (!v) return; const r = await DB.processPayout(p.id, 'paid', v.ref, v.note); r.ok ? (toast('บันทึกการโอนแล้ว ✔'), render()) : alert(r.errors.join('\n')); }
         else { const v = await confirmDlg({ danger: true, title: 'ปฏิเสธคำขอถอนนี้?', sub: B(p.amount) + ' · ' + (m.name || ''), body: 'ยอดทั้งหมดจะคืนเป็น "ถอนได้" และสมาชิกขอถอนใหม่ได้ — สมาชิกจะเห็นเหตุผลที่คุณระบุ', rows, fields: [{ k: 'why', type: 'textarea', label: 'เหตุผลที่ปฏิเสธ (สมาชิกเห็น)', rows: 2 }], validate: (x) => (x.why.length < 5 ? 'กรอกเหตุผลอย่างน้อย 5 ตัวอักษร' : ''), okText: 'ยืนยันปฏิเสธ', cancelText: 'ไม่ปฏิเสธ' });
           if (!v) return; const r = await DB.processPayout(p.id, 'rejected', '', v.why); r.ok ? (toast('ปฏิเสธแล้ว'), render()) : alert(r.errors.join('\n')); } return; }
@@ -925,10 +928,13 @@ const A = {
 /* ===== ดูสลิป + ตรวจสอบ ===== */
 async function openSlip(id) {
   const o = DB.find('orders', id), p = o.payment, ok = p.amount === o.total, can = o.status === 'review';
+  // [2026-11-17] เฟส 2 กันมิจฉาชีพ: ออเดอร์นี้ผูกกับผู้แนะนำ (จะเกิดค่าคอม) → เตือนแอดมินให้เทียบชื่อผู้โอนในรูปสลิปกับชื่อลูกค้าให้ละเอียดขึ้น (ไม่มีช่องชื่อผู้โอนแบบข้อความให้เทียบอัตโนมัติ)
+  const buyer = DB.find('members', o.memberId), refBy = buyer && buyer.referredBy ? DB.find('members', buyer.referredBy) : null;
   const slipSrc = await DB.slipUrl(p);   // Supabase: signed URL อายุ 5 นาที (bucket สลิปเป็น private)
   $('#slipBox').innerHTML = `<h3>ตรวจสลิป ${E(o.id)}</h3>
     <div class="hl"><span class="tag ${ok ? 'okk' : 'err'}">${ok ? 'ยอดตรง' : 'ยอดไม่ตรง'}</span><span>ต้องจ่าย ${B(o.total)} · โอน ${B(p.amount)}</span></div>
     <div class="hl"><span>🕒 โอนเมื่อ ${fmt(p.paidAt)} · อ้างอิง <code>${E(p.ref)}</code></span></div>
+    ${refBy ? `<div class="hl" style="border-color:var(--warn)"><span class="tag warn">🔗 มีผู้แนะนำ</span><span>ลูกค้า <b>${E(buyer.name)}</b> สมัครผ่านลิงก์ของ <b>${E(refBy.name)}</b> — ออเดอร์นี้จะสร้างค่าคอม เทียบชื่อผู้โอนในรูปสลิปกับชื่อลูกค้าให้ละเอียด</span></div>` : ''}
     ${p.flags.map((x) => `<div class="hl" style="border-color:var(--err)"><span class="tag err">⚠</span><span>${E(x)}</span></div>`).join('') || '<div class="hl"><span class="tag okk">ผ่านตรวจอัตโนมัติ</span></div>'}
     <img src="${E(slipSrc)}" alt="สลิป" style="max-height:340px;margin:10px auto;border-radius:10px">
     ${can ? `<div class="f"><label>หมายเหตุ (ส่งให้ลูกค้าเมื่อปฏิเสธ)</label><input id="sn"></div><div style="display:flex;gap:8px"><button class="btn" id="ap">✔ อนุมัติ + ออก License key</button><button class="btn danger" id="rj">✕ ปฏิเสธ</button><button class="btn ghost" id="cl">ปิด</button></div>`

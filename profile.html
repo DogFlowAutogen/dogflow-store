@@ -196,6 +196,18 @@ function paintAff() {
   const lo = rates.length ? Math.min(...rates.map((r) => r.commission)) : 0, hi = rates.length ? Math.max(...rates.map((r) => r.commission)) : 0;
   $('#affPill').hidden = !rates.length; $('#affPill').textContent = 'ระบบแนะนำสมาชิก · รับ ' + (lo === hi ? B(lo) : B(lo) + ' – ' + B(hi)) + ' ตามแพ็กเกจ';
   const boughtN = (a.referrals || []).filter((r) => r.bought).length, can = a.enabled && !a.blocked, short = Math.max(0, a.minPayout - st.available);
+  /* [2026-11-17] เฟส 1 กันมิจฉาชีพ: ยังไม่สมัครเป็นตัวแทน (opted-in) → โชว์หน้าสมัคร + เงื่อนไขแทนลิงก์แนะนำ ต้องยืนยันตัวตนผ่าน LINE ก่อนถึงกดสมัครได้ */
+  if (!a.optedIn) {
+    $('#affBody').innerHTML =
+      '<h4 style="margin:14px 0 6px">🪪 สมัครเป็นตัวแทนขาย</h4>'
+      + '<p class="sub" style="margin:0 0 10px">อ่านและยอมรับเงื่อนไขด้านล่างก่อนรับลิงก์แนะนำของคุณ</p>'
+      + (a.terms ? '<div style="white-space:pre-line;font-size:13px;color:var(--mut);max-height:260px;overflow:auto;border:1px solid var(--line);border-radius:var(--r);padding:12px;margin-bottom:12px">' + E(a.terms) + '</div>' : '<p style="color:var(--mut)">ยังไม่มีเงื่อนไขตัวแทนขายที่ตั้งไว้ — ติดต่อแอดมิน</p>')
+      + (!a.lineVerified
+          ? '<div class="aff-note">🔒 ต้องยืนยันตัวตนผ่าน LINE ก่อนสมัครเป็นตัวแทนขาย — <a href="#trial" id="affGoLine">ไปยืนยันตัวตนผ่าน LINE</a></div>'
+          : '<label style="display:flex;gap:8px;align-items:center;margin-bottom:10px;font-size:14px"><input type="checkbox" id="affAcceptTerms" style="width:auto"> ฉันอ่านและยอมรับเงื่อนไขตัวแทนขายข้างต้นแล้ว</label>'
+            + '<button class="btn gold sm" id="affOptInBtn" disabled>🪪 สมัครเป็นตัวแทนขาย</button>');
+    return;
+  }
   /* [2026-11-17] ขั้นบันไดค่าคอม: นับชิ้นที่ขายได้ในเดือนปฏิทินไทยจากรายการค่าคอม (ไม่นับ manual/ยกเลิก) แล้วบอกระดับของชิ้นถัดไป — ค่าตั้งตรงกับฝั่งฐานข้อมูล */
   const sg = DB.settings(), tOn = sg.affTierOn !== false && sg.affTierOn !== 'false', t2n = Number(sg.affTier2Min) || 5, t2p = Math.max(Number(sg.affTier2Pct) || 125, 100), t3n = Number(sg.affTier3Min) || 10, t3p = Math.max(Number(sg.affTier3Pct) || 150, 100);
   const mk = (d) => { const x = new Date(new Date(d).getTime() + 7 * 36e5); return x.getUTCFullYear() * 12 + x.getUTCMonth(); }, nowK = mk(Date.now());
@@ -230,13 +242,17 @@ function paintAff() {
 }
 $('#aff').addEventListener('click', async (e) => {
   const a = DB.aff(); if (!a) return;
+  const ob = e.target.closest('#affOptInBtn');
+  if (ob && !ob.disabled) { ob.disabled = true; ob.textContent = '⏳ กำลังสมัคร...';
+    const r = await DB.affOptIn(); if (r.ok) { affSig = ''; toast('สมัครเป็นตัวแทนขายสำเร็จ ✔'); } else { alert(r.errors.join('\n')); ob.disabled = false; ob.textContent = '🪪 สมัครเป็นตัวแทนขาย'; } return; }
   if (e.target.closest('[data-affcopy]')) { try { await navigator.clipboard.writeText(affLink(a.code)); toast('คัดลอกลิงก์แนะนำแล้ว'); } catch (x) { $('#affUrl').select(); toast('กด Ctrl+C เพื่อคัดลอก'); } }
   if (e.target.closest('[data-affshare]')) navigator.share({ title: 'DogFlow Auto Gen', text: 'โปรแกรมสร้างคลิปขายของด้วย AI', url: affLink(a.code) }).catch(() => {});
   const w = e.target.closest('[data-affwd]');
   if (w && !w.disabled) { if (!confirm('ยืนยันขอถอนค่าคอม ' + B(a.stats.available) + '\nโอนเข้า: ' + ((a.payoutInfo.bank || '') + ' ' + (a.payoutInfo.account || '') + ' (' + (a.payoutInfo.name || '') + ')') + '\n\nตรวจสอบข้อมูลรับเงินให้ถูกต้องก่อนยืนยัน')) return;
     w.disabled = true; const r = await DB.affRequestPayout(); r.ok ? toast('ส่งคำขอถอน ' + B(r.amount) + ' แล้ว ✔') : (alert(r.errors.join('\n')), (w.disabled = false)); }
 });
-$('#aff').addEventListener('change', (e) => { if (e.target.name === 'method') { const bank = e.target.value === 'bank'; $('#affBankRow').hidden = !bank; $('#affAccLbl').textContent = bank ? 'เลขบัญชี' : 'เบอร์พร้อมเพย์ / เลขบัตรประชาชน'; } });
+$('#aff').addEventListener('change', (e) => { if (e.target.name === 'method') { const bank = e.target.value === 'bank'; $('#affBankRow').hidden = !bank; $('#affAccLbl').textContent = bank ? 'เลขบัญชี' : 'เบอร์พร้อมเพย์ / เลขบัตรประชาชน'; }
+  if (e.target.id === 'affAcceptTerms') { const b = $('#affOptInBtn'); if (b) b.disabled = !e.target.checked; } });
 $('#aff').addEventListener('submit', async (e) => { if (e.target.id !== 'fAffPay') return; e.preventDefault(); const f = e.target;
   const r = await DB.affSavePayout({ method: f.method.value, bank: f.bank.value, account: f.account.value, name: f.name.value }); if (r.ok) { affSig = ''; showErr($('#eAffPay'), []); toast('บันทึกข้อมูลรับเงินแล้ว ✔'); } else showErr($('#eAffPay'), r.errors); });
 $('#readAll').onclick = () => DB.markNoticesRead();
