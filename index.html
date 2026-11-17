@@ -13,7 +13,7 @@
 <script type="application/ld+json" id="ldApp">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://dogflowautogen.github.io/dogflow-store/#org","name":"DogFlow","url":"https://dogflowautogen.github.io/dogflow-store/","logo":"https://dogflowautogen.github.io/dogflow-store/assets/logo-512.png"},{"@type":"WebSite","@id":"https://dogflowautogen.github.io/dogflow-store/#site","url":"https://dogflowautogen.github.io/dogflow-store/","name":"DogFlow Auto Gen","inLanguage":"th","publisher":{"@id":"https://dogflowautogen.github.io/dogflow-store/#org"}},{"@type":"SoftwareApplication","@id":"https://dogflowautogen.github.io/dogflow-store/#app","name":"DogFlow Auto Gen","description":"โปรแกรมสร้างคลิปขายของด้วย AI: Auto ปักตะกร้าอัตโนมัติ · Meta Bot · Grok Bot · Flow Bot · Auto Story คิดบท สร้างภาพ ทำคลิปมีเสียงพูดฉากละ 6–15 วินาที ต่อได้หลายฉาก (สูงสุด 10 ฉาก ขึ้นกับแต่ละบอท) แล้วโพสต์ TikTok / Facebook / Shopee ให้เอง รันหลายบัญชีพร้อมกันได้","applicationCategory":"MultimediaApplication","operatingSystem":"Windows","softwareRequirements":"Google Chrome หรือ Microsoft Edge, บัญชี Gemini Ultra หรือ Pro","inLanguage":"th","url":"https://dogflowautogen.github.io/dogflow-store/","image":"https://dogflowautogen.github.io/dogflow-store/assets/og-dogflow.jpg","publisher":{"@id":"https://dogflowautogen.github.io/dogflow-store/#org"}}]}</script>
 <!-- [2026-10-12, user — "เข้าใช้งานเว็บรู้สึกหน่วง"] ตรวจพบ: สคริปต์ 5 ตัวโหลดทีละตัวต่อกัน (ตัวถัดไปเริ่มหลังตัวก่อนจบ ~4 วิกว่าจะเริ่มดึงข้อมูล) → preload ให้ดาวน์โหลดพร้อมกัน · preconnect ไปเซิร์ฟเวอร์ข้อมูล/รูป · ฟอนต์ Google โหลดแบบไม่บล็อกการแสดงผล -->
 <link rel="preconnect" href="https://jdrxunjhyqdhhxyuxpjl.supabase.co" crossorigin><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="preload" as="script" href="config.js"><link rel="preload" as="script" href="vendor/supabase.js"><link rel="preload" as="script" href="store.common.js?v=20261012b"><link rel="preload" as="script" href="store.local.js?v=20261012b"><link rel="preload" as="script" href="store.supabase.js?v=20261117c">
+<link rel="preload" as="script" href="config.js"><link rel="preload" as="script" href="vendor/supabase.js"><link rel="preload" as="script" href="store.common.js?v=20261012b"><link rel="preload" as="script" href="store.local.js?v=20261012b"><link rel="preload" as="script" href="store.supabase.js?v=20261118b">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'"><noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap"></noscript>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Crect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%23171109%22/%3E%3Cg transform=%22translate%2812%2C13.5%29 scale%280.76%29%22%3E%3Cg fill=%22%23ff9e2c%22%3E%3Cellipse cx=%2224%22 cy=%2244%22 rx=%228%22 ry=%2210.5%22 transform=%22rotate%28-24 24 44%29%22/%3E%3Cellipse cx=%2240%22 cy=%2226%22 rx=%228.5%22 ry=%2211%22 transform=%22rotate%28-8 40 26%29%22/%3E%3Cellipse cx=%2260%22 cy=%2226%22 rx=%228.5%22 ry=%2211%22 transform=%22rotate%288 60 26%29%22/%3E%3Cellipse cx=%2276%22 cy=%2244%22 rx=%228%22 ry=%2210.5%22 transform=%22rotate%2824 76 44%29%22/%3E%3Cpath d=%22M50 46 C 66 46%2C 80 60%2C 76 72 C 72 84%2C 60 82%2C 50 82 C 40 82%2C 28 84%2C 24 72 C 20 60%2C 34 46%2C 50 46 Z%22/%3E%3C/g%3E%3Cpath d=%22M44 58 L44 74 L60 66 Z%22 fill=%22%23171109%22 stroke=%22%23171109%22 stroke-width=%223%22 stroke-linejoin=%22round%22/%3E%3C/g%3E%3C/svg%3E">
 <script>/* เบราว์เซอร์เก่า (IE ฯลฯ): ใช้ ES5 เท่านั้น เพื่อแจ้งให้เปิดด้วยเบราว์เซอร์ใหม่ */
@@ -166,7 +166,7 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
     <div class="f"><label>อีเมล</label><input name="email" type="email" autocomplete="email"></div>
     <div class="f"><label>รหัสผ่าน</label><input name="password" type="password" autocomplete="current-password"></div>
     <div class="errs" id="eLog"></div><button class="btn" style="width:100%">เข้าสู่ระบบ</button>
-    <p style="margin:10px 0 0;text-align:center"><a href="#" id="goForgot" style="color:var(--cyan);text-decoration:underline;font-size:14px">ลืมรหัสผ่าน?</a></p>
+    <p style="margin:10px 0 0;text-align:center"><a href="#" id="goForgot" style="color:var(--cyan);text-decoration:underline;font-size:14px">ลืมรหัสผ่าน?</a> <span style="color:var(--mut)">·</span> <a href="#" id="goResend" style="color:var(--cyan);text-decoration:underline;font-size:14px">ยังไม่ได้รับอีเมลยืนยัน? ส่งอีกครั้ง</a></p>
   </form>
   <form id="fForgot" novalidate hidden>
     <p style="margin:0 0 4px;font-size:15px"><b>ลืมรหัสผ่าน?</b> กรอกอีเมลที่สมัครไว้ ระบบจะส่งลิงก์ตั้งรหัสผ่านใหม่ให้</p>
@@ -242,7 +242,7 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
 <script src="vendor/supabase.js"></script>
 <script src="store.common.js?v=20261012b"></script>
 <script src="store.local.js?v=20261012b"></script>
-<script src="store.supabase.js?v=20261117c"></script>
+<script src="store.supabase.js?v=20261118b"></script>
 <script src="site-traffic.js?v=20261028b" defer></script>
 <script src="contact-form.js?v=20261028a" defer></script>
 <script>
@@ -596,11 +596,26 @@ $('#memBtn').onclick = () => {
   if (!DB.me()) return needLogin(null, true);
   location.href = 'profile.html';
 };
+/* [2026-11-18 ผู้ใช้สั่งแก้ระบบสมัคร/ยืนยันอีเมล] ตัวเตือนพิมพ์โดเมนอีเมลผิดที่พบบ่อย (เคยมีสมาชิกสมัครด้วย gmail.con แล้วไม่มีทางได้อีเมลยืนยัน) */
+const EMAIL_TYPOS = { 'gmail.con': 'gmail.com', 'gmail.co': 'gmail.com', 'gmail.cm': 'gmail.com', 'gmail.comm': 'gmail.com', 'gmial.com': 'gmail.com', 'gmai.com': 'gmail.com', 'gnail.com': 'gmail.com', 'gmil.com': 'gmail.com', 'hotmail.con': 'hotmail.com', 'hotmial.com': 'hotmail.com', 'hotmai.com': 'hotmail.com', 'yahoo.con': 'yahoo.com', 'yaho.com': 'yahoo.com', 'outlook.con': 'outlook.com', 'outlok.com': 'outlook.com', 'icloud.con': 'icloud.com' };
+const suggestEmail = (em) => { const m = /^(.+)@([^@]+)$/.exec(String(em || '').trim().toLowerCase()); return m && EMAIL_TYPOS[m[2]] ? m[1] + '@' + EMAIL_TYPOS[m[2]] : ''; };
+/* ส่งอีเมลยืนยันอีกครั้ง (ใช้กับสมาชิกที่ลิงก์หมดอายุ/ไม่ได้รับอีเมล) — ตอบข้อความเดียวกันไม่ว่าอีเมลนั้นมีบัญชีหรือไม่ */
+$('#goResend').onclick = async (e) => { e.preventDefault(); const em = String($('#fLog').email.value || '').trim();
+  if (!DB.resendConfirm) return showErr($('#eLog'), ['โหมดทดลองไม่รองรับการส่งอีเมลยืนยัน']);
+  if (!em) return showErr($('#eLog'), ['กรอกอีเมลที่สมัครไว้ในช่อง "อีเมล" ด้านบนก่อน แล้วกด "ส่งอีกครั้ง"']);
+  const a = e.currentTarget; a.style.pointerEvents = 'none'; a.style.opacity = '.5'; const r = await DB.resendConfirm(em); a.style.pointerEvents = ''; a.style.opacity = '';
+  if (!r.ok) return showErr($('#eLog'), r.errors);
+  showErr($('#eLog'), ['ส่งอีเมลยืนยันให้อีกครั้งแล้ว หากอีเมลนี้สมัครไว้และยังไม่ได้ยืนยัน — ลิงก์มีอายุจำกัด ควรกดภายในเวลาที่กำหนด · ไม่พบอีเมล? ลองดูในกล่องสแปม/ขยะ']); };
 $('#fReg').onsubmit = async (e) => { e.preventDefault(); const f = Object.fromEntries(new FormData(e.target)); f.agree = e.target.agree.checked; f.ref = getRef();
-  const r = await DB.register(f); if (!r.ok) return showErr($('#eReg'), r.errors);
+  const sg = suggestEmail(f.email);
+  if (sg && confirm('อีเมลนี้พิมพ์ผิดหรือไม่?\n\nที่กรอก: ' + String(f.email).trim() + '\nหมายถึง: ' + sg + ' ใช่ไหม?\n\nกด "ตกลง" เพื่อใช้ ' + sg + '\nกด "ยกเลิก" เพื่อใช้ตามที่กรอก')) { f.email = sg; e.target.email.value = sg; }
+  const sb = e.target.querySelector('button:not([type=button])'); if (sb) sb.disabled = true;   // กันกดซ้ำระหว่างส่ง (เคยเกิด 500 จากสมัครซ้อน 2 คำขอ)
+  let r; try { r = await DB.register(f); } finally { if (sb) sb.disabled = false; }
+  if (!r.ok) return showErr($('#eReg'), r.errors);
   if (r.needsConfirm) { e.target.reset(); showErr($('#eReg'), []); authTab(false); showErr($('#eLog'), ['ส่งอีเมลยืนยันแล้ว — กดลิงก์ในอีเมล แล้วเข้าสู่ระบบที่นี่ (ถ้าไม่พบอีเมล ให้ดูในกล่องสแปม/ขยะ)']); return; }
   e.target.reset(); showErr($('#eReg'), []); closeAll(); toast('สมัครสมาชิกสำเร็จ 🎉'); renderStatic(); if (afterAuth) afterAuth(); };
-$('#fLog').onsubmit = async (e) => { e.preventDefault(); const f = new FormData(e.target), r = await DB.login(f.get('email'), f.get('password'));
+$('#fLog').onsubmit = async (e) => { e.preventDefault(); const f = new FormData(e.target), lb = e.target.querySelector('button:not([type=button])'); if (lb) lb.disabled = true;
+  let r; try { r = await DB.login(f.get('email'), f.get('password')); } finally { if (lb) lb.disabled = false; }
   if (!r.ok) return showErr($('#eLog'), r.errors); e.target.reset(); showErr($('#eLog'), []); closeAll(); toast('ยินดีต้อนรับกลับ'); renderStatic(); if (afterAuth) afterAuth(); };
 
 /* ===== สั่งซื้อ ===== */
@@ -661,7 +676,11 @@ window.addEventListener('db:change', () => { renderStatic(); renderBlocks(); ren
 }
 // กลับจากลิงก์ยืนยันอีเมล: ตัว token ที่ติดมากับแถบที่อยู่ (#access_token=…) ลบออกทันที (ไม่ให้ค้างในประวัติ/ถูกแคปหน้าจอ) แล้วเปิดหน้าเข้าสู่ระบบพร้อมข้อความแจ้ง — ตัวร้านไม่รับ session จากลิงก์ ลูกค้าต้องล็อกอินเอง
 const afterConfirm = () => { if (/access_token=/.test(location.hash) && /[#&]type=signup(&|$)/.test(location.hash)) { history.replaceState(null, '', location.pathname + location.search); if (!DB.me()) { toast('ยืนยันอีเมลสำเร็จ ✔ เข้าสู่ระบบได้เลย'); needLogin(null, false); } } };
-DB.init().then(boot).then(afterConfirm).then(DFCommon.hideSplash, (e) => { DFCommon.hideSplash(); fatal(e); });
+/* [2026-11-18] กดลิงก์ยืนยันอีเมลที่หมดอายุ/ถูกใช้ไปแล้ว → Supabase ส่งกลับมาพร้อม #error=…&error_code=otp_expired เดิมหน้าเปล่าไม่บอกอะไร (สมาชิกติดทางตัน) → บอกชัดๆ + เปิดหน้าเข้าสู่ระบบให้กด "ส่งอีเมลยืนยันอีกครั้ง" */
+const confirmLinkError = () => { const h = new URLSearchParams(location.hash.replace(/^#/, '')), code = h.get('error_code') || (h.get('error') && h.get('error_description') ? h.get('error') : '');
+  if (!code) return; history.replaceState(null, '', location.pathname + location.search); needLogin(null, false);
+  showErr($('#eLog'), /otp_expired|access_denied/.test(code) ? ['ลิงก์ยืนยันอีเมลหมดอายุหรือถูกใช้ไปแล้ว — ถ้ายืนยันแล้ว เข้าสู่ระบบได้เลย · ถ้ายังไม่ได้ยืนยัน กรอกอีเมลแล้วกด "ยังไม่ได้รับอีเมลยืนยัน? ส่งอีกครั้ง" ด้านล่าง'] : ['ลิงก์ในอีเมลไม่ถูกต้อง — กรอกอีเมลแล้วกด "ส่งอีกครั้ง" เพื่อขอลิงก์ใหม่']); };
+DB.init().then(boot).then(afterConfirm).then(confirmLinkError).then(DFCommon.hideSplash, (e) => { DFCommon.hideSplash(); fatal(e); });
 </script>
 <script src="site-track.js?v=20261031a" data-page="home"></script>
 </body>

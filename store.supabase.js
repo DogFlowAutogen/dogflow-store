@@ -76,7 +76,7 @@
     if (/User already registered|already been registered/i.test(m)) return 'อีเมลนี้สมัครแล้ว — เข้าสู่ระบบแทน';
     if (/Email not confirmed/i.test(m)) return 'ยังไม่ได้ยืนยันอีเมล — ตรวจกล่องจดหมายแล้วกดลิงก์ยืนยัน (ถ้าไม่พบ ให้ดูในกล่องสแปม/ขยะ)';
     if (/banned|User is banned/i.test(m)) return 'บัญชีนี้ถูกระงับ — ติดต่อแอดมิน';
-    if (/rate limit|too many/i.test(m)) return 'ทำรายการถี่เกินไป กรุณารอสักครู่';
+    if (/rate limit|too many|security purposes|once every/i.test(m)) return 'ทำรายการถี่เกินไป กรุณารอสักครู่ (ขอส่งอีเมลได้ครั้งละ 1 ครั้งต่อนาที)';
     return m;
   }
   const fail = (e) => ({ ok: false, errors: [tr(e)] });
@@ -311,6 +311,9 @@
       if (er.length) return { ok: false, errors: er };
       const { data, error } = await sb.auth.signUp({ email: f.email.trim().toLowerCase(), password: f.password, options: { data: Object.assign({ name: f.name.trim(), phone: f.phone.replace(/[-\s]/g, '') }, /^[A-Za-z0-9]{6,12}$/.test(f.ref || '') ? { ref: f.ref.toUpperCase() } : {}) } });
       if (error) return fail(error);
+      // [2026-11-18 ผู้ใช้แจ้ง "สมัครแล้วไม่มีอีเมลยืนยัน"] อีเมลที่ยืนยันแล้วสมัครซ้ำ: Supabase ตอบสำเร็จหลอก (ไม่สร้างผู้ใช้ ไม่ส่งอีเมล · Log เป็น user_repeated_signup) และคืน user ที่ identities ว่างเปล่า
+      //   เดิมหน้าเว็บขึ้น "ส่งอีเมลยืนยันแล้ว" ทั้งที่ไม่มีอีเมลไปเลย → ตอนนี้บอกตรงๆ ว่าอีเมลนี้สมัครแล้ว (ยอมรับว่าเปิดเผยว่าอีเมลนั้นเป็นสมาชิก ตามที่ผู้ใช้เลือก)
+      if (data && data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) return { ok: false, errors: ['อีเมลนี้สมัครสมาชิกไว้แล้ว — เข้าสู่ระบบได้เลย (ถ้าจำรหัสผ่านไม่ได้ กด "ลืมรหัสผ่าน")'] };
       if (!data.session) return { ok: true, needsConfirm: true };            // เปิด "Confirm email" ไว้ → ต้องกดลิงก์ในอีเมลก่อน
       await loadMine(); emit(); return { ok: true, member: S.me };
     },
@@ -321,6 +324,14 @@
       emit(); return { ok: true, member: S.me };
     },
     // ลืมรหัสผ่าน: ส่งลิงก์ตั้งรหัสใหม่ไปอีเมล (ไปหน้า reset.html) — ตอบข้อความเดียวกันไม่ว่าอีเมลนั้นมีบัญชีหรือไม่ (กันเดาว่าใครเป็นสมาชิก) · ติดเพดานความถี่ → บอกให้รอ
+    // [2026-11-18] ส่งอีเมลยืนยันการสมัครอีกครั้ง (ลิงก์เดิมหมดอายุ/ไม่ได้รับ) — ตอบสำเร็จเหมือนกันไม่ว่าอีเมลนั้นมีบัญชีหรือไม่ · ติดเพดานความถี่ 1 ครั้ง/นาที → tr() แปลเป็นให้รอ
+    async resendConfirm(email) {
+      email = String(email || '').trim().toLowerCase();
+      if (!/^\S+@\S+\.\S+$/.test(email)) return { ok: false, errors: ['อีเมลไม่ถูกต้อง'] };
+      const { error } = await sb.auth.resend({ type: 'signup', email });
+      if (error) return fail(error);
+      return { ok: true };
+    },
     async forgotPassword(email) {
       email = String(email || '').trim();
       if (!/^\S+@\S+\.\S+$/.test(email)) return { ok: false, errors: ['อีเมลไม่ถูกต้อง'] };
