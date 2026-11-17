@@ -11,7 +11,7 @@
   const sb = w.supabase.createClient(CFG.supabaseUrl, CFG.supabaseAnonKey, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } });
 
   const DEFAULTS = { brand: 'DogFlow Auto Gen', version: 'v1.0', tagline: '', heroTitle: '', heroSub: '', heroCta: 'เลือกแพ็กเกจเลย', promoText: '', installGuide: '', promoEndsAt: '', lineId: '', contactEmail: '', paymentInfo: '', paymentQr: '', heroImage: '', rules: '', affEnabled: true, affHoldDays: 7, affMin: 300, affTerms: '' };
-  const S = { user: null, me: null, isAdmin: false, settings: Object.assign({}, DEFAULTS), categories: [], brands: [], products: [], releases: [], latest: [], promos: [], banners: [], blocks: [], commissions: [], payouts: [], tickets: [], contacts: [], aff: null, reqs: [], modes: [], showcase: [], works: [], tutorials: [], reviews: [], faqs: [], coupons: [], members: [], orders: [], notices: [], audit: [] };
+  const S = { user: null, me: null, isAdmin: false, settings: Object.assign({}, DEFAULTS), categories: [], brands: [], products: [], releases: [], latest: [], promos: [], banners: [], blocks: [], commissions: [], payouts: [], tickets: [], contacts: [], aff: null, affIp: [], reqs: [], modes: [], showcase: [], works: [], tutorials: [], reviews: [], faqs: [], coupons: [], members: [], orders: [], notices: [], audit: [] };
 
   /* ---------- แปลงแถวฐานข้อมูล ↔ วัตถุในแอป ---------- */
   const IN = {
@@ -105,6 +105,8 @@
     const tkq = await sb.from('feedback_tickets').select('*').order('created_at', { ascending: false }).limit(S.isAdmin ? 1000 : 100);   // แอดมินเห็นทั้งหมด · สมาชิกเห็นเฉพาะของตัวเอง (RLS)
     S.tickets = tkq.error ? [] : tkq.data.map(IN.tickets);
     if (S.isAdmin) { const cq = await sb.from('contact_messages').select('*').order('created_at', { ascending: false }).limit(300); S.contacts = cq.error ? [] : cq.data.map((r) => ({ id: r.id, createdAt: r.created_at, name: r.name, email: r.email, phone: r.phone || '', subject: r.subject, message: r.message, status: r.status, lineSent: !!r.line_sent, emailSent: !!r.email_sent, notifyError: r.notify_error || '' })); } else S.contacts = [];   // [2026-10-28] ข้อความจากฟอร์มติดต่อ (เฉพาะแอดมิน · ยังไม่ได้ลงตาราง = ว่างเงียบๆ)
+    // [2026-11-17] เฟส 3 ข้อ 1: สัญญาณ IP ผู้แนะนำ/ผู้ถูกแนะนำ (เฉพาะแอดมิน) — ฟังก์ชันยังไม่มีบนฐานข้อมูล/ไม่ใช่แอดมิน = ว่าง ไม่ให้พังหน้า
+    if (S.isAdmin) { const iq = await sb.rpc('admin_aff_ip_flags'); S.affIp = iq.error ? [] : (iq.data || []); }
     const pays = groupBy(p.data, 'order_id'), keys = groupBy(k.data, 'order_id');
     // [2026-10-14] ต่ออายุคีย์เดิม: ออเดอร์ที่ใช้ต่อไม่มีแถวคีย์ของตัวเอง → ยืมแถวคีย์เดิมมาแสดงในออเดอร์นั้น (ติดธง renewed ไม่ให้นับซ้ำในรายการคีย์)
     for (const kr of k.data) for (const e of (kr.renewed_orders || [])) { const [oid, slot] = String(e).split('|'); (keys[oid] = keys[oid] || []).push(Object.assign({}, kr, { slot, renewed: true })); }
@@ -434,7 +436,7 @@
     async fbDelete(id) { const t = S.tickets.find((x) => x.id === id); if (t) { const ps = (t.attachments || []).map((a) => a.path).filter(Boolean); if (ps.length) { try { await sb.storage.from('feedback').remove(ps); } catch (e) { /* ลบไฟล์ไม่ได้ก็ลบรายการต่อ */ } } }
       const { error } = await sb.from('feedback_tickets').delete().eq('id', id); if (error) return fail(error); await loadDynamic(); emit(); return { ok: true }; },
     // ----- ตัวแทนขายโปรแกรม (Affiliate) -----
-    aff: () => S.aff, async affRefresh() { await loadAff(); emit(); return S.aff; },
+    affIp: () => S.affIp || [], aff: () => S.aff, async affRefresh() { await loadAff(); emit(); return S.aff; },
     // [2026-11-17] เฟส 1 กันมิจฉาชีพ: ต้องกดสมัครรับทราบเงื่อนไข + ยืนยันตัวตนผ่าน LINE ก่อนถึงได้ลิงก์แนะนำ
     async affOptIn() { const { error } = await sb.rpc('aff_opt_in'); if (error) return fail(error); await loadAff(); emit(); return { ok: true }; },
     async affSavePayout(f) { const { error } = await sb.rpc('aff_save_payout_info', { p_method: f.method, p_bank: f.bank || '', p_account: f.account || '', p_name: f.name || '' }); if (error) return fail(error); await loadMine(); emit(); return { ok: true }; },

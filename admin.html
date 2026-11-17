@@ -56,7 +56,7 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
 <script src="vendor/supabase.js"></script>
 <script src="store.common.js?v=20261012b"></script>
 <script src="store.local.js?v=20261012b"></script>
-<script src="store.supabase.js?v=20261116a"></script>
+<script src="store.supabase.js?v=20261117a"></script>
 <script src="avatar.js"></script>
 <script>
 const $ = (s) => document.querySelector(s), E = DB.esc, B = DB.baht;
@@ -359,6 +359,8 @@ const V = {
       const pb = maxInWin([...oc.values()]); if (pb >= AFL.orders) fl.push('เกิดค่าคอมจาก ' + pb + ' ออเดอร์ภายใน 1 ชั่วโมง');
       const inst = refs.filter((x) => { if (!x.referredAt) return false; const f = allOrders.filter((o) => o.memberId === x.id && ['paid', 'done'].includes(o.status)).map((o) => new Date(o.createdAt).getTime()).sort((a, b) => a - b)[0]; return f && f - new Date(x.referredAt).getTime() <= AFL.win; }).length;
       if (inst >= AFL.instant) fl.push('ซื้อภายใน 1 ชั่วโมงหลังสมัคร ' + inst + ' คน');
+      // [2026-11-17] เฟส 3 ข้อ 1: สัญญาณ IP (ข้อมูลจากฐานข้อมูล แสดง IP แบบปิดท้าย) — เครือข่ายร่วมกันอาจเป็นบ้าน/ร้านเน็ตเดียวกัน จึงเป็นแค่สัญญาณ
+      (DB.affIp ? DB.affIp() : []).filter((x) => x.referrer_id === id).forEach((x) => fl.push(x.kind === 'self' ? 'ผู้ถูกแนะนำ ' + x.n + ' คนใช้ IP เดียวกับผู้แนะนำ (' + x.ip_mask + ')' : 'ผู้ถูกแนะนำ ' + x.n + ' คนใช้ IP เดียวกัน (' + x.ip_mask + ')'));
       return fl; };
     const flagged = mem.map((m) => ({ id: m.id, fl: flagsOf(m.id) })).filter((x) => x.fl.length);
     const TABSX = [['overview', '📊 ภาพรวม'], ['rates', '💰 อัตราค่าคอม'], ['agents', '🏆 ตัวแทน' + (flagged.length ? ' ⚠' + flagged.length : '')], ['refs', '🤝 ผู้ถูกแนะนำ'], ['comm', '🧾 ค่าคอมทั้งหมด'], ['pay', '💸 คำขอถอน' + (openPo.length ? ' (' + openPo.length + ')' : '')], ['set', '⚙️ ตั้งค่า']];
