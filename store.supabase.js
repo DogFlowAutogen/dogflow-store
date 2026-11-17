@@ -300,16 +300,18 @@
       } catch (e) { return fail(e); }
     },
     // ----- สมาชิก -----
-    async register(f) {
+    async register(f, opts) {   // opts.validateOnly = ตรวจข้อมูลอย่างเดียว ไม่สมัครจริง (ให้หน้าเว็บตรวจก่อนถามยืนยันเบอร์)
       const er = [];
       if (!f.name || f.name.trim().length < 2) er.push('กรอกชื่อ');
       if (!/^\S+@\S+\.\S+$/.test(f.email || '')) er.push('อีเมลไม่ถูกต้อง');
-      if (!/^0\d{8,9}$/.test((f.phone || '').replace(/[-\s]/g, ''))) er.push('เบอร์โทรไม่ถูกต้อง');
+      const pn = C.normalizePhone(f.phone);   // [2026-11-18] กติกาเบอร์มือถือไทยกลาง (06/08/09 10 หลัก · รับ +66/เลขไทย/ขีด/วงเล็บ · ปฏิเสธเบอร์ปลอมชัดๆ)
+      if (!pn.ok) er.push(pn.message);
       if (!f.password || f.password.length < 8) er.push('รหัสผ่านอย่างน้อย 8 ตัว');
       if (f.password !== f.password2) er.push('ยืนยันรหัสผ่านไม่ตรงกัน');
       if (!f.agree) er.push('ต้องยอมรับเงื่อนไขการใช้งาน');
       if (er.length) return { ok: false, errors: er };
-      const { data, error } = await sb.auth.signUp({ email: f.email.trim().toLowerCase(), password: f.password, options: { data: Object.assign({ name: f.name.trim(), phone: f.phone.replace(/[-\s]/g, '') }, /^[A-Za-z0-9]{6,12}$/.test(f.ref || '') ? { ref: f.ref.toUpperCase() } : {}) } });
+      if (opts && opts.validateOnly) return { ok: true, validated: true };
+      const { data, error } = await sb.auth.signUp({ email: f.email.trim().toLowerCase(), password: f.password, options: { data: Object.assign({ name: f.name.trim(), phone: pn.phone }, /^[A-Za-z0-9]{6,12}$/.test(f.ref || '') ? { ref: f.ref.toUpperCase() } : {}) } });
       if (error) return fail(error);
       // [2026-11-18 ผู้ใช้แจ้ง "สมัครแล้วไม่มีอีเมลยืนยัน"] อีเมลที่ยืนยันแล้วสมัครซ้ำ: Supabase ตอบสำเร็จหลอก (ไม่สร้างผู้ใช้ ไม่ส่งอีเมล · Log เป็น user_repeated_signup) และคืน user ที่ identities ว่างเปล่า
       //   เดิมหน้าเว็บขึ้น "ส่งอีเมลยืนยันแล้ว" ทั้งที่ไม่มีอีเมลไปเลย → ตอนนี้บอกตรงๆ ว่าอีเมลนี้สมัครแล้ว (ยอมรับว่าเปิดเผยว่าอีเมลนั้นเป็นสมาชิก ตามที่ผู้ใช้เลือก)

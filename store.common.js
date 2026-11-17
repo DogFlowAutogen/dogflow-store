@@ -243,5 +243,27 @@
     return '<article class="ft" data-m="' + esc(m.id) + '">' + mIcon(m, 'ft-ic') + '<div class="ft-h">' + (m.tag ? '<small>' + nb(m.tag) + '</small>' : '') + '<h3>' + nb(m.title) + '</h3></div>' + (m.desc ? '<p class="ft-d">' + nb(m.desc) + '</p>' : '') +
       (pts.length ? '<ul class="ft-p">' + pts.map((p) => '<li><span>' + esc(p[0]) + '</span><em>' + nb(p[1]) + '</em></li>').join('') + '</ul>' : '') + '</article>';
   }).join('');
-  w.DFCommon = { modeCards, genreCards, featCards, modeTotal, reqCards, thaiDateTime, esc, baht, uid, embed, clip, validate, price, activePromos, activeBanners, activeBlocks, BLOCKS, BLOCK_COLS, blockFields, blockHealth, cartId, FB, verCmp, couponCalc, hideSplash };
+  /* [2026-11-18 ผู้ใช้สั่งวางแผน/ทำระบบเบอร์โทรตอนสมัคร] กติกาเบอร์มือถือไทย — ใช้ที่เดียวกันทุกหน้า (ต้องตรงกับฟังก์ชันฐานข้อมูล _phone_norm/_phone_ok ใน phone-strict-20261118.sql)
+     คืน { ok, phone (10 หลักล้วน), formatted (081-234-5678), message (ถ้าไม่ผ่าน), warn (ผ่านแต่น่าสงสัย → ให้ผู้ใช้ยืนยัน) }
+     รับ: เว้นวรรค ขีด จุด วงเล็บ · +66 / 66 / 0066 / +66 (0)8x · เลขไทย ๐-๙ · เลขเต็มความกว้าง ０-９
+     ผ่าน: มือถือ 10 หลัก ขึ้นต้น 06 / 08 / 09 เท่านั้น · ปฏิเสธเบอร์ปลอมชัดๆ (0 ตามด้วยเลขเดียวกัน 9 ตัว · 0123456789 · 0987654321) */
+  function normalizePhone(raw) {
+    let s = String(raw == null ? '' : raw).trim();
+    s = s.replace(/[๐-๙]/g, (c) => '๐๑๒๓๔๕๖๗๘๙'.indexOf(c)).replace(/[０-９]/g, (c) => String(c.charCodeAt(0) - 0xFF10));
+    const plus = /^\s*\+/.test(s);
+    let d = s.replace(/\(0\)/g, '0').replace(/[^0-9]/g, '');
+    if (!d) return { ok: false, message: 'กรอกเบอร์โทร' };
+    if (d.startsWith('0066')) d = '0' + d.slice(4).replace(/^0/, '');
+    else if (d.startsWith('66') && (plus || d.length === 11)) d = '0' + d.slice(2).replace(/^0/, '');
+    if (d.length < 9 || d.length > 10) return { ok: false, message: 'เบอร์โทรต้องมี 10 หลัก (ตอนนี้มี ' + d.length + ' หลัก)' };
+    if (/^0[2-57]/.test(d) && d.length === 9) return { ok: false, message: 'ไม่รับโทรศัพท์บ้าน — กรุณากรอกเบอร์มือถือ (ขึ้นต้น 06, 08 หรือ 09)' };
+    if (d.length !== 10) return { ok: false, message: 'เบอร์มือถือต้องมี 10 หลัก (ตอนนี้มี ' + d.length + ' หลัก)' };
+    if (!/^0[689]/.test(d)) return { ok: false, message: 'เบอร์มือถือต้องขึ้นต้น 06, 08 หรือ 09' };
+    if (/^0(\d)\1{8}$/.test(d) || d === '0123456789' || d === '0987654321') return { ok: false, message: 'เบอร์นี้ดูไม่ใช่เบอร์จริง — กรุณากรอกเบอร์ที่ติดต่อได้' };
+    const formatted = d.replace(/^(\d{3})(\d{3})(\d{4})$/, '$1-$2-$3');
+    const fake = /(12345678|87654321)/.test(d) || /(\d)\1{5,}/.test(d);
+    return { ok: true, phone: d, formatted, warn: fake ? 'เบอร์ ' + formatted + ' ดูเหมือนเบอร์ตัวอย่าง (เลขเรียงหรือซ้ำกันมาก)' : '' };
+  }
+
+  w.DFCommon = { modeCards, genreCards, featCards, modeTotal, reqCards, thaiDateTime, esc, baht, uid, embed, clip, validate, price, activePromos, activeBanners, activeBlocks, BLOCKS, BLOCK_COLS, blockFields, blockHealth, cartId, FB, verCmp, couponCalc, hideSplash, normalizePhone };
 })(window);
