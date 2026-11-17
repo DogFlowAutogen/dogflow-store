@@ -606,15 +606,28 @@ $('#goResend').onclick = async (e) => { e.preventDefault(); const em = String($(
   const a = e.currentTarget; a.style.pointerEvents = 'none'; a.style.opacity = '.5'; const r = await DB.resendConfirm(em); a.style.pointerEvents = ''; a.style.opacity = '';
   if (!r.ok) return showErr($('#eLog'), r.errors);
   showErr($('#eLog'), ['ส่งอีเมลยืนยันให้อีกครั้งแล้ว หากอีเมลนี้สมัครไว้และยังไม่ได้ยืนยัน — ลิงก์มีอายุจำกัด ควรกดภายในเวลาที่กำหนด · ไม่พบอีเมล? ลองดูในกล่องสแปม/ขยะ']); };
+/* [2026-11-18] หน้ายืนยันของร้าน (แทนกล่อง confirm() ของเบราว์เซอร์/วินโดว์) — คืนค่า Promise<boolean> · Esc/คลิกพื้นหลัง = ยกเลิก */
+if (!document.getElementById("dfcCss")) { const st = document.createElement("style"); st.id = "dfcCss"; st.textContent = ".dfc{position:fixed;inset:0;z-index:1600;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(10,8,5,.66);backdrop-filter:blur(3px);animation:dfcF .16s ease-out}.dfc-box{width:min(440px,100%);background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:20px;padding:26px 22px 20px;text-align:center;box-shadow:0 34px 70px -24px rgba(0,0,0,.7);animation:dfcU .2s ease-out}.dfc-ic{width:56px;height:56px;margin:0 auto 12px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px;background:color-mix(in srgb,var(--accent) 16%,var(--surface))}.dfc-box h3{margin:0 0 6px;font-size:19px}.dfc-box p{margin:0;color:var(--mut);font-size:14px;line-height:1.55}.dfc-val{margin:14px 0 4px;padding:12px 10px;border-radius:12px;background:var(--bg);border:1px dashed var(--line);font-size:24px;font-weight:700;letter-spacing:.5px;word-break:break-all}.dfc-val.sm{font-size:17px;letter-spacing:0}.dfc-old{display:block;margin:0 0 2px;font-size:13px;font-weight:500;color:var(--mut);text-decoration:line-through;letter-spacing:0}.dfc-note{margin-top:12px;padding:9px 12px;border-radius:10px;background:color-mix(in srgb,#e0a100 14%,var(--surface));font-size:13px;color:var(--fg);text-align:left}.dfc-act{display:flex;flex-direction:column;gap:8px;margin-top:18px}.dfc-act .btn{width:100%}@keyframes dfcF{from{opacity:0}}@keyframes dfcU{from{opacity:0;transform:translateY(14px) scale(.97)}}@media(min-width:480px){.dfc-act{flex-direction:row-reverse}}"; document.head.appendChild(st); }
+const dfConfirm = (o) => new Promise((res) => {
+  const mk = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
+  const ov = mk("div", "dfc"), bx = mk("div", "dfc-box"); ov.setAttribute("role", "dialog"); ov.setAttribute("aria-modal", "true"); bx.appendChild(mk("div", "dfc-ic", o.icon || "❓")); bx.appendChild(mk("h3", "", o.title || ""));
+  if (o.text) bx.appendChild(mk("p", "", o.text));
+  if (o.value) { const v = mk("div", "dfc-val" + (o.small ? " sm" : ""), o.value); if (o.old) { const s = mk("span", "dfc-old", o.old); v.insertBefore(s, v.firstChild); } bx.appendChild(v); }
+  if (o.note) bx.appendChild(mk("div", "dfc-note", o.note));
+  const act = mk("div", "dfc-act"), ok = mk("button", "btn", o.ok || "ตกลง"), no = mk("button", "btn ghost", o.cancel || "ยกเลิก"); ok.type = no.type = "button"; act.appendChild(ok); act.appendChild(no); bx.appendChild(act); ov.appendChild(bx);
+  const done = (v) => { document.removeEventListener("keydown", kd, true); ov.remove(); res(v); }, kd = (e) => { if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); done(false); } };
+  ok.onclick = () => done(true); no.onclick = () => done(false); ov.addEventListener("mousedown", (e) => { if (e.target === ov) done(false); }); document.addEventListener("keydown", kd, true);
+  document.body.appendChild(ov); ok.focus();
+});
 $('#fReg').onsubmit = async (e) => { e.preventDefault(); const f = Object.fromEntries(new FormData(e.target)); f.agree = e.target.agree.checked; f.ref = getRef();
   const sg = suggestEmail(f.email);
-  if (sg && confirm('อีเมลนี้พิมพ์ผิดหรือไม่?\n\nที่กรอก: ' + String(f.email).trim() + '\nหมายถึง: ' + sg + ' ใช่ไหม?\n\nกด "ตกลง" เพื่อใช้ ' + sg + '\nกด "ยกเลิก" เพื่อใช้ตามที่กรอก')) { f.email = sg; e.target.email.value = sg; }
+  if (sg && await dfConfirm({ icon: '✉️', title: 'อีเมลนี้พิมพ์ผิดหรือไม่?', text: 'ตรวจพบว่าชื่อโดเมนอาจสะกดผิด — อีเมลยืนยันจะถูกส่งไปที่อีเมลนี้', old: String(f.email).trim(), value: sg, small: true, ok: 'ใช้ ' + sg, cancel: 'ใช้ตามที่กรอก' })) { f.email = sg; e.target.email.value = sg; }
   /* [2026-11-18] เบอร์โทร: ตรวจข้อมูลทั้งฟอร์มก่อน (ไม่สมัครจริง) → ปรับเป็นรูปแบบ 081-234-5678 ในช่อง → ถ้าเบอร์ดูเหมือนตัวอย่างให้ยืนยัน → ถามยืนยันเบอร์อีกครั้งเพราะสมัครแล้วแก้เองไม่ได้ */
   if (DB.mode === 'supabase') {
     const v = await DB.register(f, { validateOnly: true }); if (!v.ok) return showErr($('#eReg'), v.errors);
     const pn = DFCommon.normalizePhone(f.phone); e.target.phone.value = pn.formatted; f.phone = pn.phone;
-    if (pn.warn && !confirm(pn.warn + '\n\nกด "ตกลง" เพื่อใช้เบอร์นี้ต่อ\nกด "ยกเลิก" เพื่อกลับไปแก้เบอร์')) { e.target.phone.focus(); return; }
-    if (!confirm('ตรวจเบอร์โทรอีกครั้ง\n\n   ' + pn.formatted + '\n\nสมัครแล้วแก้เบอร์เองไม่ได้ (ต้องติดต่อทีมงาน) — ถูกต้องใช่ไหม?')) { e.target.phone.focus(); return; }
+    if (pn.warn && !(await dfConfirm({ icon: '⚠️', title: 'เบอร์นี้ดูเหมือนเบอร์ตัวอย่าง', text: pn.warn, value: pn.formatted, ok: 'ใช้เบอร์นี้ต่อ', cancel: 'กลับไปแก้เบอร์' }))) { e.target.phone.focus(); return; }
+    if (!(await dfConfirm({ icon: '📱', title: 'ตรวจเบอร์โทรอีกครั้ง', text: 'ทีมงานจะใช้เบอร์นี้ติดต่อคุณ', value: pn.formatted, note: '🔒 สมัครแล้วแก้เบอร์เองไม่ได้ (ต้องติดต่อทีมงาน)', ok: 'ถูกต้อง สมัครเลย', cancel: 'แก้ไขเบอร์' }))) { e.target.phone.focus(); return; }
   }
   const sb = e.target.querySelector('button:not([type=button])'); if (sb) sb.disabled = true;   // กันกดซ้ำระหว่างส่ง (เคยเกิด 500 จากสมัครซ้อน 2 คำขอ)
   let r; try { r = await DB.register(f); } finally { if (sb) sb.disabled = false; }
