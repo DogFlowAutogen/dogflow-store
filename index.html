@@ -77,7 +77,7 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
   <div class="affx-hd"><span class="eyebrow">ตัวแทนขาย</span><h2>แนะนำเพื่อน รับค่าคอมทุกยอดขาย</h2><p class="sub">สมาชิกทุกคนมีลิงก์แนะนำของตัวเองอยู่แล้ว แชร์ลิงก์ ให้เพื่อนสมัครและซื้อ ค่าคอมเข้าบัญชีคุณอัตโนมัติ ตรวจสอบได้ทุกรายการ</p></div>
   <div class="affx-stats" id="affStats"></div>
   <div class="affx-steps"><div><i>1</i><b>สมัครสมาชิก</b><span>สมัครฟรี ได้ลิงก์แนะนำของคุณทันทีที่หน้าโปรไฟล์</span></div><div><i>2</i><b>แชร์ลิงก์</b><span>ส่งให้เพื่อนหรือโพสต์ที่ไหนก็ได้ ระบบจำลิงก์ไว้ 30 วัน</span></div><div><i>3</i><b>เพื่อนซื้อโปรแกรม</b><span>เมื่อแอดมินอนุมัติการชำระเงิน ค่าคอมเข้าบัญชีคุณ</span></div><div><i>4</i><b>ถอนเงิน</b><span id="affStep4"></span></div></div>
-  <div class="affx-rates"><h3>ค่าคอมต่อชิ้นตามแพ็กเกจ</h3><div id="affRates"></div></div>
+  <div class="affx-rates"><h3>ค่าคอมต่อชิ้นตามแพ็กเกจ</h3><div id="affRates"></div><p id="affTiers" hidden style="margin:10px 0 0;font-size:14px;color:var(--mut)"></p></div>
   <div class="affx-cta"><a class="btn gold" href="profile.html#aff">🪪 ไปรับลิงก์แนะนำของฉัน</a><span>ค่าคอมเป็นจำนวนคงที่ต่อชิ้น · ออเดอร์ที่ถูกยกเลิกไม่นับค่าคอม · ดูเงื่อนไขเต็มได้ในหน้าโปรไฟล์</span></div>
 </div></div></section>
 
@@ -276,8 +276,11 @@ function renderStatic() {
   // [2026-10-31] บล็อกตัวแทนขาย: ตัวเลขทั้งหมดมาจากข้อมูลร้านจริง (ค่าคอมต่อแพ็กเกจ · วันพัก · ขั้นต่ำถอน) — ไม่มีค่าคอม/ปิดระบบ = ซ่อนบล็อก
   { const sec = $('#affiliate'), rt = DB.list('products').filter((p) => p.active && p.commission > 0).sort((a, b) => a.price - b.price), hold = Number(s.affHoldDays) || 7, mn = Number(s.affMin) || 300;
     if (sec && s.affEnabled !== false && rt.length) {
-      const top = Math.max(...rt.map((p) => p.commission)), b = (n) => '฿' + Number(n).toLocaleString('th-TH');
-      $('#affStats').innerHTML = '<div><span>ค่าคอมสูงสุด</span><b>' + b(top) + '</b><em>ต่อ 1 ชิ้นที่ขายได้</em></div><div><span>พักค่าคอม</span><b>' + hold + ' วัน</b><em>แล้วถอนได้</em></div><div><span>ถอนขั้นต่ำ</span><b>' + b(mn) + '</b><em>โอนเข้าบัญชีที่คุณแจ้ง</em></div>';
+      /* [2026-11-17] ขั้นบันไดค่าคอม: ขายครบ N ชิ้น/เดือน ค่าคอมต่อชิ้นเพิ่มเป็น % ของค่าคอมฐาน (ค่าตั้งเดียวกับฝั่งฐานข้อมูล app_settings.affTier*) */
+      const tOn = s.affTierOn !== false && s.affTierOn !== 'false', t2n = Number(s.affTier2Min) || 5, t2p = Math.max(Number(s.affTier2Pct) || 125, 100), t3n = Number(s.affTier3Min) || 10, t3p = Math.max(Number(s.affTier3Pct) || 150, 100);
+      const base = Math.max(...rt.map((p) => p.commission)), top = tOn ? Math.round(base * t3p / 100) : base, b = (n) => '฿' + Number(n).toLocaleString('th-TH');
+      const tp = $('#affTiers'); if (tp) { tp.hidden = !tOn; if (tOn) { const bp = rt.find((p) => p.commission === base); tp.innerHTML = '🚀 <b>ขายเยอะ ค่าคอมต่อชิ้นเพิ่มขึ้น</b> (นับใหม่ทุกต้นเดือน): ขายได้ครบ <b>' + t2n + ' ชิ้น</b> ต่อเดือน รับ ' + t2p + '% ของค่าคอม · ครบ <b>' + t3n + ' ชิ้น</b> รับ ' + t3p + '% — เช่น ' + E(bp.name) + ' ' + b(base) + ' → ' + b(Math.round(base * t2p / 100)) + ' → ' + b(Math.round(base * t3p / 100)); } }
+      $('#affStats').innerHTML = '<div><span>ค่าคอมสูงสุด</span><b>' + b(top) + '</b><em>ต่อ 1 ชิ้นที่ขายได้' + (tOn ? ' (ระดับสูงสุด)' : '') + '</em></div><div><span>พักค่าคอม</span><b>' + hold + ' วัน</b><em>แล้วถอนได้</em></div><div><span>ถอนขั้นต่ำ</span><b>' + b(mn) + '</b><em>โอนเข้าบัญชีที่คุณแจ้ง</em></div>';
       $('#affStep4').textContent = 'ค่าคอมครบ ' + hold + ' วันแล้วกดขอถอนในโปรไฟล์ (ขั้นต่ำ ' + b(mn) + ') ทีมงานโอนให้';
       $('#affRates').innerHTML = rt.map((p) => '<div><span>' + E(p.name) + '</span><b>' + b(p.commission) + '</b></div>').join('');
       sec.hidden = false;
