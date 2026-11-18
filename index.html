@@ -22,7 +22,7 @@
 if(ok)return;window.__legacy=true;document.addEventListener('DOMContentLoaded',function(){var d=document.createElement('div');d.setAttribute('style','position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:#0b1222;color:#fff;font-family:Tahoma,sans-serif;text-align:center;padding:60px 20px');
 d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">เบราว์เซอร์นี้ไม่รองรับ</h2><p style="line-height:1.8;max-width:520px;margin:0 auto">Internet Explorer และเบราว์เซอร์รุ่นเก่าไม่รองรับระบบชำระเงินและความปลอดภัยของเว็บนี้<br>กรุณาเปิดด้วย <b>Microsoft Edge</b>, <b>Google Chrome</b>, <b>Safari</b> หรือ <b>Firefox</b> รุ่นล่าสุด<br>ใช้ได้ทั้งคอมพิวเตอร์ แท็บเล็ต และโทรศัพท์</p>';document.body.appendChild(d);});})();
 </script>
-<link rel="stylesheet" href="style.css?v=20261118v">
+<link rel="stylesheet" href="style.css?v=20261118aa">
 </head>
 <body>
 <div id="splash" role="status" aria-live="polite">
@@ -76,7 +76,7 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
 <section class="wrap" id="adsec" hidden><div class="carousel" id="ads"></div></section>
 <section class="wrap" id="brsec" hidden><div class="brands" id="brands"></div></section>
 <section class="sec" id="affiliate" hidden><div class="wrap"><div class="affx">
-  <div class="affx-hd"><span class="eyebrow">ตัวแทนขาย</span><h2>แนะนำเพื่อน รับค่าคอมทุกยอดขาย ยิ่งขายเยอะยิ่งได้เปอร์เซ็นต์สูงขึ้น</h2><p class="sub">สมาชิกทุกคนมีลิงก์แนะนำของตัวเองอยู่แล้ว แชร์ลิงก์ ให้เพื่อนสมัครและซื้อ ค่าคอมเข้าบัญชีคุณอัตโนมัติ ตรวจสอบได้ทุกรายการ · ขายได้มากขึ้นในแต่ละเดือน ค่าคอมต่อชิ้นเพิ่มขึ้นเองแบบขั้นบันได</p></div>
+  <div class="affx-hd"><span class="eyebrow">💰 โปรแกรมตัวแทนขาย</span><h2>แนะนำเพื่อน รับค่าคอมทุกยอดขาย<em>ยิ่งขายเยอะ ค่าคอมต่อชิ้นยิ่งเพิ่มขึ้น</em></h2><p class="sub">สมาชิกทุกคนมีลิงก์แนะนำของตัวเองอยู่แล้ว แชร์ให้เพื่อนสมัครและซื้อ ค่าคอมเข้าบัญชีคุณอัตโนมัติ ตรวจสอบได้ทุกรายการ · ขายได้มากขึ้นในแต่ละเดือน ค่าคอมต่อชิ้นเพิ่มขึ้นเองแบบขั้นบันได</p></div>
   <div class="affx-stats" id="affStats"></div>
   <div class="affx-steps"><div><i>1</i><b>สมัครสมาชิก</b><span>สมัครฟรี ได้ลิงก์แนะนำของคุณทันทีที่หน้าโปรไฟล์</span></div><div><i>2</i><b>แชร์ลิงก์</b><span>ส่งให้เพื่อนหรือโพสต์ที่ไหนก็ได้ ระบบจำลิงก์ไว้ 30 วัน</span></div><div><i>3</i><b>เพื่อนซื้อโปรแกรม</b><span>เมื่อแอดมินอนุมัติการชำระเงิน ค่าคอมเข้าบัญชีคุณทันที</span></div><div><i>4</i><b>ยิ่งขายยิ่งได้เพิ่ม</b><span>ขายครบตามเป้าในเดือนนั้น ค่าคอมต่อชิ้นขยับขึ้นระดับถัดไปอัตโนมัติ นับใหม่ทุกต้นเดือน</span></div><div><i>5</i><b>ถอนเงิน</b><span id="affStep4"></span></div></div>
   <div class="affx-rates"><h3>ค่าคอมต่อชิ้นตามแพ็กเกจ (ระดับเริ่มต้น)</h3><div id="affRates"></div><p id="affTiers" hidden style="margin:10px 0 0;font-size:14px;color:var(--mut)"></p></div>
@@ -284,7 +284,7 @@ function renderStatic() {
       const tp = $('#affTiers'); if (tp) { tp.hidden = !tOn; if (tOn) { const bp = rt.find((p) => p.commission === base); tp.innerHTML = '🚀 <b>ขายเยอะ ค่าคอมต่อชิ้นเพิ่มขึ้น</b> (นับใหม่ทุกต้นเดือน): ขายได้ครบ <b>' + t2n + ' ชิ้น</b> ต่อเดือน รับ ' + t2p + '% ของค่าคอม · ครบ <b>' + t3n + ' ชิ้น</b> รับ ' + t3p + '% — เช่น ' + E(bp.name) + ' ' + b(base) + ' → ' + b(Math.round(base * t2p / 100)) + ' → ' + b(Math.round(base * t3p / 100)); } }
       $('#affStats').innerHTML = '<div><span>ค่าคอมสูงสุด</span><b>' + b(top) + '</b><em>ต่อ 1 ชิ้นที่ขายได้' + (tOn ? ' (ระดับสูงสุด)' : '') + '</em></div><div><span>พักค่าคอม</span><b>' + hold + ' วัน</b><em>แล้วถอนได้</em></div><div><span>ถอนขั้นต่ำ</span><b>' + b(mn) + '</b><em>โอนเข้าบัญชีที่คุณแจ้ง</em></div>';
       $('#affStep4').textContent = 'ค่าคอมครบ ' + hold + ' วันแล้วกดขอถอนในโปรไฟล์ (ขั้นต่ำ ' + b(mn) + ') ทีมงานโอนให้';
-      $('#affRates').innerHTML = rt.map((p) => '<div><span>' + E(p.name) + '</span><b>' + b(p.commission) + '</b></div>').join('');
+      $('#affRates').innerHTML = rt.map((p) => '<div><span>' + E(String(p.name).replace(/ Auto Gen/, '')) + '</span><b>' + b(p.commission) + '</b></div>').join('');
       sec.hidden = false;
     } }
   { const mc = $('#mailCard'), em = (s.contactEmail || '').trim(); if (mc && /^[^\s@<>"']+@[^\s@<>"']+\.[^\s@<>"']+$/.test(em)) { mc.innerHTML = '<div class="mc-ic" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3.5 7l8.5 6 8.5-6"/></svg></div><div><b>ติดต่อทางอีเมล</b><span>สอบถามเพิ่มเติม แจ้งปัญหา หรือขอใบเสนอราคา ทีมงานจะตอบกลับทางอีเมล · ถ้ากดปุ่มแล้วไม่มีอะไรเกิดขึ้น แปลว่าเครื่องยังไม่ได้ตั้งโปรแกรมอีเมล ให้กด "คัดลอกอีเมล" แล้วส่งจากอีเมลของคุณได้เลย</span><b class="mc-addr">' + E(em) + '</b><span class="mc-btns"><a class="btn sm" href="mailto:' + encodeURI(em) + '" data-contact>✉ ส่งข้อความถึงเรา</a> <button type="button" class="btn ghost sm" data-copy="' + E(em) + '">📋 คัดลอกอีเมล</button></span></div>'; window.DOGFLOW_CONTACT_EMAIL = em;; mc.hidden = false; } }   /* [2026-10-28] การ์ดอีเมลท้ายหน้า */
