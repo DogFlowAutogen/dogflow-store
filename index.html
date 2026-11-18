@@ -21,7 +21,7 @@
 if(ok)return;window.__legacy=true;document.addEventListener('DOMContentLoaded',function(){var d=document.createElement('div');d.setAttribute('style','position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:#0b1222;color:#fff;font-family:Tahoma,sans-serif;text-align:center;padding:60px 20px');
 d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">เบราว์เซอร์นี้ไม่รองรับ</h2><p style="line-height:1.8;max-width:520px;margin:0 auto">Internet Explorer และเบราว์เซอร์รุ่นเก่าไม่รองรับระบบชำระเงินและความปลอดภัยของเว็บนี้<br>กรุณาเปิดด้วย <b>Microsoft Edge</b>, <b>Google Chrome</b>, <b>Safari</b> หรือ <b>Firefox</b> รุ่นล่าสุด<br>ใช้ได้ทั้งคอมพิวเตอร์ แท็บเล็ต และโทรศัพท์</p>';document.body.appendChild(d);});})();
 </script>
-<link rel="stylesheet" href="style.css?v=20261118u">
+<link rel="stylesheet" href="style.css?v=20261118v">
 </head>
 <body>
 <div id="splash" role="status" aria-live="polite">
@@ -507,7 +507,10 @@ function renderShop() {
   list.sort((a, b) => (a.price - b.price) || String(a.id).localeCompare(String(b.id)));   // [2026-11-01] ลำดับเริ่มต้นคงที่: ถูก → แพง (7 วัน · เดือน · ปี · ตลอดชีพ) — ก่อนหน้านี้ตารางไม่มีคอลัมน์ลำดับ จึงสลับไปมาได้
   if (so === 'lo') list.sort((a, b) => DB.price(a) - DB.price(b)); if (so === 'hi') list.sort((a, b) => DB.price(b) - DB.price(a)); if (so === 'disc') list.sort((a, b) => disc(b) - disc(a));
   $('#count').textContent = list.length + ' รายการ';
-  $('#grid').innerHTML = list.map((p) => {
+  // [2026-11-18 ผู้ใช้สั่ง] ลำดับเริ่มต้น + ดูทุกโปรแกรม: แยกเป็นกลุ่มตามโปรแกรม — DogFlow แถวบน · DogMeta แถวล่าง · (แพ็กเกจรวม) มีหัวกลุ่มคั่น · เรียงตามราคา/ลดเยอะสุดที่ผู้ใช้เลือกเองยังเรียงรวมเหมือนเดิม
+  const grouped = so === 'def' && prod === 'all' && prods.length > 1, rk = (p) => { const i = ord.indexOf(p.product || 'dogflow'); return i < 0 ? 99 : i; };
+  if (grouped) list.sort((a, b) => (rk(a) - rk(b)) || (a.price - b.price) || String(a.id).localeCompare(String(b.id)));
+  const card = (p) => {
     const fin = DB.price(p), sale = fin < p.price, br = DB.find('brands', p.brandId), out = p.stock <= 0;
     return `<article class="pc">${p.badge ? `<span class="badge">${E(p.badge)}</span>` : ''}${out ? '<span class="sold">หมด</span>' : ''}
     <div class="pic">${p.image ? `<img src="${E(p.image)}" alt="${E(p.name)}" loading="lazy">` : E(p.icon || '📦')}</div>
@@ -515,7 +518,10 @@ function renderShop() {
     <div class="price"><b>${B(fin)}</b>${sale ? `<s>${B(p.price)}</s><em>-${Math.round(disc(p) * 100)}%</em>` : ''}</div>
     <div class="stock ${p.stock <= 5 ? 'low' : ''}"><span>${out ? 'สินค้าหมด' : p.stock <= 20 ? 'เหลือ ' + p.stock + ' ชิ้น' : 'พร้อมส่ง'}</span>${DB.crossPct && DB.crossPct(p) ? `<span class="xs" title="รวมส่วนลด ${DB.crossPct(p)}% สำหรับลูกค้าที่มีอีกโปรแกรมแล้ว">🎁 ลด ${DB.crossPct(p)}% (มีอีกโปรแกรม)</span>` : ''}</div>
     <button class="btn ${sale ? 'gold' : ''}" data-add="${E(p.id)}" ${out ? 'disabled' : ''}>🛒 ใส่ตะกร้า</button></div></article>`;
-  }).join('') || '<p style="color:var(--mut)">ไม่พบสินค้า</p>';
+  };
+  let html = '', lastG = null;
+  list.forEach((p) => { const g = p.product || 'dogflow'; if (grouped && g !== lastG) { html += `<h3 class="grp-h">${g === 'bundle' ? '🎁 แพ็กเกจรวม 2 โปรแกรม' : (PM[g] ? PM[g][0] + ' ' : '') + E(DFCommon.productName(g)) + ' Auto Gen'}</h3>`; lastG = g; } html += card(p); });
+  $('#grid').innerHTML = html || '<p style="color:var(--mut)">ไม่พบสินค้า</p>';
 }
 $('#prodChips').onclick = (e) => { const b = e.target.closest('[data-prod]'); if (b) { prod = prod === b.dataset.prod ? 'all' : b.dataset.prod; renderShop(); } };
 $('#chips').onclick = (e) => { const b = e.target.closest('[data-cat]'); if (b) { cat = b.dataset.cat; renderShop(); } };
