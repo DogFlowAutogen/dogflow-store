@@ -10,7 +10,7 @@
 if(ok)return;window.__legacy=true;document.addEventListener('DOMContentLoaded',function(){var d=document.createElement('div');d.setAttribute('style','position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:#0b1222;color:#fff;font-family:Tahoma,sans-serif;text-align:center;padding:60px 20px');
 d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">เบราว์เซอร์นี้ไม่รองรับ</h2><p style="line-height:1.8;max-width:520px;margin:0 auto">Internet Explorer และเบราว์เซอร์รุ่นเก่าไม่รองรับระบบชำระเงินและความปลอดภัยของเว็บนี้<br>กรุณาเปิดด้วย <b>Microsoft Edge</b>, <b>Google Chrome</b>, <b>Safari</b> หรือ <b>Firefox</b> รุ่นล่าสุด<br>ใช้ได้ทั้งคอมพิวเตอร์ แท็บเล็ต และโทรศัพท์</p>';document.body.appendChild(d);});})();
 </script>
-<link rel="stylesheet" href="style.css?v=20261028h">
+<link rel="stylesheet" href="style.css?v=20261118ab">
 </head>
 <body>
 <div id="splash" role="status" aria-live="polite">
@@ -272,7 +272,13 @@ function paintAff() {
     + '<div class="f"><label id="affAccLbl">' + (pi.method === 'bank' ? 'เลขบัญชี' : 'เบอร์พร้อมเพย์ / เลขบัตรประชาชน') + '</label><input name="account" inputmode="numeric" value="' + E(pi.account || '') + '" autocomplete="off"></div>'
     + '<div class="f"><label>ชื่อบัญชี / ชื่อผู้รับเงิน</label><input name="name" value="' + E(pi.name || '') + '" autocomplete="off"></div><div class="errs full" id="eAffPay"></div><div class="full"><button class="btn ghost sm">💾 บันทึกข้อมูลรับเงิน</button></div></form></div>'
     + '<div style="border-top:1px solid var(--line);margin-top:14px;padding-top:12px"><h4 style="margin:0 0 4px">📊 อัตราค่าคอม ระบบแนะนำสมาชิก</h4><small style="color:var(--mut)">เรตคงที่ต่อการซื้อ 1 ชิ้น ไม่ขึ้นกับราคาโปรโมชัน · ต่อให้ลูกค้าซื้อหลายครั้งก็ได้ทุกครั้ง' + (tOn ? ' · ขายได้ครบ ' + t2n + ' ชิ้น/เดือน รับ ' + t2p + '% ของค่าคอม · ครบ ' + t3n + ' ชิ้น รับ ' + t3p + '%' : '') + '</small><div class="aff-rates" style="margin-top:6px">'
-    + (rates.map((r) => '<div><span>' + E(r.name) + '</span><b>' + B(r.commission) + ' ต่อการซื้อ</b></div>').join('') || '<p style="color:var(--mut)">ยังไม่มีแพ็กเกจที่เปิดค่าคอม</p>') + '</div>'
+    + ((() => {   // [2026-11-18 ผู้ใช้สั่ง] แยกกลุ่มอัตราค่าคอมตามโปรแกรม: DogFlow ก่อน แล้ว DogMeta (ในกลุ่มเรียง 7 วัน → รายเดือน → รายปี → ตลอดชีพ ตามค่าคอม)
+      const progOf = (r) => { const p = DB.find('products', r.id); return (p && p.product) || (/^DogMeta/i.test(r.name) ? 'dogmeta' : 'dogflow'); }, ORD = ['dogflow', 'dogmeta', 'bundle'];
+      const by = {}; rates.forEach((r) => { (by[progOf(r)] = by[progOf(r)] || []).push(r); });
+      const keys = ORD.filter((k) => by[k]).concat(Object.keys(by).filter((k) => !ORD.includes(k)));
+      return keys.map((k) => '<div class="aff-grp ' + E(k) + '"><h5>' + (k === 'dogmeta' ? '💜 ' : k === 'bundle' ? '🎁 ' : '🐶 ') + E(k === 'bundle' ? 'แพ็กเกจรวม 2 โปรแกรม' : DFCommon.productName(k) + ' Auto Gen') + '</h5>'
+        + by[k].slice().sort((a, b) => a.commission - b.commission).map((r) => '<div><span>' + E(String(r.name).replace(/^Dog(Flow|Meta)( + DogMeta)? Auto Gens*/i, '') || r.name) + '</span><b>' + B(r.commission) + ' ต่อการซื้อ</b></div>').join('') + '</div>').join('');
+    })() || '<p style="color:var(--mut)">ยังไม่มีแพ็กเกจที่เปิดค่าคอม</p>') + '</div>'
     + (a.terms ? '<details style="margin-top:8px"><summary>📜 เงื่อนไขตัวแทนขาย</summary><div style="white-space:pre-line;color:var(--mut);font-size:14px;margin-top:6px">' + E(a.terms) + '</div></details>' : '') + '</div>'
     + '<div style="border-top:1px solid var(--line);margin-top:14px;padding-top:12px"><h4 style="margin:0 0 4px">👥 คนที่สมัครผ่านลิงก์ของคุณ</h4><small style="color:var(--mut)">สมัครผ่านลิงก์ทั้งหมด <b>' + st.signups + '</b> คน · ซื้อโปรแกรมแล้ว <b class="ok">' + boughtN + '</b> คน · ปิดบังชื่อและอีเมลเพื่อความเป็นส่วนตัว</small><div class="aff-rows" style="margin-top:6px">'
     + ((a.referrals || []).map((r) => '<div><span><b>' + E(r.name) + '</b> <small style="color:var(--mut)">' + E(r.email) + ' · สมัคร ' + D8(r.joinedAt) + '</small></span><span class="tag ' + (r.bought ? 'okk' : 'pending') + '">' + (r.bought ? 'ซื้อแล้ว' : 'ยังไม่ซื้อ') + '</span></div>').join('') || '<div class="aff-empty">ยังไม่มีใครสมัครผ่านลิงก์ — แชร์ลิงก์ด้านบนให้เพื่อนได้เลย</div>') + '</div></div>'

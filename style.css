@@ -757,3 +757,10 @@ footer .trafficrow{margin:0 0 18px}footer .trafficrow .trafficcard{max-width:non
 .tier u{position:absolute;top:-11px;right:12px;text-decoration:none;background:linear-gradient(135deg,var(--accent),#e0475b);color:#171109;font-size:11px;font-weight:800;padding:2px 10px;border-radius:999px}
 .tier-ex{margin:10px 0 0;font-size:12.5px;color:var(--muted);text-align:center}
 @media(max-width:640px){.tier-row{grid-template-columns:1fr}.tier-row>i{transform:rotate(90deg);justify-self:center}}
+
+/* [2026-11-18 ผู้ใช้สั่ง] หน้าโปรไฟล์ อัตราค่าคอมแยกกลุ่มตามโปรแกรม: หัวกลุ่ม + แถบสีด้านข้าง (DogFlow ส้ม · DogMeta ม่วง) */
+.aff-rates .aff-grp{display:block;margin:10px 0;border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:12px;padding:8px 12px 4px;margin:10px 0;background:var(--surface)}
+.aff-rates .aff-grp.dogmeta{border-left-color:#a855f7}.aff-rates .aff-grp.bundle{border-left-color:#e0475b}
+.aff-rates .aff-grp h5{margin:2px 0 4px;font-size:14.5px}
+.aff-rates .aff-grp>div{display:flex;justify-content:space-between;gap:10px;align-items:center;border:1px solid var(--line);background:var(--surface2);border-radius:10px;padding:8px 12px;margin:6px 0;font-size:14px}
+.aff-rates .aff-grp.dogmeta b{color:#9333ea}
