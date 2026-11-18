@@ -54,9 +54,9 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
 <script src="admin-charts.js?v=20261031a"></script><script src="admin-overview.js?v=20261031c"></script><script src="admin-broadcast.js?v=20261014a"></script>
 <script src="pw-eye.js?v=20261014a" defer></script>
 <script src="vendor/supabase.js"></script>
-<script src="store.common.js?v=20261118t"></script>
+<script src="store.common.js?v=20261118u"></script>
 <script src="store.local.js?v=20261012b"></script>
-<script src="store.supabase.js?v=20261118t"></script>
+<script src="store.supabase.js?v=20261118u"></script>
 <script src="avatar.js"></script>
 <script>
 const $ = (s) => document.querySelector(s), E = DB.esc, B = DB.baht;
@@ -180,6 +180,14 @@ const ovSnap = () => ({ orders: DB.list('orders'), members: DB.list('members'), 
 const memKeys = (m) => DB.list('orders').filter((o) => o.memberId === m.id).flatMap((o) => (o.licenseKeys || []).filter((k) => !k.renewed)).concat(DB.trialKeys ? DB.trialKeys(m.id) : []);   // รวมคีย์ทดลอง (ระงับ/คืนสิทธิ์พร้อมกัน — revoke-keys ครอบคลุมทุกคีย์ของสมาชิก)
 const memRows = (m) => { const os = DB.list('orders').filter((o) => o.memberId === m.id), spent = os.filter((o) => ['paid', 'done'].includes(o.status)).reduce((s, o) => s + o.total, 0);
   return [['ชื่อ', m.name], ['อีเมล', m.email], ['โทร', m.phone || '—'], ['สมัครเมื่อ', fmt(m.createdAt)], ['ออเดอร์ / ยอดซื้อ', os.length + ' · ' + B(spent)], ['License key', memKeys(m).length + ' ดอก'], ['คำเตือน', (m.strikes || 0) + '/3 ครั้ง'], ['สถานะ', m.banned ? 'ถูกระงับ' + (m.banReason ? ' — ' + m.banReason : '') : 'ปกติ']]; };
+// [2026-11-18 ผู้ใช้ถาม] คลิกชื่อ/ปุ่ม "🔍 รายละเอียด" ในหน้าคำขอทดลอง → ดูข้อมูลผู้ขอเต็ม: ข้อมูลสมาชิก · ออเดอร์/ยอดซื้อ · คำเตือน · คีย์ที่มี (รายโปรแกรม) · บัญชีใกล้เคียง · ผลการตัดสินคำขอ
+const showTrialInfo = (id) => { const Q = DB.trialQueue(), r = Q.pending.find((x) => x.id === id) || Q.recent.find((x) => x.id === id); if (!r) return;
+  const m = DB.find('members', r.memberId), th = (v) => (v ? DFCommon.thaiDateTime(v) : '—'), ST = { approved: '✅ อนุมัติแล้ว', rejected: '⛔ ปฏิเสธ', cancelled: '↩ ยกเลิก' };
+  const keys = m ? memKeys(m) : [], kt = keys.map((k) => DFCommon.productName(k.productId) + ' ' + (k.trialDays !== undefined ? 'ทดลอง' : 'ซื้อ') + (k.revoked ? ' (ระงับ)' : '')).join(' · ');
+  const rows = [...(m ? memRows(m) : [['ชื่อ', r.name], ['อีเมล', r.email]]), ['โปรแกรมที่ขอ', DFCommon.productName(r.product)], ['ขอเมื่อ', th(r.requestedAt)], ['สถานะคำขอ', ST[r.status] || '⏳ รอดำเนินการ'], ['หมายเหตุจากสมาชิก', r.note || '—'], ['คีย์ที่มีอยู่', kt || 'ยังไม่มี']];
+  if (r.status) rows.push(['ตัดสินเมื่อ', th(r.decidedAt)], ['เหตุผล/บันทึก', r.decisionNote || '—']);
+  rows.push(['บัญชีใกล้เคียง', (r.near || []).map((n) => (n.hadTrial ? '⚠ เคยใช้สิทธิ์แล้ว: ' : 'ℹ ') + n.email + ' (' + n.reason + ')').join(' · ') || '✔ ไม่พบบัญชีซ้ำ']);
+  return confirmDlg({ title: 'รายละเอียดผู้ขอทดลองใช้ฟรี', sub: r.name + ' · ' + r.email, rows, hideCancel: true, okText: 'ปิด' }); };
 // info (ไม่บังคับ) = ตัวเลือกของ confirmDlg → ใช้หน้าต่างยืนยันแบบเต็ม · ไม่ส่ง = กล่องยืนยันของเบราว์เซอร์แบบเดิม
 const del = async (entity, key, label, info) => { if (info ? !(await confirmDlg(Object.assign({ danger: true, okText: 'ยืนยันลบ', cancelText: 'ไม่ลบ' }, info))) : !confirm('ลบ "' + label + '" ถาวร?')) return; const r = await DB.remove(entity, key); if (!r.ok) return alert(r.errors.join('\n')); render(); if (info && info.done) await confirmDlg({ success: true, hideCancel: true, okText: 'ปิด', title: info.done.title, sub: info.sub || '', body: info.done.body || '', rows: info.rows || [] }); else toast('ลบแล้ว'); };
 
@@ -311,13 +319,13 @@ const V = {
   trials() {
     if (!SB) return '<h1>🎁 คำขอคีย์ทดลองใช้ฟรี</h1><p style="color:var(--mut)">ใช้ได้เฉพาะโหมด Supabase</p>';
     const q = DB.trialQueue(), th = (v) => (v ? DFCommon.thaiDateTime(v) : '-'), ST = { approved: '✅ อนุมัติ', rejected: '⛔ ปฏิเสธ', cancelled: '↩ ยกเลิก' }, hl = window._trialHl || '';
-    const card = (r) => `<div class="box" data-trq="${E(r.id)}" style="${hl === r.id ? 'border-color:var(--gold)' : ''}"><div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:space-between"><div><b>${E(r.name)}</b> · ${E(r.phone)} <span class="tag paid">🐶 ${E(DFCommon.productName(r.product))}</span><br><span style="color:var(--mut);font-size:13px">${E(r.email)} · สมัคร ${th(r.memberSince)} · ออเดอร์ ${r.orders} · ขอเมื่อ ${th(r.requestedAt)}</span></div>
-      <div style="display:flex;gap:6px;align-items:flex-start;flex-wrap:wrap"><button class="btn sm gold" data-tok="${E(r.id)}">✅ อนุมัติ+ออกคีย์</button><button class="btn sm danger" data-trej="${E(r.id)}">⛔ ปฏิเสธ</button><button class="btn sm ghost" data-tcan="${E(r.id)}">↩ ยกเลิก</button></div></div>
+    const card = (r) => `<div class="box" data-trq="${E(r.id)}" style="${hl === r.id ? 'border-color:var(--gold)' : ''}"><div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:space-between"><div><b data-trinfo="${E(r.id)}" style="cursor:pointer;text-decoration:underline dotted" title="คลิกดูรายละเอียด">${E(r.name)}</b> · ${E(r.phone)} <span class="tag paid">🐶 ${E(DFCommon.productName(r.product))}</span><br><span style="color:var(--mut);font-size:13px">${E(r.email)} · สมัคร ${th(r.memberSince)} · ออเดอร์ ${r.orders} · ขอเมื่อ ${th(r.requestedAt)}</span></div>
+      <div style="display:flex;gap:6px;align-items:flex-start;flex-wrap:wrap"><button class="btn sm ghost" data-trinfo="${E(r.id)}">🔍 รายละเอียด</button><button class="btn sm gold" data-tok="${E(r.id)}">✅ อนุมัติ+ออกคีย์</button><button class="btn sm danger" data-trej="${E(r.id)}">⛔ ปฏิเสธ</button><button class="btn sm ghost" data-tcan="${E(r.id)}">↩ ยกเลิก</button></div></div>
       ${r.note ? `<div style="margin-top:6px">หมายเหตุ: ${E(r.note)}</div>` : ''}${r.banned ? '<div class="tag err" style="margin-top:6px">บัญชีถูกระงับ</div>' : ''}${r.isCustomer ? '<div class="tag paid" style="margin-top:6px">เป็นลูกค้าแล้ว</div>' : ''}
       ${(r.near || []).map((n) => `<div style="margin-top:6px;font-size:13px;color:${n.hadTrial ? 'var(--err)' : 'var(--mut)'}">${n.hadTrial ? '⚠ เคยใช้สิทธิ์แล้ว' : 'ℹ บัญชีใกล้เคียง'}: ${E(n.email)} (${E(n.reason)})</div>`).join('') || '<div style="margin-top:6px;font-size:13px;color:var(--mut)">✔ ไม่พบบัญชีซ้ำ</div>'}</div>`;
     return `<h1>🎁 คำขอคีย์ทดลองใช้ฟรี</h1><p style="color:var(--mut)">สมาชิกกดขอในหน้าโปรไฟล์ → แจ้ง LINE แอดมิน → อนุมัติที่นี่ ระบบออกคีย์ให้ทันที สมาชิกเห็นคีย์ + ปุ่มดาวน์โหลดในโปรไฟล์อัตโนมัติ</p>
       <h3>⏳ รอดำเนินการ (${q.pending.length})</h3>${q.pending.map(card).join('') || '<p style="color:var(--mut)">ไม่มีคำขอค้าง</p>'}
-      <h3 style="margin-top:18px">🕘 ล่าสุด</h3>${q.recent.map((r) => `<div class="hl"><span style="flex:1"><b>${E(r.name)}</b> · ${E(r.email)}<br><small style="color:var(--mut)">${ST[r.status] || r.status} ${th(r.decidedAt)}${r.decisionNote ? ' · ' + E(r.decisionNote) : ''}${r.cancelledBy ? ' (โดย ' + (r.cancelledBy === 'member' ? 'สมาชิก' : r.cancelledBy === 'system' ? 'ระบบ' : 'แอดมิน') + ')' : ''}</small></span></div>`).join('') || '<p style="color:var(--mut)">ยังไม่มีประวัติ</p>'}`;
+      <h3 style="margin-top:18px">🕘 ล่าสุด</h3>${q.recent.map((r) => `<div class="hl"><span style="flex:1"><b data-trinfo="${E(r.id)}" style="cursor:pointer;text-decoration:underline dotted" title="คลิกดูรายละเอียด">${E(r.name)}</b> · ${E(r.email)}<br><small style="color:var(--mut)">${ST[r.status] || r.status} ${th(r.decidedAt)}${r.decisionNote ? ' · ' + E(r.decisionNote) : ''}${r.cancelledBy ? ' (โดย ' + (r.cancelledBy === 'member' ? 'สมาชิก' : r.cancelledBy === 'system' ? 'ระบบ' : 'แอดมิน') + ')' : ''}</small></span></div>`).join('') || '<p style="color:var(--mut)">ยังไม่มีประวัติ</p>'}`;
   },
   feedback() {
     if (!SB) return '<h1>💬 แจ้งปัญหา / เสนอแนะ</h1><p style="color:var(--mut)">ใช้ได้เฉพาะโหมด Supabase (ฐานข้อมูลจริง)</p>';
@@ -579,6 +587,7 @@ const A = {
     if (!SB) return;
     if (window._trialHl) { const el = $('#main').querySelector('[data-trq="' + window._trialHl + '"]'); window._trialHl = ''; if (el) el.scrollIntoView({ block: 'center' }); }
     $('#main').onclick = async (e) => {
+      const ti = e.target.closest('[data-trinfo]'); if (ti) { await showTrialInfo(ti.dataset.trinfo); return; }
       const ok = e.target.closest('[data-tok]'), rj = e.target.closest('[data-trej]'), cn = e.target.closest('[data-tcan]'); if (!ok && !rj && !cn) return;
       const id = (ok || rj || cn).dataset.tok || (rj || cn).dataset.trej || (cn || {}).dataset.tcan, r0 = DB.trialQueue().pending.find((x) => x.id === id); if (!r0) return render();
       const cfg = (DB.trialStatus() || {}).config || {}, b = e.target.closest('button');
