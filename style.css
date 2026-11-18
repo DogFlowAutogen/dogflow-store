@@ -732,3 +732,4 @@ footer .trafficrow{margin:0 0 18px}footer .trafficrow .trafficcard{max-width:non
 .ot td{vertical-align:middle}.ot .acts{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.ot .acts .btn{min-width:88px;justify-content:center;white-space:nowrap}
 .ot .kl{margin-top:5px;font-size:12px;font-weight:600;white-space:nowrap}.ot .kl.ok{color:var(--ok)}.ot .kl.warn{color:var(--warn)}
 .ot td:nth-child(7) .acts{flex-direction:column;align-items:stretch;width:116px}.ot td:last-child .acts{flex-wrap:nowrap}
+.lnkb{background:none;border:0;padding:0;margin:0;cursor:pointer;text-align:left;font:inherit;color:inherit;text-decoration:underline dotted;text-underline-offset:3px}.lnkb:hover{color:var(--accent)}

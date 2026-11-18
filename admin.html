@@ -10,7 +10,7 @@
 if(ok)return;window.__legacy=true;document.addEventListener('DOMContentLoaded',function(){var d=document.createElement('div');d.setAttribute('style','position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:#0b1222;color:#fff;font-family:Tahoma,sans-serif;text-align:center;padding:60px 20px');
 d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">เบราว์เซอร์นี้ไม่รองรับ</h2><p style="line-height:1.8;max-width:520px;margin:0 auto">Internet Explorer และเบราว์เซอร์รุ่นเก่าไม่รองรับระบบชำระเงินและความปลอดภัยของเว็บนี้<br>กรุณาเปิดด้วย <b>Microsoft Edge</b>, <b>Google Chrome</b>, <b>Safari</b> หรือ <b>Firefox</b> รุ่นล่าสุด<br>ใช้ได้ทั้งคอมพิวเตอร์ แท็บเล็ต และโทรศัพท์</p>';document.body.appendChild(d);});})();
 </script>
-<link rel="stylesheet" href="style.css?v=20261118y">
+<link rel="stylesheet" href="style.css?v=20261118z">
 <link rel="stylesheet" href="admin-charts.css?v=20261031a">
 </head>
 <body>
@@ -56,7 +56,7 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
 <script src="vendor/supabase.js"></script>
 <script src="store.common.js?v=20261118u"></script>
 <script src="store.local.js?v=20261012b"></script>
-<script src="store.supabase.js?v=20261118w"></script>
+<script src="store.supabase.js?v=20261118z"></script>
 <script src="avatar.js"></script>
 <script>
 const $ = (s) => document.querySelector(s), E = DB.esc, B = DB.baht;
@@ -384,6 +384,18 @@ const V = {
       (DB.affIp ? DB.affIp() : []).filter((x) => x.referrer_id === id).forEach((x) => fl.push(x.kind === 'self' ? 'ผู้ถูกแนะนำ ' + x.n + ' คนใช้ IP เดียวกับผู้แนะนำ (' + x.ip_mask + ')' : 'ผู้ถูกแนะนำ ' + x.n + ' คนใช้ IP เดียวกัน (' + x.ip_mask + ')'));
       return fl; };
     const flagged = mem.map((m) => ({ id: m.id, fl: flagsOf(m.id) })).filter((x) => x.fl.length);
+    // [2026-11-18 ผู้ใช้ถาม] กดดูรายละเอียดตัวแทนรายคน: ข้อมูลสมาชิก · ผู้สมัครผ่านลิงก์ · ยอดค่าคอมแยกสถานะ · ค่าคอมล่าสุด · คำขอถอน · ข้อควรตรวจสอบ
+    window._showAgent = (id) => { const m = by(id); if (!m) return; const mine = cm.filter((c) => c.referrerId === id), refs = refd.filter((x) => x.referredBy === id), pos = po.filter((x) => x.memberId === id).sort((a, b) => new Date(b.requestedAt) - new Date(a.requestedAt));
+      const d = (v) => (v ? fmt(v) : '—'), bought = (x) => allOrders.some((o) => o.memberId === x.id && ['paid', 'done'].includes(o.status)), fl = flagsOf(id);
+      const rows = [['ชื่อ', m.name], ['อีเมล', m.email], ['โทร', m.phone || '—'], ['รหัสแนะนำ', m.refCode || '—'], ['สมัครเมื่อ', d(m.createdAt)],
+        ['สิทธิ์ตัวแทน', m.affBlocked ? '⛔ ถูกระงับ' + (m.affReason ? ' — ' + m.affReason : '') : '✅ ปกติ'],
+        ['ผู้สมัครผ่านลิงก์', refs.length + ' คน' + (refs.length ? ' · ซื้อแล้ว ' + refs.filter(bought).length + ' คน' : '')],
+        ['ค่าคอม รอพัก / ถอนได้', B(sum(mine, 'pending')) + ' / ' + B(sum(mine, 'available'))], ['ค่าคอม ขอถอน / จ่ายแล้ว', B(sum(mine, 'requested')) + ' / ' + B(sum(mine, 'paid'))]];
+      if (refs.length) rows.push(['ผู้สมัครล่าสุด', refs.slice().sort((a, b) => new Date(b.referredAt || 0) - new Date(a.referredAt || 0)).slice(0, 6).map((x) => x.name + (bought(x) ? ' (ซื้อแล้ว)' : '')).join(' · ')]);
+      const rc = mine.slice().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 5); if (rc.length) rows.push(['ค่าคอมล่าสุด', rc.map((c) => (c.product || '—') + '×' + c.qty + ' ' + B(c.amount) + ' (' + (SC[eff(c)] || [c.status])[0] + ')' + (c.manual ? ' [เพิ่มเอง]' : '')).join(' | ')]);
+      if (pos.length) rows.push(['คำขอถอนล่าสุด', pos.slice(0, 3).map((x) => B(x.amount) + ' · ' + x.status + ' · ' + d(x.requestedAt)).join(' | ')]);
+      rows.push(['ข้อควรตรวจสอบ', fl.length ? '⚠ ' + fl.join(' · ') : '✔ ไม่พบสัญญาณผิดปกติ']);
+      return confirmDlg({ title: 'รายละเอียดตัวแทนขาย', sub: m.name + ' · ' + m.email, rows, hideCancel: true, okText: 'ปิด' }); };
     const kycQ = DB.affKycQueue ? DB.affKycQueue() : [];   // [2026-11-17] เฟส 3 ข้อ 3: รายการรอตรวจบัตรประชาชน (ค่าคอมสะสมเกินเกณฑ์)
     const TABSX = [['overview', '📊 ภาพรวม'], ['rates', '💰 อัตราค่าคอม'], ['agents', '🏆 ตัวแทน' + (flagged.length ? ' ⚠' + flagged.length : '')], ['refs', '🤝 ผู้ถูกแนะนำ'], ['comm', '🧾 ค่าคอมทั้งหมด'], ['pay', '💸 คำขอถอน' + (openPo.length + kycQ.length ? ' (' + (openPo.length + kycQ.length) + ')' : '')], ['set', '⚙️ ตั้งค่า']];
     let body = '';
@@ -401,7 +413,7 @@ const V = {
       const q = (window._aq || '').toLowerCase(), rows = mem.map((m) => { const mine = cm.filter((c) => c.referrerId === m.id), refs = refd.filter((x) => x.referredBy === m.id); return { m, refs: refs.length, buyers: new Set(mine.filter((c) => !c.manual && c.status !== 'void').map((c) => c.buyerId)).size, pend: sum(mine, 'pending'), av: sum(mine, 'available'), rq: sum(mine, 'requested'), pd: sum(mine, 'paid') }; })
         .filter((r) => !q || (r.m.name + r.m.email + r.m.refCode).toLowerCase().includes(q)).sort((a, b) => (b.pd + b.rq + b.av + b.pend) - (a.pd + a.rq + a.av + a.pend) || b.refs - a.refs);
       body = '<div class="toolbar"><input id="aq" placeholder="🔍 ค้นหาชื่อ/อีเมล/รหัสแนะนำ" value="' + E(window._aq || '') + '" style="max-width:300px"></div><div class="tw"><table><tr><th>สมาชิก</th><th>รหัส</th><th>สมัคร/ซื้อ</th><th>รอพัก</th><th>ถอนได้</th><th>ขอถอน</th><th>จ่ายแล้ว</th><th></th></tr>'
-        + (rows.map((r) => '<tr><td>' + nm(r.m.id) + (r.m.affBlocked ? ' <span class="tag err" title="' + E(r.m.affReason) + '">ระงับสิทธิ์</span>' : '') + (flagsOf(r.m.id).length ? ' <span class="tag warn" title="' + E(flagsOf(r.m.id).join(' · ')) + '">⚠ ตรวจสอบ</span>' : '') + '</td><td><code>' + E(r.m.refCode) + '</code></td><td>' + r.refs + ' / ' + r.buyers + '</td><td>' + B(r.pend) + '</td><td>' + B(r.av) + '</td><td>' + B(r.rq) + '</td><td>' + B(r.pd) + '</td><td style="white-space:nowrap"><button class="btn sm ghost" data-alink="' + E(r.m.id) + '">🔗 ลิงก์</button> <button class="btn sm ghost" data-arefs="' + E(r.m.id) + '">👥 ผู้สมัคร</button> <button class="btn sm ghost" data-aregen="' + E(r.m.id) + '">🔄 รหัสใหม่</button> <button class="btn sm ' + (r.m.affBlocked ? 'ghost' : 'danger') + '" data-ablock="' + E(r.m.id) + '">' + (r.m.affBlocked ? '✅ คืนสิทธิ์' : '⛔ ระงับสิทธิ์') + '</button></td></tr>').join('') || '<tr><td colspan="8" style="color:var(--mut)">ไม่พบสมาชิก</td></tr>') + '</table></div>';
+        + (rows.map((r) => '<tr><td><button type="button" class="lnkb" data-ainfo="' + E(r.m.id) + '" title="คลิกดูรายละเอียดตัวแทน">' + nm(r.m.id) + '</button>' + (r.m.affBlocked ? ' <span class="tag err" title="' + E(r.m.affReason) + '">ระงับสิทธิ์</span>' : '') + (flagsOf(r.m.id).length ? ' <span class="tag warn" title="' + E(flagsOf(r.m.id).join(' · ')) + '">⚠ ตรวจสอบ</span>' : '') + '</td><td><code>' + E(r.m.refCode) + '</code></td><td>' + r.refs + ' / ' + r.buyers + '</td><td>' + B(r.pend) + '</td><td>' + B(r.av) + '</td><td>' + B(r.rq) + '</td><td>' + B(r.pd) + '</td><td style="white-space:nowrap"><button class="btn sm ghost" data-ainfo="' + E(r.m.id) + '">🔍 รายละเอียด</button> <button class="btn sm ghost" data-alink="' + E(r.m.id) + '">🔗 ลิงก์</button> <button class="btn sm ghost" data-arefs="' + E(r.m.id) + '">👥 ผู้สมัคร</button> <button class="btn sm ghost" data-aregen="' + E(r.m.id) + '">🔄 รหัสใหม่</button> <button class="btn sm ' + (r.m.affBlocked ? 'ghost' : 'danger') + '" data-ablock="' + E(r.m.id) + '">' + (r.m.affBlocked ? '✅ คืนสิทธิ์' : '⛔ ระงับสิทธิ์') + '</button></td></tr>').join('') || '<tr><td colspan="8" style="color:var(--mut)">ไม่พบสมาชิก</td></tr>') + '</table></div>';
     } else if (sub === 'refs') {
       body = '<p style="color:var(--mut)">สมาชิกที่สมัครผ่านลิงก์แนะนำ — แอดมินปรับ/ล้างผู้แนะนำได้ (ไม่กระทบค่าคอมที่เกิดไปแล้ว)</p><button class="btn" id="addRef">＋ ผูก/เปลี่ยนผู้แนะนำให้สมาชิก</button><div class="tw" style="margin-top:14px"><table><tr><th>สมาชิกที่ถูกแนะนำ</th><th>ผู้แนะนำ</th><th>เมื่อ</th><th>ออเดอร์ที่ชำระแล้ว</th><th></th></tr>'
         + (refd.map((m) => '<tr><td>' + nm(m.id) + '</td><td>' + nm(m.referredBy) + '</td><td>' + (m.referredAt ? fmt(m.referredAt) : '—') + '</td><td>' + DB.list('orders').filter((o) => o.memberId === m.id && ['paid', 'done'].includes(o.status)).length + '</td><td><button class="btn sm ghost" data-rset="' + E(m.id) + '">เปลี่ยน</button> <button class="btn sm danger" data-rclr="' + E(m.id) + '">ล้าง</button></td></tr>').join('') || '<tr><td colspan="5" style="color:var(--mut)">ยังไม่มีผู้สมัครผ่านลิงก์</td></tr>') + '</table></div>';
@@ -645,6 +657,7 @@ const A = {
     const memOpts = (blank) => [...(blank ? [['', blank]] : []), ...mem().map((m) => [m.id, m.name + ' · ' + m.email])];
     $('#main').onclick = async (e) => { const b = e.target.closest('button'); if (!b) return; const d = b.dataset;
       if (d.at) return go(d.at);
+      if (d.ainfo) return window._showAgent && window._showAgent(d.ainfo);   // [2026-11-18] รายละเอียดตัวแทน
       if (d.copy) return copy(d.copy, 'คัดลอกเลขบัญชีแล้ว');
       if (d.alink) return copy(link(by(d.alink)), 'คัดลอกลิงก์แนะนำแล้ว');
       if (d.arefs) { const m = by(d.arefs), rs = mem().filter((x) => x.referredBy === m.id);
