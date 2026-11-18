@@ -11,13 +11,19 @@
   const sb = w.supabase.createClient(CFG.supabaseUrl, CFG.supabaseAnonKey, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } });
 
   const DEFAULTS = { brand: 'DogFlow Auto Gen', version: 'v1.0', tagline: '', heroTitle: '', heroSub: '', heroCta: 'เลือกแพ็กเกจเลย', promoText: '', installGuide: '', promoEndsAt: '', lineId: '', contactEmail: '', paymentInfo: '', paymentQr: '', heroImage: '', rules: '', affEnabled: true, affHoldDays: 7, affMin: 300, affTerms: '' };
+  const crossPct = (p) => {
+    const pr = (p && p.product) || 'dogflow'; if (!S.user || (pr !== 'dogflow' && pr !== 'dogmeta')) return 0;
+    const owns = (S.orders || []).some((o) => o.memberId === S.user.id && (o.status === 'paid' || o.status === 'done') && (o.licenseKeys || []).some((k) => !k.revoked && (k.productId || 'dogflow') !== pr));
+    const v = S.settings && Number.isFinite(Number(S.settings.crossDiscountPct)) ? Number(S.settings.crossDiscountPct) : 15;
+    return owns ? Math.min(90, Math.max(0, v)) : 0;
+  };
   const S = { user: null, me: null, isAdmin: false, settings: Object.assign({}, DEFAULTS), categories: [], brands: [], products: [], releases: [], latest: [], promos: [], banners: [], blocks: [], commissions: [], payouts: [], tickets: [], contacts: [], aff: null, affKyc: null, affTerms: null, affKycQ: [], affIp: [], reqs: [], modes: [], showcase: [], works: [], tutorials: [], reviews: [], faqs: [], coupons: [], members: [], orders: [], notices: [], audit: [] };
 
   /* ---------- แปลงแถวฐานข้อมูล ↔ วัตถุในแอป ---------- */
   const IN = {
     categories: (r) => ({ id: r.id, name: r.name, icon: r.icon, sort: r.sort }),
     brands: (r) => ({ id: r.id, name: r.name, logo: r.logo }),
-    products: (r) => ({ id: r.id, sku: r.sku, name: r.name, categoryId: r.category_id, brandId: r.brand_id || '', price: r.price, salePrice: r.sale_price, stock: r.stock, badge: r.badge, image: r.image, icon: r.icon, licenseDevices: r.license_devices, licenseDays: r.license_days, commission: r.commission || 0, active: r.active, desc: r.description, features: r.features || [] }),
+    products: (r) => ({ id: r.id, sku: r.sku, name: r.name, categoryId: r.category_id, brandId: r.brand_id || '', price: r.price, salePrice: r.sale_price, stock: r.stock, badge: r.badge, image: r.image, icon: r.icon, licenseDevices: r.license_devices, licenseDays: r.license_days, product: r.product || 'dogflow', commission: r.commission || 0, active: r.active, desc: r.description, features: r.features || [] }),
     promos: (r) => ({ id: r.id, name: r.name, percent: r.percent, scope: r.scope, startsAt: r.starts_at, endsAt: r.ends_at, active: r.active }),
     banners: (r) => ({ id: r.id, title: r.title, image: r.image, link: r.link, sort: r.sort, startsAt: r.starts_at || '', endsAt: r.ends_at || '', active: r.active }),
     blocks: (r) => Object.assign({}, r.data || {}, { id: r.id, kind: r.kind, title: r.title, image: r.image || '', sort: r.sort, startsAt: r.starts_at || '', endsAt: r.ends_at || '', active: r.active }),
@@ -29,7 +35,7 @@
     reviews: (r) => ({ id: r.id, name: r.name, text: r.text, rating: r.rating, active: r.active }),
     faqs: (r) => ({ id: r.id, q: r.q, a: r.a, sort: r.sort }),
     coupons: (r) => ({ code: r.code, type: r.type, value: r.value, minTotal: r.min_total, active: r.active }),
-    releases: (r) => ({ id: r.id, version: r.version, platform: r.platform, title: r.title, notes: r.notes, filePath: r.file_path || '', externalUrl: r.external_url || '', fileName: r.file_name, sizeBytes: Number(r.size_bytes) || 0, sha256: r.sha256 || '', mandatory: !!r.mandatory, announcedAt: r.announced_at || '', active: r.active, createdAt: r.created_at }),
+    releases: (r) => ({ id: r.id, version: r.version, platform: r.platform, title: r.title, notes: r.notes, filePath: r.file_path || '', externalUrl: r.external_url || '', fileName: r.file_name, sizeBytes: Number(r.size_bytes) || 0, sha256: r.sha256 || '', mandatory: !!r.mandatory, announcedAt: r.announced_at || '', active: r.active, createdAt: r.created_at, product: r.product || 'dogflow' }),
     tickets: (r) => ({ id: r.id, code: r.code, memberId: r.member_id || '', keyMask: r.key_mask || '', verified: !!r.verified, deviceId: r.device_id || '', deviceName: r.device_name || '', source: r.source, category: r.category, severity: r.severity, priority: r.priority, module: r.module || '', title: r.title, body: r.body, appVersion: r.app_version || '', os: r.os || '', diagnostics: r.diagnostics || {}, attachments: r.attachments || [], status: r.status, dupOf: r.dup_of || '', firstResponseAt: r.first_response_at || '', resolvedAt: r.resolved_at || '', userUnread: !!r.user_unread, adminUnread: !!r.admin_unread, rating: r.rating || 0, ratingComment: r.rating_comment || '', createdAt: r.created_at, updatedAt: r.updated_at, lastActivityAt: r.last_activity_at }),
     commissions: (r) => ({ id: r.id, orderId: r.order_id || '', referrerId: r.referrer_id, buyerId: r.buyer_id || '', productId: r.product_id || '', product: r.product_name, qty: r.qty, unit: r.unit_amount, amount: r.amount, status: r.status, availableAt: r.available_at, payoutId: r.payout_id || '', manual: !!r.manual, note: r.note || '', createdAt: r.created_at, paidAt: r.paid_at || '' }),
     payouts: (r) => ({ id: r.id, memberId: r.member_id, amount: r.amount, status: r.status, info: r.info || {}, requestedAt: r.requested_at, processedAt: r.processed_at || '', transferRef: r.transfer_ref || '', adminNote: r.admin_note || '' }),
@@ -38,7 +44,7 @@
   const OUT = {
     categories: (o) => ({ id: o.id, name: o.name.trim(), icon: o.icon || '📁', sort: Number(o.sort) || 0 }),
     brands: (o) => ({ id: o.id, name: o.name.trim(), logo: o.logo }),
-    products: (o) => ({ id: o.id, sku: o.sku.trim(), name: o.name.trim(), category_id: o.categoryId, brand_id: o.brandId || null, price: Number(o.price), sale_price: Number(o.salePrice) || 0, stock: Number(o.stock), badge: o.badge || '', image: o.image || '', icon: o.icon || '📦', license_devices: Number(o.licenseDevices) || 0, license_days: Number(o.licenseDays) || 0, commission: Number(o.commission) || 0, active: !!o.active, description: o.desc || '', features: o.features || [] }),
+    products: (o) => ({ id: o.id, sku: o.sku.trim(), name: o.name.trim(), category_id: o.categoryId, brand_id: o.brandId || null, price: Number(o.price), sale_price: Number(o.salePrice) || 0, stock: Number(o.stock), badge: o.badge || '', image: o.image || '', icon: o.icon || '📦', license_devices: Number(o.licenseDevices) || 0, license_days: Number(o.licenseDays) || 0, product: o.product || 'dogflow', commission: Number(o.commission) || 0, active: !!o.active, description: o.desc || '', features: o.features || [] }),
     promos: (o) => ({ id: o.id, name: o.name.trim(), percent: Number(o.percent), scope: o.scope, starts_at: o.startsAt, ends_at: o.endsAt, active: !!o.active }),
     banners: (o) => ({ id: o.id, title: o.title.trim(), image: o.image, link: o.link || '#shop', sort: Number(o.sort) || 0, starts_at: o.startsAt || null, ends_at: o.endsAt || null, active: !!o.active }),
     blocks: (o) => { const data = {}; ((C.BLOCKS[o.kind] || { fields: [] }).fields).forEach((f) => { if (f.k !== 'image') data[f.k] = o[f.k] === undefined ? (f.list ? [] : f.type === 'check' ? false : '') : o[f.k]; }); return { id: o.id, kind: o.kind, title: o.title.trim(), image: o.image || '', data, sort: Number(o.sort) || 0, starts_at: o.startsAt || null, ends_at: o.endsAt || null, active: !!o.active }; },
@@ -51,7 +57,7 @@
     tutorials: (o) => ({ id: o.id, title: o.title.trim(), description: o.desc || '', kind: o.kind === 'file' ? 'file' : 'link', url: (o.url || '').trim(), thumb: o.thumb || '', sort: Number(o.sort) || 0, active: !!o.active }),
     reviews: (o) => ({ id: o.id, name: o.name.trim(), text: o.text.trim(), rating: Number(o.rating), active: o.active !== false }),
     faqs: (o) => ({ id: o.id, q: o.q.trim(), a: o.a.trim(), sort: Number(o.sort) || 0 }),
-    releases: (o) => ({ id: o.id, version: o.version.trim(), platform: o.platform, title: o.title || '', notes: o.notes || '', file_path: o.filePath || null, external_url: o.externalUrl || null, file_name: o.fileName || '', size_bytes: Number(o.sizeBytes) || 0, sha256: o.sha256 || null, mandatory: !!o.mandatory, active: !!o.active }),
+    releases: (o) => ({ id: o.id, version: o.version.trim(), platform: o.platform, title: o.title || '', notes: o.notes || '', file_path: o.filePath || null, external_url: o.externalUrl || null, file_name: o.fileName || '', size_bytes: Number(o.sizeBytes) || 0, sha256: o.sha256 || null, mandatory: !!o.mandatory, active: !!o.active, product: o.product || 'dogflow' }),
     coupons: (o) => ({ code: o.code, type: o.type, value: Number(o.value), min_total: Number(o.minTotal) || 0, active: !!o.active })
   };
   const TABLE = { members: 'profiles', blocks: 'home_blocks', reqs: 'requirements' }, KEY = { coupons: 'code' }, IMG = { reqs: ['image'], modes: ['image'], products: ['image'], banners: ['image'], blocks: ['image'], showcase: ['image'], works: ['thumb'], tutorials: ['thumb'], brands: ['logo'] };
@@ -60,7 +66,7 @@
 
   const mapPay = (p) => p && ({ id: p.id, ref: p.ref, amount: Number(p.amount), paidAt: p.paid_at, slipPath: p.slip_path, flags: p.flags || [], reviewNote: p.review_note, submittedAt: p.submitted_at, verifiedAt: p.verified_at });
   const mapOrder = (r, pays, keys) => ({ id: r.id, memberId: r.member_id, items: r.items, subtotal: r.subtotal, discount: r.discount, coupon: r.coupon, total: r.total, status: r.status, keyStatus: r.key_status, customer: r.customer, note: r.note, createdAt: r.created_at,
-    payment: mapPay((pays[r.id] || [])[0]), licenseKeys: (keys[r.id] || []).map((k) => ({ slot: k.slot, product: k.product_name, key: k.key, issuedAt: k.issued_at, revoked: !!k.revoked_at, revokeReason: k.revoke_reason || '', validUntil: k.valid_until || '', renewed: !!k.renewed })) });
+    payment: mapPay((pays[r.id] || [])[0]), licenseKeys: (keys[r.id] || []).map((k) => ({ slot: k.slot, product: k.product_name, key: k.key, issuedAt: k.issued_at, revoked: !!k.revoked_at, revokeReason: k.revoke_reason || '', validUntil: k.valid_until || '', renewed: !!k.renewed, productId: k.product || 'dogflow' })) });
   const groupBy = (rows, f) => rows.reduce((m, r) => ((m[r[f]] = m[r[f]] || []).push(r), m), {});
 
   /* ---------- แปลข้อความผิดพลาด ---------- */
@@ -112,7 +118,7 @@
     for (const kr of k.data) for (const e of (kr.renewed_orders || [])) { const [oid, slot] = String(e).split('|'); (keys[oid] = keys[oid] || []).push(Object.assign({}, kr, { slot, renewed: true })); }
     S.orders = o.data.map((r) => mapOrder(r, pays, keys));
     S.trialConv = k.data.filter((r) => r.trial_days != null && r.kind === 'paid').length;   // คีย์ทดลองที่ลูกค้าซื้อแพ็กเกจต่อ (อัปเกรดเป็น paid แล้ว) — ใช้ในกรวยหน้า ภาพรวม
-    S.trialKeys = k.data.filter((r) => r.kind === 'trial').map((r) => ({ id: r.id, memberId: r.member_id, key: r.key, issuedAt: r.issued_at, expiresAt: r.expires_at, trialDays: r.trial_days, revoked: !!r.revoked_at, revokeReason: r.revoke_reason || '' }));   // [2026-10-14] คีย์ทดลองไม่มีออเดอร์ จึงไม่อยู่ใน mapOrder — แยกเก็บ
+    S.trialKeys = k.data.filter((r) => r.kind === 'trial').map((r) => ({ id: r.id, memberId: r.member_id, key: r.key, issuedAt: r.issued_at, expiresAt: r.expires_at, trialDays: r.trial_days, productId: r.product || 'dogflow', revoked: !!r.revoked_at, revokeReason: r.revoke_reason || '' }));   // [2026-10-14] คีย์ทดลองไม่มีออเดอร์ จึงไม่อยู่ใน mapOrder — แยกเก็บ
     S.notices = n.data.map((r) => ({ id: r.id, memberId: r.member_id, type: r.type, title: r.title, body: r.body, read: r.read, createdAt: r.created_at }));
     if (S.isAdmin) { S.commissions = cm.data.map(IN.commissions); S.payouts = po.data.map(IN.payouts); S.members = m.data.map(IN.members); S.coupons = cp.data.map(IN.coupons); S.audit = au.data.map((r) => ({ ts: r.ts, action: r.action, entity: r.entity, detail: (r.detail && (r.detail.name || r.detail.id)) || '' })); }
   }
@@ -121,7 +127,9 @@
     const kq = await sb.rpc('aff_kyc_status'); S.affKyc = kq.error ? null : kq.data;
     const tq = await sb.rpc('aff_terms_status'); S.affTerms = tq.error ? null : tq.data; }   // [2026-11-17] ตัวแทนเดิมต้องยอมรับเงื่อนไขฉบับล่าสุดซ้ำก่อนถอน (ฟังก์ชันยังไม่มี = null ไม่พังหน้า)   // [2026-11-17] เฟส 3 ข้อ 3: สถานะยืนยันตัวตนด้วยบัตร (ฟังก์ชันยังไม่มี = null ไม่พังหน้า)
   // [2026-10-14] สถานะสิทธิ์ทดลองใช้ฟรีของสมาชิก (แหล่งความจริงเดียวที่ฐานข้อมูล) + คิวคำขอของแอดมิน — ล้มเหลวไม่กระทบส่วนอื่น
-  async function loadTrial() { if (!S.user) { S.trial = null; S.trialQ = null; return; } const r = await sb.rpc('trial_status'); S.trial = r.error ? null : r.data; if (S.isAdmin) { const q = await sb.rpc('admin_trial_queue'); S.trialQ = q.error ? null : q.data; const st = await sb.from('trial_requests').select('status').limit(5000); S.siteStats = null; try { const ss = await sb.rpc('admin_site_stats'); S.siteStats = ss.error ? null : ss.data; } catch (e) {}   /* [2026-10-31] สถิติเข้าชมเว็บ (ยังไม่ลง SQL = null → ซ่อนการ์ด) */
+  async function loadTrial() { if (!S.user) { S.trial = null; S.trialMeta = null; S.trialQ = null; return; } const r = await sb.rpc('trial_status'); S.trial = r.error ? null : r.data;
+    { const tm = await sb.rpc('trial_status_p', { p_product: 'dogmeta' }); S.trialMeta = tm.error ? null : tm.data; }   /* [2026-11-18] ทดลอง DogMeta (ยังไม่ลง SQL = null → ซ่อนการ์ด) */
+     if (S.isAdmin) { const q = await sb.rpc('admin_trial_queue'); S.trialQ = q.error ? null : q.data; const st = await sb.from('trial_requests').select('status').limit(5000); S.siteStats = null; try { const ss = await sb.rpc('admin_site_stats'); S.siteStats = ss.error ? null : ss.data; } catch (e) {}   /* [2026-10-31] สถิติเข้าชมเว็บ (ยังไม่ลง SQL = null → ซ่อนการ์ด) */
     S.trialStats = st.error ? null : { requested: st.data.length, approved: st.data.filter((x) => x.status === 'approved').length, rejected: st.data.filter((x) => x.status === 'rejected').length, cancelled: st.data.filter((x) => x.status === 'cancelled').length, pending: st.data.filter((x) => x.status === 'pending').length }; } else { S.trialQ = null; S.trialStats = null; } }
   let live = null, timer = null;
   function subscribe() {
@@ -164,7 +172,9 @@
     // ----- อ่าน (sync จากแคช) -----
     get: () => S, settings: () => S.settings, list: (e) => S[e] || [], find: (e, id) => (S[e] || []).find((x) => x[key(e)] === id),
     validate: (e, o) => C.validate(e, o, S),
-    price: (p) => C.price(p, S.promos), activePromos: () => C.activePromos(S.promos), activeBanners: () => C.activeBanners(S.banners), activeBlocks: () => C.activeBlocks(S.blocks), couponCalc: C.couponCalc,
+    // [2026-11-18] ส่วนลดข้ามโปรแกรม (ลด crossDiscountPct% ค่าเริ่มต้น 15) เมื่อสมาชิกเคยซื้อคีย์ "อีกโปรแกรม" (ไม่นับคีย์ทดลอง/คีย์ที่ถูกระงับ) — กติกาเดียวกับ place_order/_cross_pct ฝั่งเซิร์ฟเวอร์
+    crossPct: (p) => crossPct(p),
+    price: (p) => { const n = C.price(p, S.promos), c = crossPct(p); return c ? Math.round(n * (100 - c) / 100) : n; }, activePromos: () => C.activePromos(S.promos), activeBanners: () => C.activeBanners(S.banners), activeBlocks: () => C.activeBlocks(S.blocks), couponCalc: C.couponCalc,
     me: () => S.me, isAdmin: () => S.isAdmin, myNotices: () => S.notices, unreadCount: () => S.notices.filter((n) => !n.read).length,
     embed,
     // ----- เขียนแคตตาล็อก (แอดมิน) -----
@@ -210,7 +220,7 @@
     canDownload: () => S.releases.some((r) => r.active),
     // QR เข้ากลุ่ม LINE ลูกค้า: bucket ส่วนตัว — ฐานข้อมูลออก signed URL ให้เฉพาะผู้ที่มี License ใช้งานได้ (policy ใช้ has_license) ไม่มีสิทธิ์ = ''
     async groupQrUrl() { try { const r = await sb.storage.from('community').createSignedUrl('line-group-qr.jpg', 300); return r.error ? '' : r.data.signedUrl; } catch (e) { return ''; } },
-    latestRelease: (platform) => S.latest.find((x) => x.platform === (platform || 'windows')) || null,
+    latestRelease: (platform, product) => S.latest.find((x) => x.platform === (platform || 'windows') && (x.product || 'dogflow') === (product || 'dogflow')) || null,   // [2026-11-18] ต่อสินค้า (ค่าเริ่มต้น dogflow)
     // แอดมิน: ประกาศเวอร์ชันใหม่ให้ลูกค้าที่มีสิทธิ์ (แจ้งในโปรไฟล์ + เข้าคิวอีเมล) → คืนจำนวนผู้รับ
     async countView(entity, id) { const { data, error } = await sb.rpc(entity === 'tutorials' ? 'tutorial_view' : entity === 'showcase' ? 'showcase_view' : 'work_view', { p_id: id }); if (error || data == null) return null; const w = DB.find(entity, id); if (w) w.views = Number(data) || 0; return Number(data) || 0; },   // นับยอดวิวผลงาน (ฟังก์ชันฝั่งฐานข้อมูลบวกทีละ 1) — ยังไม่ได้ลงฟังก์ชัน = คืน null เงียบๆ
     async announceRelease(id) { const { data, error } = await sb.rpc('announce_release', { p_release: id }); if (error) return fail(error); await Promise.all([loadReleases(), loadDynamic()]); emit(); return { ok: true, count: data }; },
@@ -222,26 +232,26 @@
     async restoreKeys(memberId) { const { data, error } = await sb.functions.invoke('revoke-keys', { body: { memberId, restore: true } }); if (error) return { ok: false, errors: [await fnErr(error)] }; await loadDynamic(); emit(); return data.ok ? { ok: true, changed: data.changed } : { ok: false, errors: data.errors || [data.error] }; },
     // [2026-10-14] คีย์ทดลองใช้ฟรี: สมาชิกเห็นของตัวเอง (RLS) · แอดมินเห็นทั้งหมด · ออกคีย์ผ่าน Edge Function issue-trial (แอดมินเท่านั้น)
     trialKeys: (memberId) => (S.trialKeys || []).filter((k) => !memberId || k.memberId === memberId),
-    async issueTrial(memberId, days, devices, note, force) { const { data, error } = await sb.functions.invoke('issue-trial', { body: { memberId, days, devices, note, force: !!force } }); if (error) return { ok: false, errors: [await fnErr(error)] }; if (data.dup) return { ok: false, dup: true, matches: data.matches || [], errors: [data.error] }; await loadDynamic(); emit(); return data.ok ? { ok: true, key: data.key, days: data.days, devices: data.devices, expiresAt: data.expiresAt } : { ok: false, errors: [data.error || 'ออกคีย์ทดลองไม่สำเร็จ'] }; },
+    async issueTrial(memberId, days, devices, note, force, product) { const { data, error } = await sb.functions.invoke('issue-trial', { body: { memberId, days, devices, note, force: !!force, product: product || 'dogflow' } }); if (error) return { ok: false, errors: [await fnErr(error)] }; if (data.dup) return { ok: false, dup: true, matches: data.matches || [], errors: [data.error] }; await loadDynamic(); emit(); return data.ok ? { ok: true, key: data.key, days: data.days, devices: data.devices, expiresAt: data.expiresAt } : { ok: false, errors: [data.error || 'ออกคีย์ทดลองไม่สำเร็จ'] }; },
     // [2026-10-14] แจ้งลูกค้าทั้งหมด (แอดมิน): นับผู้รับ / ส่ง (กันส่งซ้ำด้วย idem + ตรวจจำนวนที่ยืนยัน) / ประวัติ — ตรรกะทั้งหมดอยู่ที่ฐานข้อมูล (broadcasts.sql)
     async broadcastPreview(aud) { const { data, error } = await sb.rpc('admin_broadcast_preview', { p_audience: aud }); if (error) return fail(error); return { ok: true, count: data.count, sample: data.sample || [] }; },
     async broadcastSend(o) { const { data, error } = await sb.rpc('admin_broadcast', { p_idem: o.idem, p_title: o.title, p_body: o.body, p_type: o.type, p_audience: o.audience, p_expect: o.expect }); if (error) return fail(error); return { ok: true, recipients: data.recipients, duplicate: !!data.duplicate }; },
     async broadcastHistory() { const { data, error } = await sb.from('broadcasts').select('id,created_at,title,audience,recipients,type').order('created_at', { ascending: false }).limit(8); return error ? [] : data; },
-    trialStatus: () => S.trial || null,
+    trialStatus: (product) => (product === 'dogmeta' ? S.trialMeta || null : S.trial || null),   // [2026-11-18] ต่อโปรแกรม (ไม่ส่ง = dogflow)
     siteStats: () => S.siteStats || null,
     siteReport: async (from, to) => { if (!S.isAdmin) return null; try { const r = await sb.rpc('admin_site_report', { p_from: from, p_to: to }); return r.error ? null : r.data; } catch (e) { return null; } },   // [2026-10-31] รายงานเข้าชมละเอียดตามช่วงวันที่
     trialStats: () => (S.trialStats ? Object.assign({}, S.trialStats, { converted: S.trialConv || 0 }) : null),
     trialQueue: () => S.trialQ || { pending: [], recent: [] },
-    async requestTrial(note, consent) {   // สมาชิกกดขอ → RPC (กันกดซ้ำที่ฐานข้อมูล) แล้วยิงแจ้ง LINE แอดมินทันที (ล้มเหลวไม่เป็นไร ตัวกวาดทุกนาทีเก็บตกให้)
-      const { data, error } = await sb.rpc('request_trial', { p_note: note || '', p_consent: !!consent }); if (error) return fail(error);
-      S.trial = data; emit();
+    async requestTrial(note, consent, product) {   // สมาชิกกดขอ → RPC (กันกดซ้ำที่ฐานข้อมูล) แล้วยิงแจ้ง LINE แอดมินทันที (ล้มเหลวไม่เป็นไร ตัวกวาดทุกนาทีเก็บตกให้)
+      const meta = product && product !== 'dogflow', { data, error } = meta ? await sb.rpc('request_trial_p', { p_product: product, p_note: note || '', p_consent: !!consent }) : await sb.rpc('request_trial', { p_note: note || '', p_consent: !!consent }); if (error) return fail(error);
+      if (meta) S.trialMeta = data; else S.trial = data; emit();
       if (data && data.state === 'pending' && data.request) sb.functions.invoke('notify-line', { body: { event: 'trial', requestId: data.request.id } }).catch(() => {});
       return { ok: true, status: data };
     },
     // [2026-10-28] ยืนยันตัวตนผ่าน LINE: ขอรหัส (คืนรหัสดิบครั้งเดียว) / เช็กสถานะ — เมื่อยืนยันแล้วโหลดสถานะทดลองใช้ฟรีใหม่
     async lineVerifyStart() { const { data, error } = await sb.rpc('line_verify_start'); if (error) return fail(error); if (data && data.verified) { await loadTrial(); emit(); } return { ok: true, data }; },
     async lineVerifyCheck() { const { data, error } = await sb.rpc('line_verify_status'); if (error) return fail(error); if (data && data.verified) { await loadTrial(); emit(); } return { ok: true, verified: !!(data && data.verified) }; },
-    async cancelTrialRequest() { const { data, error } = await sb.rpc('cancel_trial_request'); if (error) return fail(error); S.trial = data; emit(); return { ok: true, status: data }; },
+    async cancelTrialRequest(product) { const meta = product && product !== 'dogflow', { data, error } = meta ? await sb.rpc('cancel_trial_request_p', { p_product: product }) : await sb.rpc('cancel_trial_request'); if (error) return fail(error); if (meta) S.trialMeta = data; else S.trial = data; emit(); return { ok: true, status: data }; },
     async reviewTrial(id, action, code, note, retry) { const { data, error } = await sb.rpc('admin_review_trial', { p_id: id, p_action: action, p_code: code || '', p_note: note || '', p_retry: retry || 'default' }); if (error) return fail(error); await loadTrial(); emit(); return { ok: true, status: data && data.status }; },
     async approveTrial(requestId, days, devices, force) { const { data, error } = await sb.functions.invoke('issue-trial', { body: { requestId, days, devices, force: !!force } }); if (error) return { ok: false, errors: [await fnErr(error)] }; if (data.dup) return { ok: false, dup: true, matches: data.matches || [], errors: [data.error] }; await Promise.all([loadDynamic(), loadTrial()]); emit(); return data.ok ? { ok: true, key: data.key, days: data.days, devices: data.devices } : { ok: false, errors: [data.error || 'อนุมัติไม่สำเร็จ'] }; },
     async dispatchNotices() { const { data, error } = await sb.functions.invoke('dispatch-notices', { body: {} }); if (error) return { ok: false, errors: [await fnErr(error)] }; return data.ok ? { ok: true, sent: data.sent, skipped: data.skipped } : { ok: false, errors: [data.error || 'ส่งอีเมลบางรายการไม่สำเร็จ'], sent: data.sent, failed: data.failed }; },

@@ -128,6 +128,7 @@
       if (!Number.isInteger(Number(o.stock)) || Number(o.stock) < 0) er.push('สต็อกต้องเป็นจำนวนเต็ม ≥ 0');
       const cm = Number(o.commission || 0); if (!Number.isInteger(cm) || cm < 0) er.push('ค่าคอมตัวแทนต้องเป็นจำนวนเต็ม ≥ 0 (0 = ไม่มีค่าคอม)'); else if (cm > Number(o.price)) er.push('ค่าคอมตัวแทนต้องไม่เกินราคาสินค้า');
       if (!d.categories.some((c) => c.id === o.categoryId)) er.push('เลือกหมวดหมู่ไม่ถูกต้อง');
+      if (o.product && !/^[a-z0-9]{3,20}$/.test(o.product)) er.push('สินค้า (product) ต้องเป็น a-z/0-9 ยาว 3-20 ตัว');   // [2026-11-18]
       const ld = Number(o.licenseDevices || 0), ly = Number(o.licenseDays || 0);
       if (!Number.isInteger(ld) || ld < 0 || ld > 50) er.push('จำนวนเครื่อง License ต้อง 0-50 (0 = ไม่ใช่สินค้า License)');
       if (ld > 0 && (!Number.isInteger(ly) || ly < 0 || ly > 3650)) er.push('อายุ License 0-3650 วัน (0 = ตลอดชีพ)');
@@ -208,6 +209,7 @@
     } else if (entity === 'releases') {
       if (!o.version || !/^\d+(\.\d+){0,3}$/.test(o.version.trim())) er.push('เลขเวอร์ชันต้องเป็นตัวเลขแบบ 1.0.0 (ห้ามใส่ชื่อโปรแกรม — ชื่อเต็มใส่ในช่องชื่อเรื่อง) ไม่เช่นนั้นโปรแกรมจะตรวจอัปเดตไม่ได้');
       if (!['windows', 'mac', 'linux', 'other'].includes(o.platform)) er.push('เลือกแพลตฟอร์ม');
+      if (o.product && !/^[a-z0-9]{3,20}$/.test(o.product)) er.push('สินค้า (product) ต้องเป็น a-z/0-9 ยาว 3-20 ตัว');   // [2026-11-18]
       if (!o.filePath && !o.externalUrl) er.push('ต้องอัปโหลดไฟล์ หรือใส่ลิงก์ดาวน์โหลด (https://) อย่างน้อยหนึ่งอย่าง');
       if (o.externalUrl && !/^https:\/\//.test(o.externalUrl)) er.push('ลิงก์ดาวน์โหลดต้องขึ้นต้น https://');
       if (o.sha256 && !/^[0-9a-f]{64}$/.test(o.sha256)) er.push('SHA-256 ต้องเป็นเลขฐานสิบหก 64 ตัว (ตัวพิมพ์เล็ก)');
@@ -265,5 +267,7 @@
     return { ok: true, phone: d, formatted, warn: fake ? 'เบอร์ ' + formatted + ' ดูเหมือนเบอร์ตัวอย่าง (เลขเรียงหรือซ้ำกันมาก)' : '' };
   }
 
-  w.DFCommon = { modeCards, genreCards, featCards, modeTotal, reqCards, thaiDateTime, esc, baht, uid, embed, clip, validate, price, activePromos, activeBanners, activeBlocks, BLOCKS, BLOCK_COLS, blockFields, blockHealth, cartId, FB, verCmp, couponCalc, hideSplash, normalizePhone };
+  // [2026-11-18] สินค้าในร้าน (ฐานข้อมูลเดียวกัน คีย์/รุ่น/ราคาแยกต่อสินค้า) — ค่าว่าง = dogflow
+  const PRODUCTS = { dogflow: 'DogFlow', dogmeta: 'DogMeta' }, productName = (id) => (id === 'bundle' ? 'แพ็กเกจรวม DogFlow + DogMeta' : PRODUCTS[id || 'dogflow'] || String(id));   // bundle = สินค้าแพ็กเกจรวม (ออกคีย์ทุกโปรแกรม ลด 15%)
+  w.DFCommon = { PRODUCTS, productName, modeCards, genreCards, featCards, modeTotal, reqCards, thaiDateTime, esc, baht, uid, embed, clip, validate, price, activePromos, activeBanners, activeBlocks, BLOCKS, BLOCK_COLS, blockFields, blockHealth, cartId, FB, verCmp, couponCalc, hideSplash, normalizePhone };
 })(window);

@@ -41,6 +41,7 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
   </aside>
   <main>
     <div class="box" id="trial" hidden></div>
+    <div class="box" id="trialMeta" hidden></div>   <!-- [2026-11-18] ทดลองใช้ฟรี DogMeta (แยกสิทธิ์จาก DogFlow) -->
     <div class="box"><h3>🔑 License key ของฉัน</h3><p style="color:var(--mut);font-size:14px;margin-top:0">คีย์จะปรากฏที่นี่อัตโนมัติเมื่อแอดมินยืนยันการชำระเงินแล้ว — นำไปใส่ในโปรแกรมเพื่อเปิดใช้งาน</p><div id="keys"></div></div>
     <div class="box" id="downloads"><h3>💿 ดาวน์โหลดโปรแกรม</h3><div id="dlist"></div><div id="dlguide"></div></div>
     <div class="box" id="grp" hidden><h3>💬 เข้ากลุ่ม LINE ลูกค้า DogFlow</h3><p style="color:var(--mut);font-size:14px;margin:0 0 10px">สแกน QR Code ด้วยแอป LINE เพื่อเข้ากลุ่ม — สิทธิ์เฉพาะลูกค้าที่ชำระเงินและได้รับ License key แล้ว กรุณาอย่าแชร์ต่อ</p><img id="grpQr" alt="QR Code เข้ากลุ่ม LINE DogFlow" style="width:min(240px,100%);border-radius:12px;background:#fff;display:block"></div>
@@ -71,9 +72,9 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
 <script src="config.js"></script>
 <script src="pw-eye.js?v=20261014a" defer></script>
 <script src="vendor/supabase.js"></script>
-<script src="store.common.js?v=20261118a"></script>
+<script src="store.common.js?v=20261118q"></script>
 <script src="store.local.js?v=20261012a"></script>
-<script src="store.supabase.js?v=20261118c"></script>
+<script src="store.supabase.js?v=20261118q"></script>
 <script src="avatar.js"></script>
 <script src="vendor/qrcode.js?v=20261028a"></script>
 <script src="trial-card.js?v=20261028f"></script>
@@ -93,7 +94,22 @@ async function paintGroup(ok) {
 }
 // การ์ดทดลองใช้ฟรี: วาดใหม่เฉพาะเมื่อสถานะเปลี่ยน (กัน db:change ล้างช่องที่กำลังพิมพ์/ติ๊กอยู่)
 let trialSig = '', trialBusy = false, lineV = null, linePoll = 0, lineTick = null;   // lineV = { code, url, error } ระหว่างยืนยัน LINE
-function paintTrial() {
+function paintTrial() { if (trialSig === '') trialMetaSig = ''; paintTrialMain(); paintTrialMeta(); }
+let trialMetaSig = '';
+// [2026-11-18] การ์ดทดลองใช้ฟรีของ DogMeta — ใช้ตัวเรนเดอร์เดียวกับ DogFlow (id ของปุ่ม/ช่องเติมคำว่า Meta) · แสดงเมื่อมีแพ็กเกจ DogMeta เปิดขายและมีผลสถานะจากเซิร์ฟเวอร์
+function paintTrialMeta() {
+  const box = $('#trialMeta'), st = DB.trialStatus && DB.trialStatus('dogmeta');
+  if (!st || !window.TrialCard || !DB.list('products').some((p) => p.active && p.product === 'dogmeta')) { box.hidden = true; return; }
+  const main = DB.trialStatus('dogflow') || {}, vnum = (v) => String(v).split('.').reduce((n, x) => n * 1000 + (parseInt(x, 10) || 0), 0);
+  const rel = DB.list('releases').filter((r) => r.active && r.product === 'dogmeta' && /\.exe$/i.test(r.fileName || '')).sort((a, b) => vnum(b.version) - vnum(a.version))[0], dl = rel ? { id: rel.id, version: rel.version } : null;
+  const lineAbove = st.reason === 'line_unverified' && main.reason === 'line_unverified';   // ขั้นตอนยืนยัน LINE ใช้ตัวควบคุมชุดเดียว (id เดียว) — ให้การ์ด DogFlow ด้านบนทำ
+  const sig = JSON.stringify([st.state, st.reason, st.request && st.request.id, st.request && st.request.status, st.key && st.key.key, dl && dl.id, trialBusy, lineAbove, !lineAbove && lineV && lineV.code, !lineAbove && lineV && lineV.error]);
+  box.hidden = false; if (sig === trialMetaSig) return; trialMetaSig = sig;
+  let html = lineAbove ? '<div class="trial warn"><h3>🎁 ทดลองใช้ฟรี</h3><div class="trial-t">ยืนยันตัวตนผ่าน LINE ก่อน</div><p>ทำที่กล่อง "ทดลองใช้ฟรี" ด้านบนครั้งเดียว แล้วกลับมาขอทดลอง DogMeta ได้</p></div>' : TrialCard.render(st, { dl, busy: trialBusy, line: st.reason === 'line_unverified' ? lineV : null });
+  box.innerHTML = html.replace(/id="trial(Ask|Cancel|Note|Consent|Err)"/g, 'id="trialMeta$1"').replace('<h3>🎁 ทดลองใช้ฟรี</h3>', '<h3>🎁 ทดลองใช้ฟรี — DogMeta</h3>');
+  { const q = $('#lineQr'); if (q && !lineAbove && lineV && lineV.url && window.qrcode) { try { const c = window.qrcode(0, 'M'); c.addData(lineV.url); c.make(); q.innerHTML = c.createSvgTag({ cellSize: 4, margin: 16, scalable: true }); const sv = q.querySelector('svg'); if (sv) { sv.style.width = '100%'; sv.style.height = '100%'; } } catch (e) { /* ไม่มี QR ก็ใช้ปุ่มได้ */ } } }
+}
+function paintTrialMain() {
   const box = $('#trial'), st = DB.trialStatus && DB.trialStatus(); if (!st || !window.TrialCard) { box.hidden = true; return; }
   const vnum = (v) => String(v).split('.').reduce((n, x) => n * 1000 + (parseInt(x, 10) || 0), 0);   // ปุ่มของคนทดลองต้องเป็นตัวติดตั้ง (.exe) รุ่นเลขสูงสุดเท่านั้น — ไม่เอาแพ็กเกจอัปเดต (.zip) และไม่เรียงตามวันที่อัป
   const rel = DB.list('releases').filter((r) => r.active && /\.exe$/i.test(r.fileName || '')).sort((a, b) => vnum(b.version) - vnum(a.version))[0], dl = rel && DB.canDownload && DB.canDownload() ? { id: rel.id, version: rel.version } : null;
@@ -139,12 +155,19 @@ document.addEventListener('click', async (e) => {
     if (!r.ok) { const e2 = $('#trialErr'); if (e2) showErr(e2, r.errors); return; }
     toast(r.status && r.status.state === 'pending' ? 'ส่งคำขอแล้ว ✔ ทีมงานได้รับแจ้งเตือน' : 'ขอไม่สำเร็จ — ดูเหตุผลในกล่อง'); return;
   }
+  if (e.target.closest('#trialMetaAsk')) {
+    const err = $('#trialMetaErr'); if (!$('#trialMetaConsent').checked) return showErr(err, ['ติ๊กยินยอมให้เก็บรหัสเครื่องก่อนจึงจะขอได้']);
+    const note = $('#trialMetaNote').value, r = await trialDo(() => DB.requestTrial(note, true, 'dogmeta'));
+    if (!r.ok) { const e2 = $('#trialMetaErr'); if (e2) showErr(e2, r.errors); return; }
+    toast(r.status && r.status.state === 'pending' ? 'ส่งคำขอทดลอง DogMeta แล้ว ✔ ทีมงานได้รับแจ้งเตือน' : 'ขอไม่สำเร็จ — ดูเหตุผลในกล่อง'); return;
+  }
+  if (e.target.closest('#trialMetaCancel')) { if (!confirm('ยกเลิกคำขอทดลองใช้ฟรี DogMeta?')) return; const r = await trialDo(() => DB.cancelTrialRequest('dogmeta')); toast(r.ok ? 'ยกเลิกคำขอแล้ว' : r.errors.join(' ')); return; }
   if (e.target.closest('#trialCancel')) { if (!confirm('ยกเลิกคำขอทดลองใช้ฟรี?')) return; const r = await trialDo(() => DB.cancelTrialRequest()); toast(r.ok ? 'ยกเลิกคำขอแล้ว' : r.errors.join(' ')); }
 });
 function render() {
   const m = DB.me(); $('#guest').hidden = !!m; $('#app').hidden = !m; $('#out').hidden = !m; if (!m) return;
   const orders = DB.list('orders').filter((o) => o.memberId === m.id), keys = orders.flatMap((o) => (o.licenseKeys || []).filter((k) => !k.renewed).map((k) => Object.assign({ orderId: o.id }, k)))
-    .concat((DB.trialKeys ? DB.trialKeys(m.id) : []).map((k) => ({ orderId: '', product: '🎁 ทดลองใช้ฟรี', key: k.key, issuedAt: k.issuedAt, revoked: k.revoked, trial: true, expiresAt: k.expiresAt, trialDays: k.trialDays })));   // [2026-10-14] คีย์ทดลองที่แอดมินออกให้ (ไม่มีออเดอร์)
+    .concat((DB.trialKeys ? DB.trialKeys(m.id) : []).map((k) => ({ orderId: '', product: '🎁 ทดลองใช้ฟรี · ' + DFCommon.productName(k.productId), key: k.key, issuedAt: k.issuedAt, revoked: k.revoked, trial: true, expiresAt: k.expiresAt, trialDays: k.trialDays })));   // [2026-10-14] คีย์ทดลองที่แอดมินออกให้ (ไม่มีออเดอร์)
   paintTrial(); paintAvatar(m); $('#nm').textContent = m.name; $('#em').textContent = m.email; $('#since').textContent = 'สมาชิกตั้งแต่ ' + new Date(m.createdAt).toLocaleDateString('th-TH');
   const ns = DB.myNotices(), un = ns.filter((n) => !n.read).length, ic = { info: 'ℹ️', warning: '⚠️', violation: '⛔', ban: '🚫', update: '💿' };
   $('#unr').hidden = !un; $('#unr').textContent = un + ' ใหม่'; $('#readAll').hidden = !un;
@@ -162,12 +185,14 @@ function render() {
     || '<p style="color:var(--mut)">ยังไม่มีคีย์ — เมื่อชำระเงินและแอดมินตรวจสลิปผ่านแล้ว คีย์จะขึ้นที่นี่</p>';
   const rel = DB.list('releases').filter((r) => r.active && /\.exe$/i.test(r.fileName || '')).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)), can = !!(DB.canDownload && DB.canDownload()) && rel.length > 0;
   const PL = { windows: 'Windows', mac: 'macOS', linux: 'Linux', other: 'อื่น ๆ' };
-  $('#dlist').innerHTML = can ? rel.slice(0, 3).map((r, i) =>   /* [2026-10-28] แสดงแค่ 3 เวอร์ชันล่าสุด */ `<div class="rel ${i === 0 ? 'latest' : ''}"><div class="row"><b>${E(r.title || 'DogFlow Auto Gen')}</b><span class="tag ${i === 0 ? 'okk' : 'paid'}">v${E(r.version)}${i === 0 ? ' · ล่าสุด' : ''}</span></div>
+  // [2026-11-18] จัดรายการดาวน์โหลดตามโปรแกรม (DogFlow/DogMeta) — แต่ละโปรแกรมแสดง 3 รุ่นล่าสุด · เห็นเฉพาะโปรแกรมที่มี License (RLS)
+  const dlGroups = (L) => { const m = new Map(); L.forEach((r) => { const k = r.product || 'dogflow'; if (!m.has(k)) m.set(k, []); m.get(k).push(r); }); return [...m].map(([k, list]) => ({ k, list: list.slice(0, 3), multi: m.size > 1 })); };
+  $('#dlist').innerHTML = can ? dlGroups(rel).map((g) => (g.multi ? `<h4 style="margin:14px 0 6px">🐶 ${E(DFCommon.productName(g.k))}</h4>` : '') + g.list.map((r, i) =>   /* [2026-10-28] แสดงแค่ 3 เวอร์ชันล่าสุด */ `<div class="rel ${i === 0 ? 'latest' : ''}"><div class="row"><b>${E(r.title || DFCommon.productName(r.product) + ' Auto Gen')}</b><span class="tag ${i === 0 ? 'okk' : 'paid'}">v${E(r.version)}${i === 0 ? ' · ล่าสุด' : ''}</span></div>
       <div style="color:var(--mut);font-size:13px">${E(PL[r.platform] || r.platform)}${r.createdAt ? ' · เผยแพร่ ' + E(DFCommon.thaiDateTime(r.createdAt)) : ''}${r.mandatory ? ' · <b style="color:var(--gold)">แนะนำให้อัปเดตทันที</b>' : ''}${r.sizeBytes ? ' · ' + (r.sizeBytes / 1048576).toFixed(1) + ' MB' : ''}</div>
       ${r.notes ? `<div style="white-space:pre-line;margin:8px 0;font-size:14px">${E(r.notes)}</div>` : ''}
       ${r.sha256 ? `<div style="color:var(--mut);font-size:12px;margin:6px 0">SHA-256: <code style="word-break:break-all;user-select:all">${E(r.sha256)}</code></div>` : ''}
       <button class="btn ${i === 0 ? 'gold' : 'ghost'} sm" data-dl="${E(r.id)}">⬇ ดาวน์โหลด</button>
-      <div data-dlst="${E(r.id)}" style="font-size:12.5px;color:var(--mut);margin-top:6px"></div></div>`).join('')
+      <div data-dlst="${E(r.id)}" style="font-size:12.5px;color:var(--mut);margin-top:6px"></div></div>`).join('')).join('')
     : keys.length ? '<p style="color:var(--mut)">ยังไม่มีไฟล์ให้ดาวน์โหลดในตอนนี้ (หรือสิทธิ์/อายุคีย์หมดแล้ว) — หากมีปัญหาติดต่อแอดมิน</p>' : '<p style="color:var(--mut)">ดาวน์โหลดได้เมื่อมี License ที่ใช้งานได้ — <a href="index.html#shop" style="color:var(--cyan)">เลือกซื้อแพ็กเกจ</a></p>';
   const guide = DB.settings().installGuide; $('#dlguide').innerHTML = can && guide ? `<details open style="margin-top:10px"><summary>📖 วิธีติดตั้งและเริ่มใช้งาน</summary><div style="white-space:pre-line;color:var(--mut);font-size:14px;margin-top:6px">${E(guide)}</div></details>` : '';
   paintAff(); paintFb();
