@@ -54,9 +54,9 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
 <script src="admin-charts.js?v=20261031a"></script><script src="admin-overview.js?v=20261031c"></script><script src="admin-broadcast.js?v=20261014a"></script>
 <script src="pw-eye.js?v=20261014a" defer></script>
 <script src="vendor/supabase.js"></script>
-<script src="store.common.js?v=20261118s"></script>
+<script src="store.common.js?v=20261118t"></script>
 <script src="store.local.js?v=20261012b"></script>
-<script src="store.supabase.js?v=20261118s"></script>
+<script src="store.supabase.js?v=20261118t"></script>
 <script src="avatar.js"></script>
 <script>
 const $ = (s) => document.querySelector(s), E = DB.esc, B = DB.baht;
@@ -258,8 +258,10 @@ const V = {
   },
   orders() {
     const st = { pending: ['รอชำระ', 'pending'], review: ['รอตรวจสลิป', 'paid'], paid: ['ชำระแล้ว', 'done'], rejected: ['สลิปไม่ผ่าน', 'cancelled'], cancelled: ['ยกเลิก', 'cancelled'], done: ['เสร็จสิ้น', 'done'] };
-    return `<h1>🧾 ออเดอร์ / ตรวจสอบการชำระเงิน</h1><div class="tw"><table><tr><th>เลขที่</th><th>ลูกค้า</th><th>รายการ</th><th>ยอด</th><th>สลิป</th><th>สถานะ</th><th></th></tr>
-    ${DB.list('orders').map((o) => `<tr><td><b>${E(o.id)}</b><br><small>${fmt(o.createdAt)}</small></td><td>${E(o.customer.name)}<br><small>${E(o.customer.email)}</small></td>
+    // [2026-11-18 ผู้ใช้สั่ง] ตัวกรองสถานะออเดอร์ (จำค่าใน window._of) — รอตรวจสลิป/รอชำระ/ชำระแล้ว/เสร็จสิ้น/สลิปไม่ผ่าน/ยกเลิก
+    const OF = [['all', 'ทั้งหมด'], ['review', 'รอตรวจสลิป'], ['pending', 'รอชำระ'], ['paid', 'ชำระแล้ว'], ['done', 'เสร็จสิ้น'], ['rejected', 'สลิปไม่ผ่าน'], ['cancelled', 'ยกเลิก']], ofv = OF.some((x) => x[0] === window._of) ? window._of : 'all', allO = DB.list('orders');
+    return `<h1>🧾 ออเดอร์ / ตรวจสอบการชำระเงิน</h1><div class="mt-chips" style="margin:10px 0">${OF.map(([k, n]) => `<button type="button" data-of="${k}" class="${ofv === k ? 'on' : ''}">${n}<b>${k === 'all' ? allO.length : allO.filter((o) => o.status === k).length}</b></button>`).join('')}</div><div class="tw"><table><tr><th>เลขที่</th><th>ลูกค้า</th><th>รายการ</th><th>ยอด</th><th>สลิป</th><th>สถานะ</th><th></th></tr>
+    ${allO.filter((o) => ofv === 'all' || o.status === ofv).map((o) => `<tr><td><b>${E(o.id)}</b><br><small>${fmt(o.createdAt)}</small></td><td>${E(o.customer.name)}<br><small>${E(o.customer.email)}</small></td>
     <td>${o.items.map((i) => E(i.name) + '×' + i.qty).join('<br>')}</td><td>${B(o.total)}${o.coupon ? '<br><small>โค้ด ' + E(o.coupon) + '</small>' : ''}</td>
     <td>${o.payment ? `<button class="btn sm ghost" data-slip="${o.id}">ดูสลิป${o.payment.flags.length ? ' ⚠' + o.payment.flags.length : ' ✔'}</button>` : '—'}</td>
     <td><span class="tag ${st[o.status][1]}">${st[o.status][0]}</span></td>
@@ -538,6 +540,7 @@ const A = {
   },
   orders() {
     $('#main').onclick = async (e) => { const b = e.target.closest('button'); if (!b) return;
+      if (b.dataset.of) { window._of = b.dataset.of; render(); return; }   // ตัวกรองสถานะ
       const act = async (p) => { const r = await p; if (r && r.ok === false) alert(r.errors.join('\n')); render(); };
       if (b.dataset.cancel) {
         const o = DB.find('orders', b.dataset.cancel), stl = { pending: 'รอชำระ', review: 'รอตรวจสลิป', paid: 'ชำระแล้ว', rejected: 'สลิปไม่ผ่าน' }, issued = o.keyStatus === 'issued' || (o.licenseKeys && o.licenseKeys.length);
