@@ -742,3 +742,18 @@ footer .trafficrow{margin:0 0 18px}footer .trafficrow .trafficcard{max-width:non
 .affx-hd h2 em{display:block;margin-top:4px;font-style:normal;background:linear-gradient(90deg,var(--accent),#e0475b);-webkit-background-clip:text;background-clip:text;color:transparent}
 .affx-stats>div{box-shadow:0 14px 34px -22px rgba(0,0,0,.4);transition:transform .2s,border-color .2s}.affx-stats>div:hover{transform:translateY(-3px);border-color:var(--accent)}
 .affx-cta .btn{font-size:16px;padding:13px 26px;box-shadow:0 14px 34px -14px var(--accent)}
+
+/* [2026-11-18 ผู้ใช้สั่ง "ให้เด่นขึ้น จัดให้เป็นระเบียบ"] ขั้นบันไดค่าคอม: 3 การ์ดเรียงเป็นขั้น เริ่มต้น → 125% → 150% (ขั้นสูงสุดเน้นสี) */
+.affx-tiers{margin-top:18px;padding:18px 20px;border:1px solid var(--accent);border-radius:var(--r);background:linear-gradient(135deg,var(--accent-soft),transparent 70%)}
+.affx-tiers[hidden]{display:none}
+.tier-h{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;font-size:17px;margin-bottom:12px}.tier-h small{color:var(--muted);font-size:13px}
+.tier-row{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:12px;align-items:stretch}
+.tier-row>i{align-self:center;font-style:normal;color:var(--accent);font-size:22px;font-weight:700}
+.tier{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;text-align:center}
+.tier span{display:block;font-size:13px;color:var(--muted);font-weight:600}.tier b{display:block;font-size:clamp(26px,4vw,38px);line-height:1.15;margin:4px 0;font-variant-numeric:tabular-nums}.tier em{display:block;font-style:normal;font-size:13px;color:var(--muted)}
+.tier.t2 b{color:var(--accent)}
+.tier.t3{border:2px solid var(--accent);background:linear-gradient(160deg,var(--accent-soft),var(--surface));box-shadow:0 16px 36px -20px var(--accent)}
+.tier.t3 b{background:linear-gradient(90deg,var(--accent),#e0475b);-webkit-background-clip:text;background-clip:text;color:transparent}
+.tier u{position:absolute;top:-11px;right:12px;text-decoration:none;background:linear-gradient(135deg,var(--accent),#e0475b);color:#171109;font-size:11px;font-weight:800;padding:2px 10px;border-radius:999px}
+.tier-ex{margin:10px 0 0;font-size:12.5px;color:var(--muted);text-align:center}
+@media(max-width:640px){.tier-row{grid-template-columns:1fr}.tier-row>i{transform:rotate(90deg);justify-self:center}}
