@@ -56,7 +56,7 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
 <script src="vendor/supabase.js"></script>
 <script src="store.common.js?v=20261118u"></script>
 <script src="store.local.js?v=20261012b"></script>
-<script src="store.supabase.js?v=20261118u"></script>
+<script src="store.supabase.js?v=20261118w"></script>
 <script src="avatar.js"></script>
 <script>
 const $ = (s) => document.querySelector(s), E = DB.esc, B = DB.baht;
@@ -184,7 +184,7 @@ const memRows = (m) => { const os = DB.list('orders').filter((o) => o.memberId =
 const showTrialInfo = (id) => { const Q = DB.trialQueue(), r = Q.pending.find((x) => x.id === id) || Q.recent.find((x) => x.id === id); if (!r) return;
   const m = DB.find('members', r.memberId), th = (v) => (v ? DFCommon.thaiDateTime(v) : '—'), ST = { approved: '✅ อนุมัติแล้ว', rejected: '⛔ ปฏิเสธ', cancelled: '↩ ยกเลิก' };
   const keys = m ? memKeys(m) : [], kt = keys.map((k) => DFCommon.productName(k.productId) + ' ' + (k.trialDays !== undefined ? 'ทดลอง' : 'ซื้อ') + (k.revoked ? ' (ระงับ)' : '')).join(' · ');
-  const rows = [...(m ? memRows(m) : [['ชื่อ', r.name], ['อีเมล', r.email]]), ['โปรแกรมที่ขอ', DFCommon.productName(r.product)], ['ขอเมื่อ', th(r.requestedAt)], ['สถานะคำขอ', ST[r.status] || '⏳ รอดำเนินการ'], ['หมายเหตุจากสมาชิก', r.note || '—'], ['คีย์ที่มีอยู่', kt || 'ยังไม่มี']];
+  const rows = [...(m ? memRows(m) : [['ชื่อ', r.name], ['อีเมล', r.email]]), ['โปรแกรมที่ขอ', DFCommon.productName(r.product)], ['ขอเมื่อ', th(r.requestedAt)], ['สถานะคำขอ', ST[r.status] || '⏳ รอดำเนินการ'], ['ยืนยันอีเมล', r.emailConfirmedAt ? '✅ ยืนยันแล้ว ' + th(r.emailConfirmedAt) : '❌ ยังไม่ยืนยัน'], ['ยืนยัน LINE', r.lineVerifiedAt ? '✅ ยืนยันแล้ว ' + th(r.lineVerifiedAt) : '❌ ยังไม่ยืนยัน'], ['หมายเหตุจากสมาชิก', r.note || '—'], ['คีย์ที่มีอยู่', kt || 'ยังไม่มี']];
   if (r.status) rows.push(['ตัดสินเมื่อ', th(r.decidedAt)], ['เหตุผล/บันทึก', r.decisionNote || '—']);
   rows.push(['บัญชีใกล้เคียง', (r.near || []).map((n) => (n.hadTrial ? '⚠ เคยใช้สิทธิ์แล้ว: ' : 'ℹ ') + n.email + ' (' + n.reason + ')').join(' · ') || '✔ ไม่พบบัญชีซ้ำ']);
   return confirmDlg({ title: 'รายละเอียดผู้ขอทดลองใช้ฟรี', sub: r.name + ' · ' + r.email, rows, hideCancel: true, okText: 'ปิด' }); };
@@ -273,7 +273,7 @@ const V = {
     <td>${o.items.map((i) => E(i.name) + '×' + i.qty).join('<br>')}</td><td>${B(o.total)}${o.coupon ? '<br><small>โค้ด ' + E(o.coupon) + '</small>' : ''}</td>
     <td>${o.payment ? `<button class="btn sm ghost" data-slip="${o.id}">ดูสลิป${o.payment.flags.length ? ' ⚠' + o.payment.flags.length : ' ✔'}</button>` : '—'}</td>
     <td><span class="tag ${st[o.status][1]}">${st[o.status][0]}</span></td>
-    <td style="white-space:nowrap">${o.status !== 'cancelled' && o.status !== 'paid' && o.status !== 'done' ? `<button class="btn sm danger" data-cancel="${o.id}">ยกเลิก</button>` : ''}${o.status === 'paid' && o.keyStatus === 'pending' ? `<button class="btn sm gold" data-rk="${o.id}">🔁 ออกคีย์ใหม่</button> ` : ''}${o.status === 'paid' ? `<button class="btn sm" data-done="${o.id}">เสร็จสิ้น</button>` : ''}${o.keyStatus === 'issued' ? '<small class="ok">🔑 ออกคีย์แล้ว</small>' : ''}</td></tr>`).join('') || '<tr><td colspan="7" style="color:var(--mut)">ยังไม่มีออเดอร์</td></tr>'}</table></div>`;
+    <td style="white-space:nowrap">${o.status !== 'cancelled' && o.status !== 'paid' && o.status !== 'done' ? `<button class="btn sm danger" data-cancel="${o.id}">ยกเลิก</button>` : ''}${o.status === 'paid' && o.keyStatus === 'pending' ? `<button class="btn sm gold" data-rk="${o.id}">🔁 ออกคีย์ใหม่</button> ` : ''}${o.status === 'paid' ? `<button class="btn sm" data-done="${o.id}">เสร็จสิ้น</button>` : ''}${o.keyStatus === 'issued' ? '<small class="ok">🔑 ออกคีย์แล้ว</small>' : ''}<button class="btn sm ghost" data-oedit="${o.id}" title="แก้ชื่อ/เบอร์/อีเมลผู้สั่ง และหมายเหตุ">✏️ แก้ไข</button>${['pending', 'rejected', 'cancelled'].includes(o.status) && o.keyStatus !== 'issued' && !(o.licenseKeys && o.licenseKeys.length) ? `<button class="btn sm ghost" data-odel="${o.id}" title="ลบออเดอร์ (เฉพาะที่ยังไม่มีผลทางการเงิน/คีย์)">🗑 ลบ</button>` : ''}</td></tr>`).join('') || '<tr><td colspan="7" style="color:var(--mut)">ยังไม่มีออเดอร์</td></tr>'}</table></div>`;
   },
   products() {
     return `<h1>📦 สินค้า</h1><button class="btn" id="add">＋ เพิ่มสินค้า</button>${progBar(true, (k) => DB.list('products').filter((p) => k === 'all' || (p.product || 'dogflow') === k).length)}<div class="tw" style="margin-top:14px"><table><tr><th></th><th>สินค้า</th><th>หมวด</th><th>ราคา</th><th>สต็อก</th><th>เปิดขาย</th><th></th></tr>
@@ -321,7 +321,7 @@ const V = {
     const q = DB.trialQueue(), th = (v) => (v ? DFCommon.thaiDateTime(v) : '-'), ST = { approved: '✅ อนุมัติ', rejected: '⛔ ปฏิเสธ', cancelled: '↩ ยกเลิก' }, hl = window._trialHl || '';
     const card = (r) => `<div class="box" data-trq="${E(r.id)}" style="${hl === r.id ? 'border-color:var(--gold)' : ''}"><div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:space-between"><div><b data-trinfo="${E(r.id)}" style="cursor:pointer;text-decoration:underline dotted" title="คลิกดูรายละเอียด">${E(r.name)}</b> · ${E(r.phone)} <span class="tag paid">🐶 ${E(DFCommon.productName(r.product))}</span><br><span style="color:var(--mut);font-size:13px">${E(r.email)} · สมัคร ${th(r.memberSince)} · ออเดอร์ ${r.orders} · ขอเมื่อ ${th(r.requestedAt)}</span></div>
       <div style="display:flex;gap:6px;align-items:flex-start;flex-wrap:wrap"><button class="btn sm ghost" data-trinfo="${E(r.id)}">🔍 รายละเอียด</button><button class="btn sm gold" data-tok="${E(r.id)}">✅ อนุมัติ+ออกคีย์</button><button class="btn sm danger" data-trej="${E(r.id)}">⛔ ปฏิเสธ</button><button class="btn sm ghost" data-tcan="${E(r.id)}">↩ ยกเลิก</button></div></div>
-      ${r.note ? `<div style="margin-top:6px">หมายเหตุ: ${E(r.note)}</div>` : ''}${r.banned ? '<div class="tag err" style="margin-top:6px">บัญชีถูกระงับ</div>' : ''}${r.isCustomer ? '<div class="tag paid" style="margin-top:6px">เป็นลูกค้าแล้ว</div>' : ''}
+      ${r.note ? `<div style="margin-top:6px">หมายเหตุ: ${E(r.note)}</div>` : ''}<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap"><span class="tag ${r.emailConfirmedAt ? 'paid' : 'err'}">${r.emailConfirmedAt ? '✅ อีเมลยืนยันแล้ว' : '❌ อีเมลยังไม่ยืนยัน'}</span><span class="tag ${r.lineVerifiedAt ? 'paid' : 'err'}">${r.lineVerifiedAt ? '✅ LINE ยืนยันแล้ว' : '❌ LINE ยังไม่ยืนยัน'}</span></div>${r.banned ? '<div class="tag err" style="margin-top:6px">บัญชีถูกระงับ</div>' : ''}${r.isCustomer ? '<div class="tag paid" style="margin-top:6px">เป็นลูกค้าแล้ว</div>' : ''}
       ${(r.near || []).map((n) => `<div style="margin-top:6px;font-size:13px;color:${n.hadTrial ? 'var(--err)' : 'var(--mut)'}">${n.hadTrial ? '⚠ เคยใช้สิทธิ์แล้ว' : 'ℹ บัญชีใกล้เคียง'}: ${E(n.email)} (${E(n.reason)})</div>`).join('') || '<div style="margin-top:6px;font-size:13px;color:var(--mut)">✔ ไม่พบบัญชีซ้ำ</div>'}</div>`;
     return `<h1>🎁 คำขอคีย์ทดลองใช้ฟรี</h1><p style="color:var(--mut)">สมาชิกกดขอในหน้าโปรไฟล์ → แจ้ง LINE แอดมิน → อนุมัติที่นี่ ระบบออกคีย์ให้ทันที สมาชิกเห็นคีย์ + ปุ่มดาวน์โหลดในโปรไฟล์อัตโนมัติ</p>
       <h3>⏳ รอดำเนินการ (${q.pending.length})</h3>${q.pending.map(card).join('') || '<p style="color:var(--mut)">ไม่มีคำขอค้าง</p>'}
@@ -550,6 +550,15 @@ const A = {
     $('#main').onclick = async (e) => { const b = e.target.closest('button'); if (!b) return;
       if (b.dataset.of) { window._of = b.dataset.of; render(); return; }   // ตัวกรองสถานะ
       const act = async (p) => { const r = await p; if (r && r.ok === false) alert(r.errors.join('\n')); render(); };
+      if (b.dataset.oedit) { const o = DB.find('orders', b.dataset.oedit);   // [2026-11-18] แก้ข้อมูลผู้สั่ง + หมายเหตุ (ไม่แก้สินค้า/ยอด/สถานะ)
+        return editor('แก้ไขออเดอร์ ' + o.id, [{ k: 'name', label: 'ชื่อผู้สั่ง', full: true }, { k: 'phone', label: 'เบอร์โทร' }, { k: 'email', label: 'อีเมล' }, { k: 'note', label: 'หมายเหตุ (ภายใน)', type: 'textarea', full: true }],
+          { id: o.id, name: o.customer.name || '', phone: o.customer.phone || '', email: o.customer.email || '', note: o.note || '' }, (x) => DB.updateOrder(o.id, x)); }
+      if (b.dataset.odel) { const o = DB.find('orders', b.dataset.odel);   // [2026-11-18] ลบออเดอร์ที่ยังไม่มีผลทางการเงิน (รอชำระ/สลิปไม่ผ่าน/ยกเลิก · ไม่มีคีย์)
+        const v = await confirmDlg({ danger: true, title: 'ลบออเดอร์นี้ถาวร?', sub: o.id, body: 'ออเดอร์และสลิปที่แนบจะหายจากระบบ ย้อนกลับไม่ได้ (สต็อกจะถูกคืนให้ถ้ายังไม่ได้ยกเลิก) · ลบได้เฉพาะออเดอร์ที่ยังไม่ชำระ/ไม่มีคีย์ — ออเดอร์ที่ชำระแล้วให้ใช้ "ยกเลิก"',
+          rows: [['ผู้สั่ง', o.customer.name + ' · ' + o.customer.email], ['รายการ', o.items.map((i) => i.name + '×' + i.qty).join(', ')], ['ยอด', B(o.total)], ['สถานะ', o.status]],
+          fields: [{ k: 'reason', label: 'เหตุผลที่ลบ (บังคับ)', placeholder: 'เช่น ออเดอร์ทดสอบ / สั่งซ้ำ' }], validate: (x) => ((x.reason || '').trim().length < 3 ? 'ระบุเหตุผลอย่างน้อย 3 ตัวอักษร' : ''), okText: 'ลบออเดอร์', cancelText: 'ยกเลิก' });
+        if (!v) return; b.disabled = true; const r = await DB.deleteOrder(o.id, v.reason); b.disabled = false; render();
+        return r.ok ? undefined : confirmDlg({ danger: true, hideCancel: true, okText: 'รับทราบ', title: 'ลบไม่สำเร็จ', sub: o.id, body: (r.errors || []).join(' / ') }); }
       if (b.dataset.cancel) {
         const o = DB.find('orders', b.dataset.cancel), stl = { pending: 'รอชำระ', review: 'รอตรวจสลิป', paid: 'ชำระแล้ว', rejected: 'สลิปไม่ผ่าน' }, issued = o.keyStatus === 'issued' || (o.licenseKeys && o.licenseKeys.length);
         const yes = await confirmDlg({ danger: true, title: 'ยกเลิกออเดอร์นี้?', sub: o.id, body: 'สต็อกสินค้าในออเดอร์จะถูกคืนอัตโนมัติ และลูกค้าจะเห็นสถานะ "ยกเลิก" — ย้อนกลับไม่ได้',

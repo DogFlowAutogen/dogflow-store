@@ -418,6 +418,9 @@
       if (error) return { ok: false, errors: [await fnErr(error)], total: 0, issued: 0 };
       return { ok: data.ok, errors: data.errors || (data.error ? [data.error] : []), total: data.total, issued: data.issued };
     },
+    // [2026-11-18] แอดมินแก้ข้อมูลผู้สั่ง/หมายเหตุ และลบออเดอร์ที่ยังไม่มีผลทางการเงิน (ดู admin-order-edit-20261118.sql)
+    async updateOrder(id, o) { const { error } = await sb.rpc('admin_update_order', { p_order: id, p_name: o.name || '', p_phone: o.phone || '', p_email: o.email || '', p_note: o.note || '' }); if (error) return fail(error); await loadDynamic(); emit(); return { ok: true }; },
+    async deleteOrder(id, reason) { const { error } = await sb.rpc('admin_delete_order', { p_order: id, p_reason: reason || '' }); if (error) return fail(error); await Promise.all([loadPublic(), loadDynamic()]); emit(); return { ok: true }; },
     async setOrderStatus(id, status) { const { error } = await sb.rpc('set_order_status', { p_order: id, p_status: status }); if (error) return fail(error); await Promise.all([loadPublic(), loadDynamic()]); emit(); return { ok: true }; },
     notify(event, orderId) { sb.functions.invoke('notify-line', { body: { event, orderId } }).catch(() => {}); },       // ยิงแล้วลืม: ล้มเหลวไม่กระทบการสั่งซื้อ
     async testLine() { const { data, error } = await sb.functions.invoke('notify-line', { body: { test: true } }); if (error) return { ok: false, errors: [await fnErr(error)] }; return data.ok ? { ok: true } : { ok: false, errors: [data.error] }; },
