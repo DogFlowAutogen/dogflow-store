@@ -726,3 +726,9 @@ footer .trafficrow{margin:0 0 18px}footer .trafficrow .trafficcard{max-width:non
 .pc .stock{display:flex;justify-content:space-between;gap:6px;white-space:nowrap}
 .pc .stock .xs{color:var(--accent);font-weight:600;overflow:hidden;text-overflow:ellipsis}
 .grid .grp-h{grid-column:1/-1;margin:10px 0 0;font-size:16px;font-weight:700;padding-bottom:8px;border-bottom:1px solid var(--line)}.grid .grp-h:first-child{margin-top:0}
+
+/* [2026-11-18 ผู้ใช้สั่ง] ตารางออเดอร์ในแอดมิน: แบ่งคอลัมน์ ยอด/สลิปชิดแนวเดียวกัน · สถานะ+สถานะคีย์ · ดำเนินการ · จัดการ (แก้ไข/ลบ) ปุ่มขนาดเท่ากัน */
+.ot th.r,.ot td.r{text-align:right;white-space:nowrap}.ot th.c,.ot td.c{text-align:center;white-space:nowrap}
+.ot td{vertical-align:middle}.ot .acts{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.ot .acts .btn{min-width:88px;justify-content:center;white-space:nowrap}
+.ot .kl{margin-top:5px;font-size:12px;font-weight:600;white-space:nowrap}.ot .kl.ok{color:var(--ok)}.ot .kl.warn{color:var(--warn)}
+.ot td:nth-child(7) .acts{flex-direction:column;align-items:stretch;width:116px}.ot td:last-child .acts{flex-wrap:nowrap}
