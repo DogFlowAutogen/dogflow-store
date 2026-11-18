@@ -21,7 +21,7 @@
 if(ok)return;window.__legacy=true;document.addEventListener('DOMContentLoaded',function(){var d=document.createElement('div');d.setAttribute('style','position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:#0b1222;color:#fff;font-family:Tahoma,sans-serif;text-align:center;padding:60px 20px');
 d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">เบราว์เซอร์นี้ไม่รองรับ</h2><p style="line-height:1.8;max-width:520px;margin:0 auto">Internet Explorer และเบราว์เซอร์รุ่นเก่าไม่รองรับระบบชำระเงินและความปลอดภัยของเว็บนี้<br>กรุณาเปิดด้วย <b>Microsoft Edge</b>, <b>Google Chrome</b>, <b>Safari</b> หรือ <b>Firefox</b> รุ่นล่าสุด<br>ใช้ได้ทั้งคอมพิวเตอร์ แท็บเล็ต และโทรศัพท์</p>';document.body.appendChild(d);});})();
 </script>
-<link rel="stylesheet" href="style.css?v=20261101g">
+<link rel="stylesheet" href="style.css?v=20261118u">
 </head>
 <body>
 <div id="splash" role="status" aria-live="polite">
@@ -63,7 +63,7 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
 
 <section class="sec" id="shop"><div class="wrap">
   <h2>เลือกซื้อสินค้า</h2><p class="sub">สมัครสมาชิกฟรีก่อนสั่งซื้อ — รับ License key ในหน้าโปรไฟล์หลังตรวจสอบการชำระเงิน</p>
-  <div class="chips" id="prodChips" hidden></div>
+  <div class="ptiles" id="prodChips" hidden></div>
   <div class="chips" id="chips"></div>   <!-- [2026-11-18] แถวเลือกสินค้า (DogFlow/DogMeta) โผล่เมื่อมีสินค้ามากกว่า 1 ตัว -->
   <div class="toolbar"><span id="count" style="color:var(--mut)"></span>
     <select id="sort" aria-label="เรียง"><option value="def">เรียง: แนะนำ</option><option value="lo">ราคาต่ำ → สูง</option><option value="hi">ราคาสูง → ต่ำ</option><option value="disc">ลดเยอะสุด</option></select></div>
@@ -496,7 +496,11 @@ function renderShop() {
   const prods = [...new Set(DB.list('products').filter((p) => p.active).map((p) => p.product || 'dogflow'))];
   if (prod !== 'all' && !prods.includes(prod)) prod = 'all';
   $('#prodChips').hidden = prods.length < 2;
-  $('#prodChips').innerHTML = prods.length < 2 ? '' : ['all', ...prods].map((x) => `<button class="chip ${prod === x ? 'on' : ''}" data-prod="${E(x)}">${x === 'all' ? '🛍️ ทุกโปรแกรม' : (x === 'bundle' ? '🎁 ' : '🐶 ') + E(DFCommon.productName(x))}</button>`).join('');
+  // [2026-11-18] การ์ดเลือกโปรแกรม (แบบ B): ไอคอน + ชื่อ + ราคาเริ่มต้น (รวมส่วนลดของสมาชิกแล้ว) · แพ็กเกจรวมมีป้ายประหยัด 15% · กดซ้ำ = ทุกโปรแกรม
+  const PM = { dogflow: ['🐶', 'Google Flow'], dogmeta: ['💜', 'Meta AI'], bundle: ['🎁', 'ซื้อคู่ ถูกกว่าซื้อแยก'] }, ord = ['dogflow', 'dogmeta', 'bundle'];
+  const progs = ord.filter((x) => prods.includes(x)).concat(prods.filter((x) => !ord.includes(x)));
+  $('#prodChips').innerHTML = prods.length < 2 ? '' : progs.map((x) => { const ps = DB.list('products').filter((p) => p.active && (p.product || 'dogflow') === x), from = Math.min(...ps.map((p) => DB.price(p))), m = PM[x] || ['📦', ''];
+    return `<button type="button" class="tile ${prod === x ? 'on' : ''}" data-prod="${E(x)}" aria-pressed="${prod === x}"><span class="ic">${m[0]}</span><span><b>${E(x === 'bundle' ? 'แพ็กเกจรวม 2 โปรแกรม' : DFCommon.productName(x) + ' Auto Gen')}</b><small>${E(m[1])} · เริ่มต้น ${B(from)}</small></span>${x === 'bundle' ? '<span class="tag2">ประหยัด 15%</span>' : ''}</button>`; }).join('');
   $('#chips').innerHTML = [{ id: 'all', name: 'ทั้งหมด', icon: '🛍️' }, ...cats].map((c) => `<button class="chip ${cat === c.id ? 'on' : ''}" data-cat="${E(c.id)}">${c.icon} ${E(c.name)}</button>`).join('');
   let list = DB.list('products').filter((p) => p.active && (cat === 'all' || p.categoryId === cat) && (prod === 'all' || (p.product || 'dogflow') === prod) && (!q || (p.name + p.desc + p.sku).toLowerCase().includes(q)));
   const so = $('#sort').value, disc = (p) => 1 - DB.price(p) / p.price;
@@ -509,11 +513,11 @@ function renderShop() {
     <div class="pic">${p.image ? `<img src="${E(p.image)}" alt="${E(p.name)}" loading="lazy">` : E(p.icon || '📦')}</div>
     <div class="bd">${br ? `<div class="brtag"><img src="${E(br.logo)}" alt="">${E(br.name)}</div>` : ''}<h3>${E(p.name)}</h3><div class="d">${E(p.desc)}</div><ul>${(p.features || []).map((f) => `<li>${E(f)}</li>`).join('')}</ul>
     <div class="price"><b>${B(fin)}</b>${sale ? `<s>${B(p.price)}</s><em>-${Math.round(disc(p) * 100)}%</em>` : ''}</div>
-    ${DB.crossPct && DB.crossPct(p) ? `<div class="d" style="color:var(--gold)">🎁 รวมส่วนลด ${DB.crossPct(p)}% สำหรับลูกค้าที่มีอีกโปรแกรมแล้ว</div>` : ''}<div class="stock ${p.stock <= 5 ? 'low' : ''}">${out ? 'สินค้าหมด' : p.stock <= 20 ? 'เหลือ ' + p.stock + ' ชิ้น' : 'พร้อมส่ง'}</div>
+    <div class="stock ${p.stock <= 5 ? 'low' : ''}"><span>${out ? 'สินค้าหมด' : p.stock <= 20 ? 'เหลือ ' + p.stock + ' ชิ้น' : 'พร้อมส่ง'}</span>${DB.crossPct && DB.crossPct(p) ? `<span class="xs" title="รวมส่วนลด ${DB.crossPct(p)}% สำหรับลูกค้าที่มีอีกโปรแกรมแล้ว">🎁 ลด ${DB.crossPct(p)}% (มีอีกโปรแกรม)</span>` : ''}</div>
     <button class="btn ${sale ? 'gold' : ''}" data-add="${E(p.id)}" ${out ? 'disabled' : ''}>🛒 ใส่ตะกร้า</button></div></article>`;
   }).join('') || '<p style="color:var(--mut)">ไม่พบสินค้า</p>';
 }
-$('#prodChips').onclick = (e) => { const b = e.target.closest('[data-prod]'); if (b) { prod = b.dataset.prod; renderShop(); } };
+$('#prodChips').onclick = (e) => { const b = e.target.closest('[data-prod]'); if (b) { prod = prod === b.dataset.prod ? 'all' : b.dataset.prod; renderShop(); } };
 $('#chips').onclick = (e) => { const b = e.target.closest('[data-cat]'); if (b) { cat = b.dataset.cat; renderShop(); } };
 $('#q').oninput = renderShop; $('#sort').onchange = renderShop;
 $('#grid').onclick = (e) => { const b = e.target.closest('[data-add]'); if (!b) return; addCart(b.dataset.add, b); };
