@@ -378,6 +378,7 @@
       await loadDynamic(); emit(); return { ok: true };
     },
     async resetPassword(id, pw) { const { data, error } = await sb.functions.invoke('admin-users', { body: { action: 'reset_password', userId: id, password: pw } }); if (error) return { ok: false, errors: [await fnErr(error)] }; return data.ok ? { ok: true } : { ok: false, errors: [data.error] }; },
+    async clearStrikes(id, reason) { const { error } = await sb.rpc('admin_clear_strikes', { p_member: id, p_reason: reason || '' }); if (error) return fail(error); await loadDynamic(); emit(); return { ok: true }; },   // [2026-11-18] ล้างเตือน (แอดมิน)
     async warnMember(id, title, body, opts) { opts = opts || {}; const { data, error } = await sb.rpc('admin_warn', { p_member: id, p_title: title, p_body: body, p_type: opts.type || 'warning', p_strike: !!opts.strike }); if (error) return fail(error); await loadDynamic(); emit(); return { ok: true, strikes: data.strikes, banned: data.banned }; },
     async setBan(id, banned, reason) { const { error } = await sb.rpc('admin_set_ban', { p_member: id, p_banned: banned, p_reason: reason || '' }); if (error) return fail(error); await loadDynamic(); emit(); return { ok: true }; },
     async removeMember(id) { return DB.remove('members', id); },

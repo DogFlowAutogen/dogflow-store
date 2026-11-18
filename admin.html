@@ -54,9 +54,9 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
 <script src="admin-charts.js?v=20261031a"></script><script src="admin-overview.js?v=20261031c"></script><script src="admin-broadcast.js?v=20261014a"></script>
 <script src="pw-eye.js?v=20261014a" defer></script>
 <script src="vendor/supabase.js"></script>
-<script src="store.common.js?v=20261118r"></script>
+<script src="store.common.js?v=20261118s"></script>
 <script src="store.local.js?v=20261012b"></script>
-<script src="store.supabase.js?v=20261118r"></script>
+<script src="store.supabase.js?v=20261118s"></script>
 <script src="avatar.js"></script>
 <script>
 const $ = (s) => document.querySelector(s), E = DB.esc, B = DB.baht;
@@ -289,7 +289,7 @@ const V = {
       <td class="c2"><div>${E(m.phone)}${dupBadge(m)}</div><div class="mt-sub">สมัคร ${ago(m.createdAt)}</div></td><td class="c3"><b>${i.n}</b> ออเดอร์<div class="mt-sub">${B(i.spent)}</div></td><td class="c4">${m.strikes ? '<span class="tag ' + (m.strikes >= 2 ? 'err' : 'warn') + '">' + m.strikes + '/3</span>' : '<span class="mt-sub">—</span>'}</td>
       <td><div class="mt-acts"><button class="btn sm ghost" data-warn="${E(m.id)}">⚠ แจ้งเตือน</button><button class="btn sm ghost keep" data-edit="${E(m.id)}">แก้ไข</button></div></td></tr>
       ${o ? `<tr class="mt-d"><td colspan="5"><div class="mt-dg"><div><h5>ติดต่อ</h5><p>✉ ${E(m.email)}</p><p>📞 ${E(m.phone)}</p><p>สมัคร ${fmt(m.createdAt)} (${ago(m.createdAt)})</p></div><div><h5>การซื้อ</h5><p>${i.n} ออเดอร์ · ${B(i.spent)}</p><p>คีย์ที่มี ${i.keys || 'ยังไม่มี'}</p></div><div><h5>วินัย</h5>${m.banned ? '<p style="color:var(--bad)">⛔ ระงับอยู่' + (m.banReason ? ' — ' + E(m.banReason) : '') + '</p>' : m.strikes ? '<p>ถูกเตือน ' + m.strikes + '/3 ครั้ง</p>' : '<p>ไม่เคยถูกเตือน</p>'}</div></div>
-      <div class="mt-da">${SB ? `<button class="btn sm ghost" data-trial="${E(m.id)}">🎁 คีย์ทดลอง</button>` : ''}<button class="btn sm ghost" data-pw="${E(m.id)}">🔑 รหัสผ่าน</button>${m.avatarPath ? `<button class="btn sm ghost" data-avclr="${E(m.id)}">🖼️ ลบรูป</button>` : ''}<button class="btn sm ghost" data-ban="${E(m.id)}">${m.banned ? 'ปลดระงับ' : '⛔ ระงับ'}</button><button class="btn sm danger" data-del="${E(m.id)}">🗑 ลบ</button></div></td></tr>` : ''}`; };
+      <div class="mt-da">${SB ? `<button class="btn sm ghost" data-trial="${E(m.id)}">🎁 คีย์ทดลอง</button>` : ''}<button class="btn sm ghost" data-pw="${E(m.id)}">🔑 รหัสผ่าน</button>${m.avatarPath ? `<button class="btn sm ghost" data-avclr="${E(m.id)}">🖼️ ลบรูป</button>` : ''}${m.strikes > 0 && !m.banned ? `<button class="btn sm ghost" data-clrstrike="${E(m.id)}" title="รีเซ็ตการเตือนเป็น 0">🧹 ล้างเตือน (${m.strikes}/3)</button>` : ''}<button class="btn sm ghost" data-ban="${E(m.id)}">${m.banned ? 'ปลดระงับ' : '⛔ ระงับ'}</button><button class="btn sm danger" data-del="${E(m.id)}">🗑 ลบ</button></div></td></tr>` : ''}`; };
     return `<h1>👥 จัดการสมาชิก</h1><div class="kpi"><div><b>${all.length}</b><span>ทั้งหมด</span></div><div><b>${all.filter((m) => m.banned).length}</b><span>ถูกระงับ</span></div><div><b>${all.filter((m) => Date.now() - new Date(m.createdAt) < 7 * 864e5).length}</b><span>สมัครใหม่ 7 วัน</span></div></div>
     <div class="toolbar" style="justify-content:flex-start"><button class="btn" id="add">＋ เพิ่มสมาชิก</button><input id="mq" placeholder="🔍 ค้นหาชื่อ/อีเมล/เบอร์" value="${E(window._mq || '')}" style="max-width:280px"></div>
     ${progBar(false, (k) => all.filter((m) => hasProd(m, k)).length)}<div class="mt-chips">${FIL.map(([k, n, g]) => `<button type="button" data-mf="${k}" class="${f === k ? 'on' : ''}">${n}<b>${all.filter((m) => g(m, st(m))).length}</b></button>`).join('')}</div>
@@ -697,6 +697,11 @@ const A = {
         if (!r.ok) return confirmDlg({ danger: true, hideCancel: true, okText: 'รับทราบ', title: 'ออกคีย์ทดลองไม่สำเร็จ', sub: m.email, body: r.errors.join('\n') });
         render(); return confirmDlg({ success: true, hideCancel: true, okText: 'ปิด', title: 'ออกคีย์ทดลองเรียบร้อยแล้ว', sub: m.email, body: 'แจ้งสมาชิกในโปรไฟล์แล้ว · คีย์: ' + r.key, rows: [['วันทดลอง', r.days + ' วัน (เริ่มนับเมื่อเปิดใช้ครั้งแรก)'], ['จำนวนเครื่อง', String(r.devices)], ['ต้องเริ่มใช้ภายใน', fmt(r.expiresAt)]] }); }
       if (b.dataset.warn) editor('⚠ แจ้งเตือนลูกค้า: ' + DB.find('members', b.dataset.warn).name, [{ k: 'type', label: 'ระดับ', type: 'select', opts: [['info', 'ℹ️ แจ้งทราบ'], ['warning', '⚠ เตือน'], ['violation', '⛔ ผิดกฎ']] }, { k: 'strike', label: 'นับเป็นการผิดกฎ 1 ครั้ง (ครบ 3 = ระงับอัตโนมัติ)', type: 'check' }, { k: 'title', label: 'หัวข้อ', full: true }, { k: 'body', label: 'รายละเอียด (ลูกค้าเห็นในโปรไฟล์)', type: 'textarea', full: true }], { type: 'warning', strike: false, title: '', body: '' }, (o) => { if (!o.title || !o.body) return { ok: false, errors: ['กรอกหัวข้อและรายละเอียด'] }; return DB.warnMember(b.dataset.warn, o.title, o.body, { type: o.type, strike: o.strike }); });
+      if (b.dataset.clrstrike) { const m = DB.find('members', b.dataset.clrstrike);   // [2026-11-18] ล้างเตือน (strikes → 0) กรณีลูกค้าพลาดโดยไม่ตั้งใจ
+        const v = await confirmDlg({ title: 'ล้างการเตือนของสมาชิกนี้?', sub: m.email, body: 'จะรีเซ็ตจำนวนครั้งที่ถูกเตือน (' + m.strikes + '/3) เป็น 0 และแจ้งสมาชิกในโปรไฟล์ — แจ้งเตือนเดิมที่เคยส่งยังอยู่ในประวัติ', rows: memRows(m),
+          fields: [{ k: 'reason', label: 'เหตุผล (สมาชิกเห็นในแจ้งเตือน ไม่บังคับ)', placeholder: 'เช่น ส่งเลขอ้างอิงสลิปซ้ำโดยไม่ตั้งใจ' }], okText: 'ล้างเตือน', cancelText: 'ยกเลิก' });
+        if (!v) return; b.disabled = true; const r = await DB.clearStrikes(m.id, v.reason); b.disabled = false;
+        return r.ok ? render() : confirmDlg({ danger: true, hideCancel: true, okText: 'รับทราบ', title: 'ล้างเตือนไม่สำเร็จ', sub: m.email, body: (r.errors || []).join(' / ') }); }
       if (b.dataset.ban) { const m = DB.find('members', b.dataset.ban), was = !!m.banned, nk = memKeys(m).length;
         const v = await confirmDlg(was
           ? { title: 'ปลดระงับสมาชิกนี้?', sub: m.email, body: 'สมาชิกจะเข้าสู่ระบบ สั่งซื้อ และดาวน์โหลดได้อีกครั้ง', rows: memRows(m), fields: SB && nk ? [{ k: 'keys', type: 'check', value: true, label: 'คืนสิทธิ์ License key ที่เคยถูกระงับของสมาชิกนี้ด้วย (' + nk + ' ดอก)' }] : [], okText: 'ยืนยันปลดระงับ', cancelText: 'ไม่ปลด' }
