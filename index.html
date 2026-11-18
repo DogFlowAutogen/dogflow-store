@@ -501,6 +501,10 @@ function renderShop() {
   const progs = ord.filter((x) => prods.includes(x)).concat(prods.filter((x) => !ord.includes(x)));
   $('#prodChips').innerHTML = prods.length < 2 ? '' : progs.map((x) => { const ps = DB.list('products').filter((p) => p.active && (p.product || 'dogflow') === x), from = Math.min(...ps.map((p) => DB.price(p))), m = PM[x] || ['📦', ''];
     return `<button type="button" class="tile ${prod === x ? 'on' : ''}" data-prod="${E(x)}" aria-pressed="${prod === x}"><span class="ic">${m[0]}</span><span><b>${E(x === 'bundle' ? 'แพ็กเกจรวม 2 โปรแกรม' : DFCommon.productName(x) + ' Auto Gen')}</b><small>${E(m[1])} · เริ่มต้น ${B(from)}</small></span>${x === 'bundle' ? '<span class="tag2">ประหยัด 15%</span>' : ''}</button>`; }).join('');
+  // [2026-11-18] ชิปหมวดหมู่: โชว์เมื่อมีหมวดที่มีสินค้าเปิดขายตั้งแต่ 2 หมวดขึ้นไป (ตอนนี้ทุกสินค้าอยู่หมวดเดียว กดแล้วไม่เปลี่ยนอะไร → ซ่อนไว้ ใช้การ์ดเลือกโปรแกรมแทน)
+  const catsUsed = cats.filter((c) => DB.list('products').some((p) => p.active && p.categoryId === c.id));
+  if (catsUsed.length < 2) cat = 'all';
+  $('#chips').style.display = catsUsed.length < 2 ? 'none' : '';
   $('#chips').innerHTML = [{ id: 'all', name: 'ทั้งหมด', icon: '🛍️' }, ...cats].map((c) => `<button class="chip ${cat === c.id ? 'on' : ''}" data-cat="${E(c.id)}">${c.icon} ${E(c.name)}</button>`).join('');
   let list = DB.list('products').filter((p) => p.active && (cat === 'all' || p.categoryId === cat) && (prod === 'all' || (p.product || 'dogflow') === prod) && (!q || (p.name + p.desc + p.sku).toLowerCase().includes(q)));
   const so = $('#sort').value, disc = (p) => 1 - DB.price(p) / p.price;
