@@ -340,7 +340,8 @@ const BLK = {
     + '<div class="bk-cta">' + ctaHtml(b) + '</div>' + (b.foot ? '<p class="bk-note">' + E(b.foot) + '</p>' : '') + '</div></article>'
 };
 function renderBlocks() {
-  const L = DB.activeBlocks().filter((b) => BLK[b.kind]), sec = $('#blocks'); sec.hidden = !L.length;
+  // [2026-11-19 ผู้ใช้สั่ง] การ์ดแพ็กเกจ DogMeta: รูปเดิมใน Supabase (ภาพหน้าจอ app-meta-bot.png) ถูกแทนด้วยโปสเตอร์ใหม่สไตล์เดียวกับโปสเตอร์ DogFlow ในโฟลเดอร์ assets · ถ้าแอดมินอัปรูปอื่นเอง (ไม่ใช่รูปเดิม) จะใช้รูปนั้น — แนวทางเดียวกับรูป hero (hero-v4 → hero-v5)
+  const L = DB.activeBlocks().filter((b) => BLK[b.kind]).map((b) => (b.kind === 'buy' && /(^|\/)assets\/app-meta-bot\.png(\?|$)/.test(b.image || '') ? Object.assign({}, b, { image: 'assets/poster-meta-buy-v1.webp?v=20261119' }) : b)), sec = $('#blocks'); sec.hidden = !L.length;
   const html = L.map((b) => BLK[b.kind](b)).join(''); if (sec._h !== html) { sec.innerHTML = html; sec._h = html; } tickBlocks();
 }
 function tickBlocks() { // นับถอยหลังในบล็อกโปรโมชัน (อัปเดตเฉพาะตัวเลข ไม่วาดใหม่)
