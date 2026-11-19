@@ -341,7 +341,9 @@ const BLK = {
 };
 function renderBlocks() {
   // [2026-11-19 ผู้ใช้สั่ง] การ์ดแพ็กเกจ DogMeta: รูปเดิมใน Supabase (ภาพหน้าจอ app-meta-bot.png) ถูกแทนด้วยโปสเตอร์ใหม่สไตล์เดียวกับโปสเตอร์ DogFlow ในโฟลเดอร์ assets · ถ้าแอดมินอัปรูปอื่นเอง (ไม่ใช่รูปเดิม) จะใช้รูปนั้น — แนวทางเดียวกับรูป hero (hero-v4 → hero-v5)
-  const L = DB.activeBlocks().filter((b) => BLK[b.kind]).map((b) => (b.kind === 'buy' && /(^|\/)assets\/app-meta-bot\.png(\?|$)/.test(b.image || '') ? Object.assign({}, b, { image: 'assets/poster-meta-buy-v1.webp?v=20261119' }) : b)), sec = $('#blocks'); sec.hidden = !L.length;
+  // [2026-11-19 ผู้ใช้สั่ง] การ์ดแพ็กเกจ DogFlow: โปสเตอร์เดิม poster-buy-v3.webp (ยังโฆษณา Meta Bot ที่แยกไปเป็น DogMeta แล้ว) ถูกแทนด้วยโปสเตอร์ DogFlow ล้วน (Flow Bot · Auto Story · Studio/Turbo) — กติกาเดียวกับ DogMeta ด้านบน
+  const POSTER_SWAP = [[/(^|\/)assets\/app-meta-bot\.png(\?|$)/, 'assets/poster-meta-buy-v1.webp?v=20261119'], [/\/blocks\/poster-buy-v3\.webp(\?|$)/, 'assets/poster-flow-buy-v4.webp?v=20261119']];
+  const L = DB.activeBlocks().filter((b) => BLK[b.kind]).map((b) => { const sw = b.kind === 'buy' && POSTER_SWAP.find((x) => x[0].test(b.image || '')); return sw ? Object.assign({}, b, { image: sw[1] }) : b; }), sec = $('#blocks'); sec.hidden = !L.length;
   const html = L.map((b) => BLK[b.kind](b)).join(''); if (sec._h !== html) { sec.innerHTML = html; sec._h = html; } tickBlocks();
 }
 function tickBlocks() { // นับถอยหลังในบล็อกโปรโมชัน (อัปเดตเฉพาะตัวเลข ไม่วาดใหม่)
