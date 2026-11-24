@@ -111,6 +111,8 @@
     const tkq = await sb.from('feedback_tickets').select('*').order('created_at', { ascending: false }).limit(S.isAdmin ? 1000 : 100);   // แอดมินเห็นทั้งหมด · สมาชิกเห็นเฉพาะของตัวเอง (RLS)
     S.tickets = tkq.error ? [] : tkq.data.map(IN.tickets);
     if (S.isAdmin) { const cq = await sb.from('contact_messages').select('*').order('created_at', { ascending: false }).limit(300); S.contacts = cq.error ? [] : cq.data.map((r) => ({ id: r.id, createdAt: r.created_at, name: r.name, email: r.email, phone: r.phone || '', subject: r.subject, message: r.message, status: r.status, lineSent: !!r.line_sent, emailSent: !!r.email_sent, notifyError: r.notify_error || '' })); } else S.contacts = [];   // [2026-10-28] ข้อความจากฟอร์มติดต่อ (เฉพาะแอดมิน · ยังไม่ได้ลงตาราง = ว่างเงียบๆ)
+    // [2026-11-24] แชต LINE ที่ลูกค้าส่งเข้าบัญชี Official (เฉพาะแอดมิน · ตารางยังไม่ถูกสร้าง = ว่างเงียบๆ)
+    if (S.isAdmin) { const lq = await sb.from('line_messages').select('*').order('created_at', { ascending: false }).limit(500); S.lineMsgs = lq.error ? [] : lq.data.map((r) => ({ id: r.id, createdAt: r.created_at, userId: r.line_user_id, name: r.display_name || '', type: r.msg_type, message: r.message, status: r.status })); } else S.lineMsgs = [];
     // [2026-11-17] เฟส 3 ข้อ 1: สัญญาณ IP ผู้แนะนำ/ผู้ถูกแนะนำ (เฉพาะแอดมิน) — ฟังก์ชันยังไม่มีบนฐานข้อมูล/ไม่ใช่แอดมิน = ว่าง ไม่ให้พังหน้า
     if (S.isAdmin) { const iq = await sb.rpc('admin_aff_ip_flags'); S.affIp = iq.error ? [] : (iq.data || []); const kqq = await sb.rpc('admin_aff_kyc_list'); S.affKycQ = kqq.error ? [] : (kqq.data || []); }
     const pays = groupBy(p.data, 'order_id'), keys = groupBy(k.data, 'order_id');
@@ -136,7 +138,7 @@
     if (live || !S.user) return;
     const refresh = () => { clearTimeout(timer); timer = setTimeout(() => Promise.all([loadDynamic(), loadAff(), loadTrial()]).then(emit).catch(() => {}), 400); };
     live = sb.channel('df-live');
-    ['orders', 'payments', 'license_keys', 'notices', 'commissions', 'payouts', 'feedback_tickets', 'trial_requests', 'contact_messages'].forEach((t) => live.on('postgres_changes', { event: '*', schema: 'public', table: t }, refresh));
+    ['orders', 'payments', 'license_keys', 'notices', 'commissions', 'payouts', 'feedback_tickets', 'trial_requests', 'contact_messages', 'line_messages'].forEach((t) => live.on('postgres_changes', { event: '*', schema: 'public', table: t }, refresh));
     live.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'feedback_messages' }, () => { refresh(); w.dispatchEvent(new CustomEvent('fb:msg')); });   // ข้อความใหม่ในตั๋ว → ให้หน้าต่างสนทนาที่เปิดอยู่โหลดใหม่
     live.subscribe();
   }
@@ -461,6 +463,9 @@
     async fbAttachUrls(t) { const out = []; for (const a of t.attachments || []) { const r = await sb.storage.from('feedback').createSignedUrl(a.path, 600); if (!r.error) out.push({ name: a.name, size: a.size, url: r.data.signedUrl }); } return out; },
     // [2026-10-28] ข้อความติดต่อ (แอดมิน): เปลี่ยนสถานะ / ลบ
     async contactSet(id, status) { if (!['new', 'read', 'done'].includes(status)) return { ok: false, errors: ['สถานะไม่ถูกต้อง'] }; const { error } = await sb.from('contact_messages').update({ status }).eq('id', id); if (error) return fail(error); const m = S.contacts.find((x) => x.id === id); if (m) m.status = status; emit(); return { ok: true }; },
+    // [2026-11-24] แชต LINE (แอดมิน): ทำเครื่องหมายอ่านแล้วทั้งบทสนทนา / ลบทั้งบทสนทนา
+    async lineMarkRead(userId) { const { error } = await sb.from('line_messages').update({ status: 'read' }).eq('line_user_id', userId).eq('status', 'new'); if (error) return fail(error); (S.lineMsgs || []).forEach((m) => { if (m.userId === userId && m.status === 'new') m.status = 'read'; }); emit(); return { ok: true }; },
+    async lineDelete(userId) { const { error } = await sb.from('line_messages').delete().eq('line_user_id', userId); if (error) return fail(error); S.lineMsgs = (S.lineMsgs || []).filter((x) => x.userId !== userId); emit(); return { ok: true }; },
     async contactDelete(id) { const { error } = await sb.from('contact_messages').delete().eq('id', id); if (error) return fail(error); S.contacts = S.contacts.filter((x) => x.id !== id); emit(); return { ok: true }; },
     async fbDelete(id) { const t = S.tickets.find((x) => x.id === id); if (t) { const ps = (t.attachments || []).map((a) => a.path).filter(Boolean); if (ps.length) { try { await sb.storage.from('feedback').remove(ps); } catch (e) { /* ลบไฟล์ไม่ได้ก็ลบรายการต่อ */ } } }
       const { error } = await sb.from('feedback_tickets').delete().eq('id', id); if (error) return fail(error); await loadDynamic(); emit(); return { ok: true }; },
