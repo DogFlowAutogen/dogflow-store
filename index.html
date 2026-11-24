@@ -22,7 +22,7 @@
 if(ok)return;window.__legacy=true;document.addEventListener('DOMContentLoaded',function(){var d=document.createElement('div');d.setAttribute('style','position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:#0b1222;color:#fff;font-family:Tahoma,sans-serif;text-align:center;padding:60px 20px');
 d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">เบราว์เซอร์นี้ไม่รองรับ</h2><p style="line-height:1.8;max-width:520px;margin:0 auto">Internet Explorer และเบราว์เซอร์รุ่นเก่าไม่รองรับระบบชำระเงินและความปลอดภัยของเว็บนี้<br>กรุณาเปิดด้วย <b>Microsoft Edge</b>, <b>Google Chrome</b>, <b>Safari</b> หรือ <b>Firefox</b> รุ่นล่าสุด<br>ใช้ได้ทั้งคอมพิวเตอร์ แท็บเล็ต และโทรศัพท์</p>';document.body.appendChild(d);});})();
 </script>
-<link rel="stylesheet" href="style.css?v=20261118ab">
+<link rel="stylesheet" href="style.css?v=20261124tp">
 <style>/* [2026-11-23] ป้ายเวอร์ชันหน้าแรก: เด่นขึ้น — ชิปชื่อโปรแกรม+เลขรุ่นสีเต็ม (DogFlow ส้ม / DogMeta ม่วง) ใช้ตัวแปรธีม อ่านได้ทั้งโหมดสว่าง/มืด */
 #ver{display:flex;flex-direction:column;align-items:flex-start;gap:9px;margin:0 0 16px}
 .vpill{--c:var(--accent);--c2:#f59e0b;display:inline-flex;align-items:center;flex-wrap:wrap;gap:6px 10px;max-width:100%;padding:7px 16px 7px 8px;border-radius:999px;border:1.5px solid var(--c);background:var(--surface);color:var(--fg);font-size:14px;font-weight:600;line-height:1.45;box-shadow:0 3px 14px color-mix(in srgb,var(--c) 28%,transparent)}
@@ -628,7 +628,15 @@ function paintTrialActs() {
   if (r) r.onclick = () => needLogin(toProf, true);
   if (l) l.onclick = () => needLogin(toProf, false);
 }
-$('#trialCta').addEventListener('click', (e) => { e.preventDefault(); closeAll(); paintTrialActs(); openM('#mTrial'); });
+/* [2026-11-24 เจ้าของสั่ง] ปิดปุ่ม 🎁 ทดลองฟรี ชั่วคราว เพราะเต็มลิมิตทดลองฟรีต่อวันแล้ว — กดแล้วขึ้นหน้าแจ้งเหตุผล (ไม่เปิดหน้าต่างขั้นตอน/ไม่พาไปโปรไฟล์)
+   เปิดคืน: เปลี่ยน TRIAL_PAUSE เป็น null (บรรทัดถัดไป) แล้ว push · ปุ่มขอคีย์ในหน้าโปรไฟล์ยังเป็นของเดิม (ฝั่งเซิร์ฟเวอร์จำกัดต่อวันอยู่แล้ว) */
+const TRIAL_PAUSE = { title: 'ทดลองฟรีปิดชั่วคราว', text: 'ขออภัย ตอนนี้ปุ่ม 🎁 ทดลองฟรี ปิดใช้งานชั่วคราว เนื่องจากมีผู้ขอทดลองฟรีเต็มลิมิตต่อวันแล้ว', note: 'กรุณากลับมาลองใหม่อีกครั้งในวันถัดไป · หากต้องการสอบถามเพิ่มเติม ทักไลน์ได้ที่ปุ่ม "ทักไลน์สอบถาม"' };
+if (TRIAL_PAUSE) { const tb = $('#trialCta'); tb.classList.add('paused'); tb.setAttribute('aria-disabled', 'true'); tb.setAttribute('href', '#'); tb.title = 'ปิดใช้งานชั่วคราว — เต็มลิมิตทดลองฟรีต่อวัน'; tb.textContent = '🎁 ทดลองฟรี · ปิดชั่วคราว'; }
+$('#trialCta').addEventListener('click', (e) => {
+  e.preventDefault();
+  if (TRIAL_PAUSE) { closeAll(); dfConfirm({ icon: '🎁', title: TRIAL_PAUSE.title, text: TRIAL_PAUSE.text, note: TRIAL_PAUSE.note, ok: 'รับทราบ', cancel: 'ปิด' }); return; }
+  closeAll(); paintTrialActs(); openM('#mTrial');
+});
 
 function needLogin(then, reg = true) { closeAll(); authTab(reg); paintRef(); afterAuth = then; openM('#mAuth'); }
 $('#memBtn').onclick = () => {

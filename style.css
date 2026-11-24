@@ -764,3 +764,7 @@ footer .trafficrow{margin:0 0 18px}footer .trafficrow .trafficcard{max-width:non
 .aff-rates .aff-grp h5{margin:2px 0 4px;font-size:14.5px}
 .aff-rates .aff-grp>div{display:flex;justify-content:space-between;gap:10px;align-items:center;border:1px solid var(--line);background:var(--surface2);border-radius:10px;padding:8px 12px;margin:6px 0;font-size:14px}
 .aff-rates .aff-grp.dogmeta b{color:#9333ea}
+
+/* [2026-11-24 เจ้าของสั่ง] ปุ่ม 🎁 ทดลองฟรี ตอนปิดชั่วคราว (เต็มลิมิตต่อวัน) — สีหม่น ยังกดได้เพื่อดูเหตุผล */
+.btn.trial.paused{background:#3a3550;border-color:#4b4668;color:#c9c4de;box-shadow:none;opacity:.85}
+.btn.trial.paused:hover:not(:disabled){filter:none;border-color:#6d28d9;box-shadow:none}
