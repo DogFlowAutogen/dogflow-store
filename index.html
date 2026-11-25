@@ -630,12 +630,14 @@ function paintTrialActs() {
 }
 /* [2026-11-24 เจ้าของสั่ง] ปิดปุ่ม 🎁 ทดลองฟรี ชั่วคราว เพราะเต็มลิมิตทดลองฟรีต่อวันแล้ว — กดแล้วขึ้นหน้าแจ้งเหตุผล (ไม่เปิดหน้าต่างขั้นตอน/ไม่พาไปโปรไฟล์)
    เปิดคืน: เปลี่ยน TRIAL_PAUSE เป็น null (บรรทัดถัดไป) แล้ว push · ปุ่มขอคีย์ในหน้าโปรไฟล์ยังเป็นของเดิม (ฝั่งเซิร์ฟเวอร์จำกัดต่อวันอยู่แล้ว) */
-const TRIAL_PAUSE = { title: 'ทดลองฟรีปิดชั่วคราว', text: 'ขออภัย ตอนนี้ปุ่ม 🎁 ทดลองฟรี ปิดใช้งานชั่วคราว เนื่องจากมีผู้ขอทดลองฟรีเต็มลิมิตต่อวันแล้ว', note: 'กรุณากลับมาลองใหม่อีกครั้งในวันถัดไป · หากต้องการสอบถามเพิ่มเติม ทักไลน์ได้ที่ปุ่ม "ทักไลน์สอบถาม"' };
+const TRIAL_PAUSE = null;   // [2026-11-25] เปิดปุ่มคืนแล้ว (ตั้งเป็นออบเจ็กต์ {title,text,note} เพื่อปิดชั่วคราวอีกครั้ง)
 if (TRIAL_PAUSE) { const tb = $('#trialCta'); tb.classList.add('paused'); tb.setAttribute('aria-disabled', 'true'); tb.setAttribute('href', '#'); tb.title = 'ปิดใช้งานชั่วคราว — เต็มลิมิตทดลองฟรีต่อวัน'; tb.textContent = '🎁 ทดลองฟรี · ปิดชั่วคราว'; }
 $('#trialCta').addEventListener('click', (e) => {
   e.preventDefault();
   if (TRIAL_PAUSE) { closeAll(); dfConfirm({ icon: '🎁', title: TRIAL_PAUSE.title, text: TRIAL_PAUSE.text, note: TRIAL_PAUSE.note, ok: 'รับทราบ', cancel: 'ปิด' }); return; }
-  closeAll(); paintTrialActs(); openM('#mTrial');
+  /* [2026-11-25 เจ้าของสั่ง] กดแล้วถามยืนยันก่อน: ทดลองฟรีมีลิมิตรายวัน (จำนวนจริงตั้งในหน้าแอดมิน · ฝั่งฐานข้อมูลบังคับใช้) */
+  closeAll();
+  dfConfirm({ icon: '🎁', title: 'ทดลองฟรีมีจำนวนจำกัดต่อวัน', text: 'สิทธิ์ทดลองใช้ฟรีมีลิมิตรายวัน หากวันนี้เต็มแล้วจะขอไม่ได้ ต้องลองใหม่ในวันถัดไป', note: 'ต้องสมัครสมาชิกและยืนยันตัวตนผ่าน LINE ก่อน · ต้องการดำเนินการต่อหรือไม่?', ok: 'ดำเนินการต่อ', cancel: 'ยกเลิก' }).then((go) => { if (go) { paintTrialActs(); openM('#mTrial'); } });
 });
 
 function needLogin(then, reg = true) { closeAll(); authTab(reg); paintRef(); afterAuth = then; openM('#mAuth'); }
