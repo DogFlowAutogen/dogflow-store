@@ -19,6 +19,13 @@
     no_profile: ['ไม่พบข้อมูลสมาชิก', 'ลองออกจากระบบแล้วเข้าใหม่ หากยังไม่หาย โปรดติดต่อทีมงาน']
   };
 
+  // [2026-11-25] เงื่อนไขการใช้งานฟรี (แอดมินแก้ได้) + ช่องติ๊กยอมรับ — ไม่มีไลบรารีข้อความ/ปิดไว้ = ไม่แสดง
+  function termsBlock(c) {
+    var T = root.DFTrialText; if (!T) return ''; var l = T.terms(c); if (!l.length) return '';
+    return '<div class="trial-terms" style="margin:0 0 8px"><p style="margin:0 0 4px"><b>เงื่อนไขการใช้งานฟรี</b></p><ul style="margin:0 0 6px;padding-left:20px;line-height:1.7">' +
+      l.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul><label class="trial-c"><input type="checkbox" id="trialTerms"> ' + esc(T.msg('trialTermsTick', c)) + '</label></div>';
+  }
+
   function wrap(tone, title, body, actions) {
     return '<div class="trial ' + tone + '"><h3>🎁 ทดลองใช้ฟรี</h3><div class="trial-t">' + title + '</div>' + body + (actions ? '<div class="trial-a">' + actions + '</div>' : '') + '</div>';
   }
@@ -31,6 +38,7 @@
       case 'eligible':
         return wrap('ok', 'ทดลองใช้ฟรี ' + days + ' วัน · ' + dev + ' เครื่อง · ใช้ได้ครบทุกฟีเจอร์',
           '<p style="margin:0 0 4px"><b>ขั้นตอน</b></p><ol class="trial-s" style="margin:0 0 8px;padding-left:20px;line-height:1.7"><li>ติ๊กยินยอมด้านล่าง แล้วกดปุ่ม <b>ขอคีย์ทดลองใช้ฟรี</b> (ส่งคำขอถึงทีมงานทันที)</li><li>รอทีมงานตรวจสอบ — ไม่ต้องกดขอซ้ำ</li><li>เมื่ออนุมัติ คีย์จะขึ้นในกล่อง <b>"License key ของฉัน"</b> และมีแจ้งเตือนในกล่อง "การแจ้งเตือน"</li><li>ดาวน์โหลดและติดตั้งโปรแกรม แล้วใส่คีย์ — วันทดลองเริ่มนับเมื่อเปิดใช้ครั้งแรก (ต้องเริ่มใช้ภายใน ' + claim + ' วันหลังได้รับคีย์)</li></ol>' +   /* [2026-10-28] ขั้นตอนตั้งแต่ขอจนได้คีย์ */
+          termsBlock({ days: days, devices: dev, claim: claim }) +
           '<label class="trial-c"><input type="checkbox" id="trialConsent"> ยินยอมให้เก็บรหัสเครื่องเพื่อป้องกันการใช้สิทธิ์ทดลองซ้ำ</label>' +
           '<input id="trialNote" maxlength="200" placeholder="หมายเหตุถึงทีมงาน (ไม่บังคับ)" style="width:100%;margin-top:6px"><div class="errs" id="trialErr"></div>',
           '<button class="btn gold" id="trialAsk"' + (ctx.busy ? ' disabled' : '') + '>🎁 ขอคีย์ทดลองใช้ฟรี</button>');
@@ -61,6 +69,7 @@
         return wrap('warn', 'ใช้สิทธิ์ทดลองฟรีไปแล้ว', '<p>' + (st.reason === 'revoked' ? 'คีย์ทดลองถูกระงับ' : 'บัญชีนี้ใช้สิทธิ์ทดลองครบแล้ว (1 สิทธิ์ต่อ 1 คน)') + ' — เลือกซื้อแพ็กเกจเพื่อใช้งานต่อได้</p>', buy);
       case 'blocked': {
         var b = BLOCK[st.reason] || ['ขอทดลองใช้ฟรีไม่ได้ในขณะนี้', 'โปรดลองใหม่ภายหลังหรือติดต่อทีมงาน'];
+        if (st.reason === 'daily_full' && root.DFTrialText) b = [root.DFTrialText.msg('trialFullTitle', { days: days, devices: dev, claim: claim }), root.DFTrialText.msg('trialFullText', { days: days, devices: dev, claim: claim })];   // [2026-11-25] ข้อความการ์ดลิมิตเต็มแก้ได้ในแอดมิน
         if (b[2] === 'line') {   // [2026-10-28] ยืนยัน LINE: ยังไม่มีรหัส = ปุ่มขอรหัส · มีรหัสแล้ว = แสดงรหัส + ปุ่มเปิดแชตร้านพร้อมข้อความรหัส
           var ln = ctx.line || {};
           if (ln.code) {   // [2026-10-28] แสดงขั้นตอนส่งรหัส + ปุ่มคัดลอก + ที่วาง QR (profile.html ใส่ SVG ให้ถ้ามีไลบรารี QR)

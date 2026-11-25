@@ -57,6 +57,7 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
 <script src="store.common.js?v=20261118u"></script>
 <script src="store.local.js?v=20261012b"></script>
 <script src="store.supabase.js?v=20261124lc"></script>
+<script src="trial-text.js?v=20261125t"></script>
 <script src="avatar.js"></script>
 <script>
 const $ = (s) => document.querySelector(s), E = DB.esc, B = DB.baht;
@@ -261,6 +262,25 @@ $('#mTk').addEventListener('submit', async (e) => { if (e.target.id !== 'tkForm'
   if (!r.ok) return ($('#tkErr').textContent = r.errors.join(' ')); f.body.value = ''; f.internal.checked = false; $('#tkErr').textContent = ''; toast(wasInt ? 'บันทึกโน้ตภายในแล้ว' : 'ส่งข้อความถึงลูกค้าแล้ว ✔'); tkLoad(false); });
 
 /* ===== วิว ===== */
+/* [2026-11-25] กล่องแก้ข้อความ + เงื่อนไขทดลองฟรี (แท็บ 🎁 ขอคีย์ฟรี) · ค่าเก็บใน app_settings · ช่องว่าง = ใช้ข้อความตั้งต้น (placeholder) */
+const TT_FIELDS = [
+  ['trialCfmTitle', 'หน้ายืนยัน — หัวข้อ', 1], ['trialCfmText', 'หน้ายืนยัน — ข้อความหลัก', 3], ['trialCfmNote', 'หน้ายืนยัน — หมายเหตุ', 2], ['trialCfmAsk', 'หน้ายืนยัน — ประโยคถาม', 1],
+  ['trialCfmOk', 'ปุ่มยืนยัน', 1], ['trialCfmCancel', 'ปุ่มยกเลิก', 1], ['trialFullTitle', 'การ์ดลิมิตเต็ม — หัวข้อ', 1], ['trialFullText', 'การ์ดลิมิตเต็ม — ข้อความ', 3]];
+function trialTextBox() {
+  const T = window.DFTrialText, s = DB.settings() || {}, v = (k) => E(String(s[k] != null ? s[k] : '')), ph = (k) => E(T.D[k]);
+  const num = (k, lab, min, max, d) => '<label style="display:inline-block;margin:0 14px 8px 0">' + lab + ' <input type="number" id="tt_' + k + '" min="' + min + '" max="' + max + '" style="width:80px" value="' + E(String(s[k] != null && s[k] !== '' ? s[k] : d)) + '"></label>';
+  const fld = (r) => '<div style="margin:0 0 8px"><div style="font-size:13px;color:var(--mut);margin-bottom:2px">' + r[1] + '</div>' + (r[2] > 1 ? '<textarea id="tt_' + r[0] + '" rows="' + r[2] + '" style="width:100%" placeholder="' + ph(r[0]) + '">' + v(r[0]) + '</textarea>' : '<input id="tt_' + r[0] + '" style="width:100%" placeholder="' + ph(r[0]) + '" value="' + v(r[0]) + '">') + '</div>';
+  return '<div class="box" style="margin:12px 0"><h3 style="margin-top:0">📋 เงื่อนไขและข้อความทดลองฟรี</h3>' +
+    '<p style="color:var(--mut);font-size:13px;margin:4px 0 10px">แก้แล้วมีผลทันทีที่หน้าแรก (หน้ายืนยัน) และหน้าโปรไฟล์ (การ์ดขอคีย์) · ช่องว่าง = ใช้ข้อความตั้งต้น · ในข้อความใส่ <b>{days}</b> วันทดลอง · <b>{devices}</b> จำนวนเครื่อง · <b>{claim}</b> วันที่ต้องเริ่มใช้คีย์ ระบบแทนด้วยตัวเลขจริงให้</p>' +
+    '<h4 style="margin:6px 0">ตัวเลขเงื่อนไข</h4>' + num('trialDefaultDays', 'จำนวนวันทดลอง', 1, 30, 1) + num('trialDevices', 'จำนวนเครื่อง', 1, 10, 1) + num('trialClaimDays', 'ต้องเริ่มใช้คีย์ภายใน (วัน)', 1, 90, 14) +
+    '<p style="color:var(--mut);font-size:12px;margin:0 0 10px">เป็นค่าเริ่มต้นของระบบ: ใช้แสดงให้สมาชิก และเป็นค่าตั้งต้นในหน้าต่างอนุมัติคำขอ (แอดมินยังเปลี่ยนรายคำขอตอนอนุมัติได้)</p>' +
+    '<h4 style="margin:6px 0">เงื่อนไขการใช้งานฟรี (ให้สมาชิกติ๊กยอมรับ)</h4>' +
+    '<label style="display:block;margin:0 0 6px"><input type="checkbox" id="tt_trialTermsOn"' + (s.trialTermsOn !== false ? ' checked' : '') + '> แสดงเงื่อนไขและบังคับติ๊กยอมรับก่อนขอ</label>' +
+    '<div style="margin:0 0 8px"><div style="font-size:13px;color:var(--mut);margin-bottom:2px">รายการเงื่อนไข (หนึ่งบรรทัด = หนึ่งข้อ)</div><textarea id="tt_trialTerms" rows="5" style="width:100%" placeholder="' + ph('trialTerms') + '">' + v('trialTerms') + '</textarea></div>' +
+    fld(['trialTermsTick', 'ข้อความข้างช่องติ๊กยอมรับ', 1]) +
+    '<h4 style="margin:10px 0 6px">ข้อความ</h4>' + TT_FIELDS.map(fld).join('') +
+    '<div class="toolbar"><button class="btn gold sm" id="ttSave">💾 บันทึกเงื่อนไข/ข้อความ</button> <button class="btn sm" id="ttReset">↩ คืนข้อความตั้งต้นทั้งหมด</button></div></div>';
+}
 const V = {
   dash() {   // [2026-10-14] หน้าภาพรวมแบบกราฟ/แผนภูมิ (admin-overview.js + admin-charts.js) — เลือกแบบ B Clean Analytics
     return AdminOverview.render(AdminOverview.model(ovSnap(), { days: window._ovDays || 30, siteView: window._siteView, siteFrom: window._siteFrom, siteTo: window._siteTo }));
@@ -329,6 +349,7 @@ const V = {
       ${(r.near || []).map((n) => `<div style="margin-top:6px;font-size:13px;color:${n.hadTrial ? 'var(--err)' : 'var(--mut)'}">${n.hadTrial ? '⚠ เคยใช้สิทธิ์แล้ว' : 'ℹ บัญชีใกล้เคียง'}: ${E(n.email)} (${E(n.reason)})</div>`).join('') || '<div style="margin-top:6px;font-size:13px;color:var(--mut)">✔ ไม่พบบัญชีซ้ำ</div>'}</div>`;
     return `<h1>🎁 คำขอคีย์ทดลองใช้ฟรี</h1><p style="color:var(--mut)">สมาชิกกดขอในหน้าโปรไฟล์ → แจ้ง LINE แอดมิน → อนุมัติที่นี่ ระบบออกคีย์ให้ทันที สมาชิกเห็นคีย์ + ปุ่มดาวน์โหลดในโปรไฟล์อัตโนมัติ</p>
       <div class="box" style="margin:12px 0"><h3 style="margin-top:0">📅 ลิมิตทดลองฟรีต่อวัน</h3><p style="color:var(--mut);font-size:13px;margin:4px 0 10px">จำนวนสมาชิกที่ขอทดลองฟรีได้ต่อวัน (นับเวลาไทย เริ่มใหม่เที่ยงคืน · รวมทุกโปรแกรม · ไม่นับคำขอที่ยกเลิก) เต็มแล้วระบบจะปิดรับและบอกผู้ขอให้มาใหม่วันถัดไป · ใส่ 0 = ปิดรับทั้งวัน</p><div class="toolbar"><input id="tdmVal" type="number" min="0" max="1000" style="width:100px" value="${E(String((DB.settings() || {}).trialDailyMax != null && (DB.settings() || {}).trialDailyMax !== '' ? (DB.settings() || {}).trialDailyMax : 5))}"> <span style="color:var(--mut)">คน/วัน</span> <button class="btn gold sm" id="tdmSave">💾 บันทึกลิมิต</button></div></div>
+      ${trialTextBox()}
       <h3>⏳ รอดำเนินการ (${q.pending.length})</h3>${q.pending.map(card).join('') || '<p style="color:var(--mut)">ไม่มีคำขอค้าง</p>'}
       <h3 style="margin-top:18px">🕘 ล่าสุด</h3>${q.recent.map((r) => `<div class="hl"><span style="flex:1"><b data-trinfo="${E(r.id)}" style="cursor:pointer;text-decoration:underline dotted" title="คลิกดูรายละเอียด">${E(r.name)}</b> · ${E(r.email)}<br><small style="color:var(--mut)">${ST[r.status] || r.status} ${th(r.decidedAt)}${r.decisionNote ? ' · ' + E(r.decisionNote) : ''}${r.cancelledBy ? ' (โดย ' + (r.cancelledBy === 'member' ? 'สมาชิก' : r.cancelledBy === 'system' ? 'ระบบ' : 'แอดมิน') + ')' : ''}</small></span></div>`).join('') || '<p style="color:var(--mut)">ยังไม่มีประวัติ</p>'}`;
   },
@@ -625,6 +646,15 @@ const A = {
     if (!SB) return;
     if (window._trialHl) { const el = $('#main').querySelector('[data-trq="' + window._trialHl + '"]'); window._trialHl = ''; if (el) el.scrollIntoView({ block: 'center' }); }
     $('#main').onclick = async (e) => {
+      if (e.target.closest('#ttSave') || e.target.closest('#ttReset')) {
+        const reset = !!e.target.closest('#ttReset'), keys = ['trialCfmTitle', 'trialCfmText', 'trialCfmNote', 'trialCfmAsk', 'trialCfmOk', 'trialCfmCancel', 'trialFullTitle', 'trialFullText', 'trialTermsTick', 'trialTerms'], o = {};
+        if (reset && !confirm('คืนข้อความและเงื่อนไขเป็นค่าตั้งต้นทั้งหมด? (ตัวเลขวัน/เครื่องไม่เปลี่ยน)')) return;
+        for (const k of keys) o[k] = reset ? '' : $('#tt_' + k).value.trim();
+        o.trialTermsOn = reset ? true : $('#tt_trialTermsOn').checked;
+        if (!reset) for (const [k, lab, mn, mx] of [['trialDefaultDays', 'จำนวนวันทดลอง', 1, 30], ['trialDevices', 'จำนวนเครื่อง', 1, 10], ['trialClaimDays', 'วันที่ต้องเริ่มใช้คีย์', 1, 90]]) { const n = Math.floor(Number($('#tt_' + k).value)); if (!Number.isFinite(n) || n < mn || n > mx) return alert(lab + ': ใส่จำนวนเต็ม ' + mn + '–' + mx); o[k] = n; }
+        if (o.trialTerms.length > 1500 || keys.some((k) => o[k].length > 600 && k !== 'trialTerms')) return alert('ข้อความยาวเกินไป');
+        const r = await DB.saveSettings(o); r && r.ok === false ? alert(r.errors.join('\n')) : (toast(reset ? 'คืนข้อความตั้งต้นแล้ว ✔' : 'บันทึกเงื่อนไข/ข้อความแล้ว ✔'), render()); return;
+      }
       if (e.target.closest('#tdmSave')) { const n = Math.floor(Number($('#tdmVal').value)); if (!Number.isFinite(n) || n < 0 || n > 1000) return alert('ใส่จำนวนเต็ม 0–1000'); const r = await DB.saveSettings({ trialDailyMax: n }); r && r.ok === false ? alert(r.errors.join('\n')) : (toast('บันทึกลิมิต ' + n + ' คน/วัน แล้ว ✔'), render()); return; }
       const ti = e.target.closest('[data-trinfo]'); if (ti) { await showTrialInfo(ti.dataset.trinfo); return; }
       const ok = e.target.closest('[data-tok]'), rj = e.target.closest('[data-trej]'), cn = e.target.closest('[data-tcan]'); if (!ok && !rj && !cn) return;

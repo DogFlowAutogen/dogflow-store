@@ -77,7 +77,8 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
 <script src="store.supabase.js?v=20261124lc"></script>
 <script src="avatar.js"></script>
 <script src="vendor/qrcode.js?v=20261028a"></script>
-<script src="trial-card.js?v=20261125e"></script>
+<script src="trial-text.js?v=20261125t"></script>
+<script src="trial-card.js?v=20261125f"></script>
 <script>
 const $ = (s) => document.querySelector(s), E = DB.esc, B = DB.baht;
 const toast = (m) => { const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(t._); t._ = setTimeout(() => t.classList.remove('on'), 2400); };
@@ -106,7 +107,7 @@ function paintTrialMeta() {
   const sig = JSON.stringify([st.state, st.reason, st.request && st.request.id, st.request && st.request.status, st.key && st.key.key, dl && dl.id, trialBusy, lineAbove, !lineAbove && lineV && lineV.code, !lineAbove && lineV && lineV.error]);
   box.hidden = false; if (sig === trialMetaSig) return; trialMetaSig = sig;
   let html = lineAbove ? '<div class="trial warn"><h3>🎁 ทดลองใช้ฟรี</h3><div class="trial-t">ยืนยันตัวตนผ่าน LINE ก่อน</div><p>ทำที่กล่อง "ทดลองใช้ฟรี" ด้านบนครั้งเดียว แล้วกลับมาขอทดลอง DogMeta ได้</p></div>' : TrialCard.render(st, { dl, busy: trialBusy, line: st.reason === 'line_unverified' ? lineV : null });
-  box.innerHTML = html.replace(/id="trial(Ask|Cancel|Note|Consent|Err)"/g, 'id="trialMeta$1"').replace('<h3>🎁 ทดลองใช้ฟรี</h3>', '<h3>🎁 ทดลองใช้ฟรี — DogMeta</h3>');
+  box.innerHTML = html.replace(/id="trial(Ask|Cancel|Note|Consent|Terms|Err)"/g, 'id="trialMeta$1"').replace('<h3>🎁 ทดลองใช้ฟรี</h3>', '<h3>🎁 ทดลองใช้ฟรี — DogMeta</h3>');
   { const q = $('#lineQr'); if (q && !lineAbove && lineV && lineV.url && window.qrcode) { try { const c = window.qrcode(0, 'M'); c.addData(lineV.url); c.make(); q.innerHTML = c.createSvgTag({ cellSize: 4, margin: 16, scalable: true }); const sv = q.querySelector('svg'); if (sv) { sv.style.width = '100%'; sv.style.height = '100%'; } } catch (e) { /* ไม่มี QR ก็ใช้ปุ่มได้ */ } } }
 }
 function paintTrialMain() {
@@ -151,12 +152,14 @@ document.addEventListener('click', async (e) => {
   if (e.target.closest('[data-focus-prof]')) { e.preventDefault(); const f = $('#fProf'); f.scrollIntoView({ behavior: 'smooth' }); f.name.focus(); return; }
   if (e.target.closest('#trialAsk')) {
     const err = $('#trialErr'); if (!$('#trialConsent').checked) return showErr(err, ['ติ๊กยินยอมให้เก็บรหัสเครื่องก่อนจึงจะขอได้']);
+    if ($('#trialTerms') && !$('#trialTerms').checked) return showErr(err, ['ติ๊กยอมรับเงื่อนไขการใช้งานฟรีก่อนจึงจะขอได้']);
     const note = $('#trialNote').value, r = await trialDo(() => DB.requestTrial(note, true));
     if (!r.ok) { const e2 = $('#trialErr'); if (e2) showErr(e2, r.errors); return; }
     toast(r.status && r.status.state === 'pending' ? 'ส่งคำขอแล้ว ✔ ทีมงานได้รับแจ้งเตือน' : 'ขอไม่สำเร็จ — ดูเหตุผลในกล่อง'); return;
   }
   if (e.target.closest('#trialMetaAsk')) {
     const err = $('#trialMetaErr'); if (!$('#trialMetaConsent').checked) return showErr(err, ['ติ๊กยินยอมให้เก็บรหัสเครื่องก่อนจึงจะขอได้']);
+    if ($('#trialMetaTerms') && !$('#trialMetaTerms').checked) return showErr(err, ['ติ๊กยอมรับเงื่อนไขการใช้งานฟรีก่อนจึงจะขอได้']);
     const note = $('#trialMetaNote').value, r = await trialDo(() => DB.requestTrial(note, true, 'dogmeta'));
     if (!r.ok) { const e2 = $('#trialMetaErr'); if (e2) showErr(e2, r.errors); return; }
     toast(r.status && r.status.state === 'pending' ? 'ส่งคำขอทดลอง DogMeta แล้ว ✔ ทีมงานได้รับแจ้งเตือน' : 'ขอไม่สำเร็จ — ดูเหตุผลในกล่อง'); return;
