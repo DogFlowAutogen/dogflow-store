@@ -267,7 +267,7 @@ const TT_FIELDS = [
   ['trialCfmTitle', 'หน้ายืนยัน — หัวข้อ', 1], ['trialCfmText', 'หน้ายืนยัน — ข้อความหลัก', 3], ['trialCfmNote', 'หน้ายืนยัน — หมายเหตุ', 2], ['trialCfmAsk', 'หน้ายืนยัน — ประโยคถาม', 1],
   ['trialCfmOk', 'ปุ่มยืนยัน', 1], ['trialCfmCancel', 'ปุ่มยกเลิก', 1], ['trialFullTitle', 'การ์ดลิมิตเต็ม — หัวข้อ', 1], ['trialFullText', 'การ์ดลิมิตเต็ม — ข้อความ', 3]];
 function trialTextBox() {
-  const T = window.DFTrialText, s = DB.settings() || {}, v = (k) => E(String(s[k] != null ? s[k] : '')), ph = (k) => E(T.D[k]);
+  const T = window.DFTrialText, s = DB.settings() || {}, v = (k) => E(typeof s[k] === 'string' && s[k].trim() ? s[k] : T.D[k]), ph = (k) => E(T.D[k]);
   const num = (k, lab, min, max, d) => '<label style="display:inline-block;margin:0 14px 8px 0">' + lab + ' <input type="number" id="tt_' + k + '" min="' + min + '" max="' + max + '" style="width:80px" value="' + E(String(s[k] != null && s[k] !== '' ? s[k] : d)) + '"></label>';
   const fld = (r) => '<div style="margin:0 0 8px"><div style="font-size:13px;color:var(--mut);margin-bottom:2px">' + r[1] + '</div>' + (r[2] > 1 ? '<textarea id="tt_' + r[0] + '" rows="' + r[2] + '" style="width:100%" placeholder="' + ph(r[0]) + '">' + v(r[0]) + '</textarea>' : '<input id="tt_' + r[0] + '" style="width:100%" placeholder="' + ph(r[0]) + '" value="' + v(r[0]) + '">') + '</div>';
   return '<div class="box" style="margin:12px 0"><h3 style="margin-top:0">📋 เงื่อนไขและข้อความทดลองฟรี</h3>' +
