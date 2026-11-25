@@ -637,7 +637,7 @@ $('#trialCta').addEventListener('click', (e) => {
   if (TRIAL_PAUSE) { closeAll(); dfConfirm({ icon: '🎁', title: TRIAL_PAUSE.title, text: TRIAL_PAUSE.text, note: TRIAL_PAUSE.note, ok: 'รับทราบ', cancel: 'ปิด' }); return; }
   /* [2026-11-25 เจ้าของสั่ง] กดแล้วถามยืนยันก่อน: ทดลองฟรีมีลิมิตรายวัน (จำนวนจริงตั้งในหน้าแอดมิน · ฝั่งฐานข้อมูลบังคับใช้) */
   closeAll();
-  dfConfirm({ icon: '🎁', cls: 'neon', title: 'ทดลองฟรีมีจำนวนจำกัดต่อวัน', text: 'สิทธิ์ทดลองใช้ฟรีมีลิมิตรายวัน หากวันนี้เต็มแล้วจะขอไม่ได้ ต้องลองใหม่ในวันถัดไป', note: 'ต้องสมัครสมาชิกและยืนยันตัวตนผ่าน LINE ก่อน', ask: 'ต้องการดำเนินการต่อหรือไม่?', ok: 'ดำเนินการต่อ', cancel: 'ยกเลิก' }).then((go) => { if (go) { paintTrialActs(); openM('#mTrial'); } });
+  dfConfirm({ icon: '🎁', cls: 'neon', title: 'ทดลองฟรีวันละไม่กี่สิทธิ์นะ', text: 'เรามีสิทธิ์ทดลองใช้ฟรีให้แค่วันละไม่กี่คน ถ้าวันนี้เต็มแล้วจะขอไม่ได้ ไว้มาลองใหม่พรุ่งนี้ได้เลย', note: 'ก่อนขอ ต้องสมัครสมาชิกและยืนยันตัวตนผ่าน LINE ก่อนนะ', ask: 'พร้อมไปต่อเลยไหม?', ok: 'ไปต่อเลย', cancel: 'ไว้ก่อน' }).then((go) => { if (go) { paintTrialActs(); openM('#mTrial'); } });
 });
 
 function needLogin(then, reg = true) { closeAll(); authTab(reg); paintRef(); afterAuth = then; openM('#mAuth'); }
