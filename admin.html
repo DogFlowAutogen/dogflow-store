@@ -56,7 +56,7 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
 <script src="vendor/supabase.js"></script>
 <script src="store.common.js?v=20261118u"></script>
 <script src="store.local.js?v=20261012b"></script>
-<script src="store.supabase.js?v=20261124lc"></script>
+<script src="store.supabase.js?v=20261125br"></script>
 <script src="trial-text.js?v=20261125t"></script>
 <script src="avatar.js"></script>
 <script>
@@ -395,7 +395,7 @@ const V = {
     return '<h1>💬 แชต LINE</h1><p style="color:var(--mut)">ข้อความที่ลูกค้าส่งเข้าบัญชี LINE Official (@404qjdlg) — <b>หน้านี้อ่านอย่างเดียว</b> หากต้องการตอบลูกค้า ให้ตอบที่ <a href="https://manager.line.biz/" target="_blank" rel="noopener">LINE Official Account Manager</a> ข้อความของลูกค้าเป็นข้อมูลส่วนบุคคล เปิดดูเฉพาะแอดมิน</p>'
       + '<div class="kpi"><div><b>' + th.length + '</b><span>บทสนทนา</span></div><div><b>' + L.filter((m) => m.status === 'new').length + '</b><span>ข้อความใหม่</span></div><div><b>' + L.length + '</b><span>ข้อความทั้งหมด (ล่าสุด 500)</span></div></div>'
       + (th.length ? th.map((c) => '<div class="hl" style="display:block;margin:10px 0"><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">' + (c.nw ? '<span class="tag err">🆕 ใหม่ ' + c.nw + '</span>' : '<span class="tag">👁 อ่านแล้ว</span>') + '<b>' + E(c.nm) + '</b><span style="color:var(--mut)">· ล่าสุด ' + E(fmt(c.last)) + '</span></div>'
-        + '<div style="margin-top:8px;display:flex;flex-direction:column;gap:6px">' + c.a.slice(0, 30).reverse().map((m) => '<div style="white-space:pre-wrap;padding:6px 12px;border-left:3px solid ' + (m.status === 'new' ? 'var(--accent)' : 'var(--line)') + ';background:var(--surface2);border-radius:6px;font-size:14px"><small style="color:var(--mut)">' + E(fmt(m.createdAt)) + '</small><br>' + (m.type === 'text' ? E(m.message) : '<i style="color:var(--mut)">[' + E(m.type) + ' — ดูไฟล์/สติกเกอร์ที่ LINE Official Account Manager]</i>') + '</div>').join('') + (c.a.length > 30 ? '<small style="color:var(--mut)">… แสดง 30 ข้อความล่าสุดจาก ' + c.a.length + '</small>' : '') + '</div>'
+        + '<div style="margin-top:8px;display:flex;flex-direction:column;gap:6px">' + c.a.slice(0, 30).reverse().map((m) => '<div style="white-space:pre-wrap;padding:6px 12px;border-left:3px solid ' + (m.status === 'new' ? 'var(--accent)' : 'var(--line)') + ';background:var(--surface2);border-radius:6px;font-size:14px"><small style="color:var(--mut)">' + E(fmt(m.createdAt)) + '</small><br>' + (m.type === 'text' ? E(m.message) : '<i style="color:var(--mut)">[' + E(m.type) + ' — ดูไฟล์/สติกเกอร์ที่ LINE Official Account Manager]</i>') + (m.botReply ? '<br><small style="color:' + (/→ (?!2\d\d)/.test(m.botReply) ? 'var(--err,#e5484d)' : 'var(--mut)') + '">🤖 บอท: ' + E(m.botReply) + '</small>' : '') + '</div>').join('') + (c.a.length > 30 ? '<small style="color:var(--mut)">… แสดง 30 ข้อความล่าสุดจาก ' + c.a.length + '</small>' : '') + '</div>'
         + '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">' + (c.nw ? '<button class="btn sm" data-lcr="' + E(c.u) + '">👁 ทำเครื่องหมายอ่านแล้ว</button>' : '') + '<button class="btn sm ghost" data-lcd="' + E(c.u) + '">🗑 ลบบทสนทนา</button></div></div>').join('') : '<p style="color:var(--mut)">ยังไม่มีแชตลูกค้า</p>');
   },
   affiliate() {
