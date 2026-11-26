@@ -768,3 +768,6 @@ footer .trafficrow{margin:0 0 18px}footer .trafficrow .trafficcard{max-width:non
 /* [2026-11-24 เจ้าของสั่ง] ปุ่ม 🎁 ทดลองฟรี ตอนปิดชั่วคราว (เต็มลิมิตต่อวัน) — สีหม่น ยังกดได้เพื่อดูเหตุผล */
 .btn.trial.paused{background:#3a3550;border-color:#4b4668;color:#c9c4de;box-shadow:none;opacity:.85}
 .btn.trial.paused:hover:not(:disabled){filter:none;border-color:#6d28d9;box-shadow:none}
+/* [2026-11-27] การ์ดติดต่อสองใบ: แถวปุ่มชิดล่าง อยู่ระดับเดียวกัน */
+.contactrow .linecard>div,.contactrow .mailcard>div:last-child{align-self:stretch}
+.contactrow .linecard>div>span:last-child,.contactrow .mailcard .mc-btns{margin-top:auto}
