@@ -45,6 +45,7 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
     <div class="box"><h3>🔑 License key ของฉัน</h3><p style="color:var(--mut);font-size:14px;margin-top:0">คีย์จะปรากฏที่นี่อัตโนมัติเมื่อแอดมินยืนยันการชำระเงินแล้ว — นำไปใส่ในโปรแกรมเพื่อเปิดใช้งาน</p><div id="keys"></div></div>
     <div class="box" id="downloads"><h3>💿 ดาวน์โหลดโปรแกรม</h3><div id="dlist"></div><div id="dlguide"></div></div>
     <div class="box" id="grp" hidden><h3>💬 เข้ากลุ่ม LINE ลูกค้า DogFlow</h3><p style="color:var(--mut);font-size:14px;margin:0 0 10px">สแกน QR Code ด้วยแอป LINE เพื่อเข้ากลุ่ม — สิทธิ์เฉพาะลูกค้าที่ชำระเงินและได้รับ License key แล้ว กรุณาอย่าแชร์ต่อ</p><img id="grpQr" alt="QR Code เข้ากลุ่ม LINE DogFlow" style="width:min(240px,100%);border-radius:12px;background:#fff;display:block"><div class="grpcontact" style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line,#e5e0d8);font-size:14px;line-height:1.7;overflow-wrap:anywhere"><h3 style="margin:0 0 6px">💬 สอบถามเพิ่มเติม</h3><div style="margin-top:4px"><b>เฟซบุ๊ก</b> : <a href="https://www.facebook.com/DogFlowAuto" target="_blank" rel="noopener noreferrer" style="color:inherit;text-decoration:underline">https://www.facebook.com/DogFlowAuto</a></div><div style="margin-top:4px"><b>เพจเฟซบุ๊ก</b> : <a href="https://www.facebook.com/dogflowautogen" target="_blank" rel="noopener noreferrer" style="color:inherit;text-decoration:underline">https://www.facebook.com/dogflowautogen</a></div><div style="margin-top:4px"><b>กลุ่มเฟซบุ๊ก</b> : <a href="https://www.facebook.com/groups/dogflow" target="_blank" rel="noopener noreferrer" style="color:inherit;text-decoration:underline">https://www.facebook.com/groups/dogflow</a></div><div style="margin-top:4px"><b>โทร</b> : <a href="tel:0639698507" style="color:inherit;text-decoration:underline">063-969-850-7</a></div></div></div>
+    <div class="box" id="grpTrial" hidden><h3>💬 เข้ากลุ่ม LINE สมาชิก DogFlow ทดลองใช้ฟรี</h3><p style="color:var(--mut);font-size:14px;margin:0 0 10px">สแกน QR Code ด้วยแอป LINE เพื่อเข้ากลุ่ม — สิทธิ์เฉพาะสมาชิก กรุณาอย่าแชร์ต่อ</p><img id="grpTrialQr" alt="QR Code เข้ากลุ่ม LINE สมาชิกทดลองใช้ฟรี" style="width:min(240px,100%);border-radius:12px;background:#fff;display:block"><div class="grpcontact" style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line,#e5e0d8);font-size:14px;line-height:1.7;overflow-wrap:anywhere"><h3 style="margin:0 0 6px">💬 สอบถามเพิ่มเติม</h3><div style="margin-top:4px"><b>เฟซบุ๊ก</b> : <a href="https://www.facebook.com/DogFlowAuto" target="_blank" rel="noopener noreferrer" style="color:inherit;text-decoration:underline">https://www.facebook.com/DogFlowAuto</a></div><div style="margin-top:4px"><b>เพจเฟซบุ๊ก</b> : <a href="https://www.facebook.com/dogflowautogen" target="_blank" rel="noopener noreferrer" style="color:inherit;text-decoration:underline">https://www.facebook.com/dogflowautogen</a></div><div style="margin-top:4px"><b>กลุ่มเฟซบุ๊ก</b> : <a href="https://www.facebook.com/groups/dogflow" target="_blank" rel="noopener noreferrer" style="color:inherit;text-decoration:underline">https://www.facebook.com/groups/dogflow</a></div><div style="margin-top:4px"><b>โทร</b> : <a href="tel:0639698507" style="color:inherit;text-decoration:underline">063-969-850-7</a></div></div></div>
     <div class="box" id="aff" hidden>
       <div class="aff-hd"><h3>🪪 ตัวแทนขายโปรแกรม</h3><span class="aff-pill" id="affPill" hidden></span></div>
       <p style="color:var(--mut);font-size:14px;margin:0 0 10px">สมาชิกทุกคนแชร์ลิงก์แนะนำได้ทันที รับค่าคอมแบบคงที่ตามแพ็กเกจที่ลูกค้าซื้อ</p>
@@ -74,7 +75,7 @@ d.innerHTML='<div style="font-size:48px">&#9888;</div><h2 style="margin:12px 0">
 <script src="vendor/supabase.js"></script>
 <script src="store.common.js?v=20261118q"></script>
 <script src="store.local.js?v=20261012a"></script>
-<script src="store.supabase.js?v=20261125br"></script>
+<script src="store.supabase.js?v=20261127tg"></script>
 <script src="avatar.js"></script>
 <script src="vendor/qrcode.js?v=20261028a"></script>
 <script src="trial-text.js?v=20261125t"></script>
@@ -92,6 +93,17 @@ async function paintGroup(ok) {
   const box = $('#grp'); if (!ok) { box.hidden = true; grpUrl = ''; grpAt = 0; return; }
   if (!grpUrl || Date.now() - grpAt > 240000) { const t = Date.now(); const u = await DB.groupQrUrl(); if (!u) { box.hidden = true; return; } grpUrl = u; grpAt = t; $('#grpQr').src = u; }
   box.hidden = false;
+}
+// QR กลุ่มสมาชิกทดลองใช้ฟรี: ฐานข้อมูลเป็นผู้ตัดสินสิทธิ์ (ยืนยัน LINE + ขอทดลองแล้ว) ไม่มีสิทธิ์ = ไม่แสดง · ผู้ซื้อจริงเห็นการ์ดลูกค้าแทน
+let tgAt = 0, tgUrl = '', tgSig = '';
+async function paintTrialGroup(paid) {
+  const box = $('#grpTrial'), st = (DB.trialStatus && DB.trialStatus()) || {}, sig = String(st.state || '') + (paid ? '|paid' : '');
+  if (paid || !DB.trialQrUrl) { box.hidden = true; tgSig = sig; tgUrl = ''; return; }
+  if (sig !== tgSig || Date.now() - tgAt > 240000) {
+    tgSig = sig; tgAt = Date.now(); tgUrl = await DB.trialQrUrl();
+    if (tgUrl) $('#grpTrialQr').src = tgUrl;
+  }
+  box.hidden = !tgUrl;
 }
 // การ์ดทดลองใช้ฟรี: วาดใหม่เฉพาะเมื่อสถานะเปลี่ยน (กัน db:change ล้างช่องที่กำลังพิมพ์/ติ๊กอยู่)
 let trialSig = '', trialBusy = false, lineV = null, linePoll = 0, lineTick = null;   // lineV = { code, url, error } ระหว่างยืนยัน LINE
@@ -199,6 +211,7 @@ function render() {
     : keys.length ? '<p style="color:var(--mut)">ยังไม่มีไฟล์ให้ดาวน์โหลดในตอนนี้ (หรือสิทธิ์/อายุคีย์หมดแล้ว) — หากมีปัญหาติดต่อแอดมิน</p>' : '<p style="color:var(--mut)">ดาวน์โหลดได้เมื่อมี License ที่ใช้งานได้ — <a href="index.html#shop" style="color:var(--cyan)">เลือกซื้อแพ็กเกจ</a></p>';
   const guide = DB.settings().installGuide; $('#dlguide').innerHTML = can && guide ? `<details open style="margin-top:10px"><summary>📖 วิธีติดตั้งและเริ่มใช้งาน</summary><div style="white-space:pre-line;color:var(--mut);font-size:14px;margin-top:6px">${E(guide)}</div></details>` : '';
   paintAff(); paintFb();
+  paintTrialGroup(keys.some((k) => !k.revoked && !k.trial));
   paintGroup(keys.some((k) => !k.revoked && !k.trial));   // กลุ่ม LINE ลูกค้า: เฉพาะผู้ซื้อ (คีย์ทดลองไม่นับ)
   $('#orders').innerHTML = orders.map((o) => `<div style="border:1px solid var(--line);border-radius:12px;padding:12px;margin:10px 0">
     <div class="row"><b>${E(o.id)}</b><span class="tag ${ST[o.status][1]}">${ST[o.status][0]}</span></div>
