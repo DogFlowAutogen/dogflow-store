@@ -771,3 +771,5 @@ footer .trafficrow{margin:0 0 18px}footer .trafficrow .trafficcard{max-width:non
 /* [2026-11-27] การ์ดติดต่อสองใบ: แถวปุ่มชิดล่าง อยู่ระดับเดียวกัน */
 .contactrow .linecard>div,.contactrow .mailcard>div:last-child{align-self:stretch}
 .contactrow .linecard>div>span:last-child,.contactrow .mailcard .mc-btns{margin-top:auto}
+/* [2026-11-27] ลิงก์ในการ์ดสอบถามเพิ่มเติม: ไม่มีเส้นใต้ ชี้เมาส์เป็นสีส้ม (!important ชนะ color:inherit ที่เขียนไว้ในแท็ก) */
+.mailcard .mc-links a{transition:color .15s}.mailcard .mc-links a:hover,.mailcard .mc-links a:focus-visible{color:var(--accent)!important}
